@@ -485,6 +485,8 @@ const FlyerApp = (function () {
     const footerEl = renderFooter(page.footer);
     contentWrapper.appendChild(footerEl);
 
+    preview.appendChild(contentWrapper);
+
     // Apply zoom
     const container = document.getElementById('preview-container');
     if (container) {
@@ -546,6 +548,8 @@ const FlyerApp = (function () {
 
     const footerEl = renderFooter(page.footer);
     contentWrapper.appendChild(footerEl);
+
+    container.appendChild(contentWrapper);
   }
 
   // Debounced version for use in input handlers
