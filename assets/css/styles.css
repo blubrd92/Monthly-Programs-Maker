@@ -733,6 +733,7 @@ body {
 
 .flyer-program-name {
   text-align: left;
+  padding-left: 8px;
 }
 
 .flyer-program-date {
@@ -743,12 +744,13 @@ body {
 .flyer-program-time {
   text-align: center;
   white-space: nowrap;
+  padding-right: 8px;
 }
 
 .flyer-program-subtitle {
   grid-column: 1 / -1;
   text-align: left;
-  padding-left: 0;
+  padding-left: 8px;
   margin-top: -1px;
   padding-bottom: 1px;
 }
