@@ -155,7 +155,7 @@ const FlyerApp = (function () {
         color: header.titleColor || CONFIG.COLORS.headerTitle,
         fontFamily: fontRoles.headerTitle,
         fontSize: titleSize + 'px',
-        lineHeight: '1.1',
+        lineHeight: '1',
       },
     });
 
@@ -166,7 +166,7 @@ const FlyerApp = (function () {
         color: header.monthColor || CONFIG.COLORS.headerMonth,
         fontFamily: fontRoles.headerMonth,
         fontSize: monthSize + 'px',
-        lineHeight: '1.1',
+        lineHeight: '1',
       },
     });
 
