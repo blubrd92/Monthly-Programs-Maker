@@ -649,22 +649,28 @@ const FlyerApp = (function () {
     structuredFields.appendChild(subtitleGroup);
 
     // Date + Time row
+    const dateInput = el('textarea', {
+      'class': 'input-date',
+      'rows': '2',
+      style: { resize: 'none' },
+    });
+    dateInput.value = program.dateText || '';
+
+    const timeInput = el('textarea', {
+      'class': 'input-time',
+      'rows': '2',
+      style: { resize: 'none' },
+    });
+    timeInput.value = program.timeText || '';
+
     const dateTimeRow = el('div', { 'class': 'form-row' },
       el('div', { 'class': 'form-group' },
         el('label', { text: 'Date' }),
-        el('input', {
-          'type': 'text',
-          'class': 'input-date',
-          'value': program.dateText || '',
-        })
+        dateInput
       ),
       el('div', { 'class': 'form-group' },
         el('label', { text: 'Time' }),
-        el('input', {
-          'type': 'text',
-          'class': 'input-time',
-          'value': program.timeText || '',
-        })
+        timeInput
       )
     );
     structuredFields.appendChild(dateTimeRow);

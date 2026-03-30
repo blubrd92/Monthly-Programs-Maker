@@ -773,12 +773,12 @@ body {
 
 .flyer-program-date {
   text-align: center;
-  white-space: nowrap;
+  white-space: pre-line;
 }
 
 .flyer-program-time {
   text-align: center;
-  white-space: nowrap;
+  white-space: pre-line;
   padding-right: 8px;
 }
 
