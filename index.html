@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Library Programs Flyer Maker</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,400;1,700&family=Encode+Sans+Condensed:wght@400;500;600;700&family=Saira+Condensed:wght@400;500;600;700&family=Red+Hat+Display:wght@400;500;600;700&family=Albert+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- App Styles -->
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+
+  <!-- Font Preloader (hidden, forces font loading before canvas drawing) -->
+  <div id="font-preloader" aria-hidden="true" style="position:absolute;left:-9999px;top:-9999px;visibility:hidden;">
+    <span style="font-family:'Barlow Condensed',sans-serif;font-weight:400;">.</span>
+    <span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;">.</span>
+    <span style="font-family:'Encode Sans Condensed',sans-serif;font-weight:400;">.</span>
+    <span style="font-family:'Encode Sans Condensed',sans-serif;font-weight:700;">.</span>
+    <span style="font-family:'Saira Condensed',sans-serif;font-weight:400;">.</span>
+    <span style="font-family:'Saira Condensed',sans-serif;font-weight:700;">.</span>
+    <span style="font-family:'Red Hat Display',sans-serif;font-weight:400;">.</span>
+    <span style="font-family:'Red Hat Display',sans-serif;font-weight:700;">.</span>
+    <span style="font-family:'Albert Sans',sans-serif;font-weight:400;">.</span>
+    <span style="font-family:'Albert Sans',sans-serif;font-weight:700;">.</span>
+    <span style="font-family:'Outfit',sans-serif;font-weight:400;">.</span>
+    <span style="font-family:'Outfit',sans-serif;font-weight:700;">.</span>
+  </div>
+
+  <!-- ═══════════ HEADER BAR ═══════════ -->
+  <header id="header-bar">
+    <div class="header-left">
+      <i class="fas fa-file-alt"></i>
+      <h1>Library Flyer Maker</h1>
+    </div>
+    <div class="header-actions">
+      <button id="btn-load" class="btn btn-secondary" title="Load .flyer file">
+        <i class="fas fa-folder-open"></i> Load
+      </button>
+      <button id="btn-save" class="btn btn-secondary" title="Save as .flyer file">
+        <i class="fas fa-save"></i> Save
+      </button>
+      <button id="btn-reset" class="btn btn-secondary" title="Reset to defaults">
+        <i class="fas fa-redo"></i> Reset
+      </button>
+      <button id="btn-export-pdf" class="btn btn-success" title="Export as 600 DPI PDF">
+        <i class="fas fa-file-pdf"></i> Export PDF
+      </button>
+      <input type="file" id="file-input" accept=".flyer,.json" style="display:none;">
+    </div>
+  </header>
+
+  <!-- ═══════════ MAIN LAYOUT ═══════════ -->
+  <div id="app-layout">
+
+    <!-- ─── SIDEBAR ─── -->
+    <aside id="sidebar">
+      <div id="sidebar-toggle" title="Toggle sidebar">
+        <i class="fas fa-chevron-left"></i>
+      </div>
+
+      <!-- Tabs -->
+      <div id="sidebar-tabs">
+        <button class="tab-btn active" data-tab="programs">
+          <i class="fas fa-list"></i> Programs
+        </button>
+        <button class="tab-btn" data-tab="settings">
+          <i class="fas fa-cog"></i> Settings
+        </button>
+      </div>
+
+      <!-- ─── Programs Tab ─── -->
+      <div id="tab-programs" class="tab-content active">
+        <div id="branch-list">
+          <!-- Branches rendered by app.js -->
+        </div>
+        <button id="btn-add-branch" class="btn btn-outline btn-full">
+          <i class="fas fa-plus"></i> Add Branch
+        </button>
+      </div>
+
+      <!-- ─── Settings Tab ─── -->
+      <div id="tab-settings" class="tab-content">
+
+        <!-- Page Setup -->
+        <div class="settings-section">
+          <h3 class="settings-heading" data-toggle="section-page">
+            <i class="fas fa-chevron-down"></i> Page Setup
+          </h3>
+          <div id="section-page" class="settings-body">
+            <div class="form-group">
+              <label>Page Size</label>
+              <div class="toggle-group">
+                <button class="toggle-btn active" data-page-size="letter">Letter (8.5×11)</button>
+                <button class="toggle-btn" data-page-size="legal">Legal (8.5×14)</button>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="meta-month">Month</label>
+                <input type="text" id="meta-month" value="February">
+              </div>
+              <div class="form-group">
+                <label for="meta-year">Year</label>
+                <input type="number" id="meta-year" value="2026" min="2000" max="2100">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Header -->
+        <div class="settings-section">
+          <h3 class="settings-heading" data-toggle="section-header">
+            <i class="fas fa-chevron-down"></i> Header
+          </h3>
+          <div id="section-header" class="settings-body">
+            <div class="form-group">
+              <label for="header-title-text">Title Text</label>
+              <input type="text" id="header-title-text" value="LIBRARY PROGRAMS">
+            </div>
+            <div class="form-group">
+              <label for="header-month-text">Month Display Text</label>
+              <input type="text" id="header-month-text" value="FEBRUARY 2026">
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="header-title-color">Title Color</label>
+                <input type="color" id="header-title-color" value="#000000">
+              </div>
+              <div class="form-group">
+                <label for="header-month-color">Month Color</label>
+                <input type="color" id="header-month-color" value="#cc007e">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="header-title-size">Title Size (pt)</label>
+                <input type="number" id="header-title-size" value="28" min="8" max="72">
+              </div>
+              <div class="form-group">
+                <label for="header-month-size">Month Size (pt)</label>
+                <input type="number" id="header-month-size" value="28" min="8" max="72">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Typography -->
+        <div class="settings-section">
+          <h3 class="settings-heading" data-toggle="section-typography">
+            <i class="fas fa-chevron-down"></i> Typography
+          </h3>
+          <div id="section-typography" class="settings-body">
+            <div class="form-group">
+              <label for="font-condensed">Condensed Font</label>
+              <select id="font-condensed"></select>
+            </div>
+            <div class="form-group">
+              <label for="font-display">Display Font (Branch Names)</label>
+              <select id="font-display"></select>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="style-program-name-size">Program Name (pt)</label>
+                <input type="number" id="style-program-name-size" value="11" min="6" max="24">
+              </div>
+              <div class="form-group">
+                <label for="style-program-date-size">Date (pt)</label>
+                <input type="number" id="style-program-date-size" value="11" min="6" max="24">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="style-program-time-size">Time (pt)</label>
+                <input type="number" id="style-program-time-size" value="11" min="6" max="24">
+              </div>
+              <div class="form-group">
+                <label for="style-program-subtitle-size">Subtitle (pt)</label>
+                <input type="number" id="style-program-subtitle-size" value="9" min="6" max="24">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="style-branch-name-size">Branch Name (pt)</label>
+                <input type="number" id="style-branch-name-size" value="14" min="8" max="36">
+              </div>
+              <div class="form-group">
+                <label for="style-branch-address-size">Address (pt)</label>
+                <input type="number" id="style-branch-address-size" value="10" min="6" max="24">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="style-program-spacing">Program Spacing (pt)</label>
+                <input type="number" id="style-program-spacing" value="2" min="0" max="20">
+              </div>
+              <div class="form-group">
+                <label for="style-branch-spacing">Branch Spacing (pt)</label>
+                <input type="number" id="style-branch-spacing" value="6" min="0" max="30">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Bold Options</label>
+              <div class="checkbox-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="style-program-name-bold" checked> Program Name Bold
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="style-program-date-bold" checked> Date Bold
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="style-program-time-bold"> Time Bold
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="settings-section">
+          <h3 class="settings-heading" data-toggle="section-footer">
+            <i class="fas fa-chevron-down"></i> Footer
+          </h3>
+          <div id="section-footer" class="settings-body">
+            <div class="form-group">
+              <label>Footer Image</label>
+              <div class="toggle-group toggle-group-vertical">
+                <button class="toggle-btn active" data-footer-source="default-english">
+                  <i class="fas fa-flag-usa"></i> English Default
+                </button>
+                <button class="toggle-btn" data-footer-source="default-spanish">
+                  <i class="fas fa-globe"></i> Spanish Default
+                </button>
+                <button class="toggle-btn" data-footer-source="custom">
+                  <i class="fas fa-upload"></i> Upload Custom
+                </button>
+              </div>
+              <input type="file" id="footer-upload" accept="image/*" style="display:none;">
+            </div>
+            <div class="form-group">
+              <label for="footer-asterisk-note">Asterisk Note</label>
+              <textarea id="footer-asterisk-note" rows="2">*Programs in Spanish or where English is not necessary to participate.</textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pages -->
+        <div class="settings-section">
+          <h3 class="settings-heading" data-toggle="section-pages">
+            <i class="fas fa-chevron-down"></i> Pages
+          </h3>
+          <div id="section-pages" class="settings-body">
+            <div id="page-list">
+              <!-- Pages rendered by app.js -->
+            </div>
+            <button id="btn-duplicate-page" class="btn btn-outline btn-full">
+              <i class="fas fa-copy"></i> Duplicate Current Page
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+    <!-- ─── MAIN CONTENT ─── -->
+    <main id="main-content">
+      <!-- Overflow Warning -->
+      <div id="overflow-warning" class="hidden">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>Content overflows the page! Remove programs, switch to legal size, or reduce font sizes.</span>
+      </div>
+
+      <!-- Preview Container -->
+      <div id="preview-wrapper">
+        <div id="preview-container">
+          <div id="flyer-preview">
+            <!-- Flyer content rendered by app.js -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Zoom Controls -->
+      <div id="zoom-controls">
+        <button id="btn-zoom-in" class="btn-icon" title="Zoom in">
+          <i class="fas fa-search-plus"></i>
+        </button>
+        <button id="btn-zoom-out" class="btn-icon" title="Zoom out">
+          <i class="fas fa-search-minus"></i>
+        </button>
+        <button id="btn-zoom-reset" class="btn-icon" title="Reset zoom">
+          <i class="fas fa-compress"></i>
+        </button>
+        <button id="btn-zoom-fit" class="btn-icon" title="Fit to screen">
+          <i class="fas fa-expand"></i>
+        </button>
+        <span id="zoom-level">100%</span>
+      </div>
+    </main>
+  </div>
+
+  <!-- ═══════════ NOTIFICATIONS ═══════════ -->
+  <div id="notification-container"></div>
+
+  <!-- ═══════════ SCRIPTS ═══════════ -->
+  <!-- CDN Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <!-- App Scripts (order matters!) -->
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/flyer-utils.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

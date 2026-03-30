@@ -1,0 +1,16 @@
+{
+  "name": "library-flyer-maker",
+  "version": "1.0.0",
+  "description": "Browser-based tool for creating monthly library program flyers with automatic reflow",
+  "private": true,
+  "scripts": {
+    "lint": "eslint assets/js/",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0",
+    "vitest": "^2.0.0",
+    "jsdom": "^25.0.0"
+  }
+}
