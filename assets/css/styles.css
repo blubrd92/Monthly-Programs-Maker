@@ -815,10 +815,7 @@ body {
 
 /* ─── Footer ─── */
 .flyer-footer {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  flex-shrink: 0;
 }
 
 .flyer-footer img {

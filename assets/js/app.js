@@ -441,7 +441,7 @@ const FlyerApp = (function () {
     // Clear existing content
     preview.innerHTML = '';
 
-    // Content wrapper (within margins)
+    // Content wrapper (within margins) — flex column to distribute space
     const contentWrapper = el('div', {
       style: {
         position: 'absolute',
@@ -449,6 +449,8 @@ const FlyerApp = (function () {
         left: margin + 'px',
         right: margin + 'px',
         bottom: margin + 'px',
+        display: 'flex',
+        flexDirection: 'column',
       },
     });
 
@@ -456,21 +458,32 @@ const FlyerApp = (function () {
     const headerEl = renderFlyerHeader(page.header, page.styles);
     contentWrapper.appendChild(headerEl);
 
-    // Branches
+    // Branches container — flex-grow to fill available space, distribute gaps evenly
+    const branchesContainer = el('div', {
+      style: {
+        flex: '1',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+      },
+    });
+
     if (page.branches && page.branches.length > 0) {
       page.branches.forEach(function (branch) {
         const branchEl = renderBranch(branch, page.styles);
         if (branchEl) {
-          contentWrapper.appendChild(branchEl);
+          // Remove fixed margin — flex gap handles spacing now
+          branchEl.style.marginBottom = '0';
+          branchesContainer.appendChild(branchEl);
         }
       });
     }
 
-    preview.appendChild(contentWrapper);
+    contentWrapper.appendChild(branchesContainer);
 
-    // Footer (absolute positioned at bottom of flyer)
+    // Footer
     const footerEl = renderFooter(page.footer);
-    preview.appendChild(footerEl);
+    contentWrapper.appendChild(footerEl);
 
     // Apply zoom
     const container = document.getElementById('preview-container');
@@ -502,25 +515,37 @@ const FlyerApp = (function () {
         left: margin + 'px',
         right: margin + 'px',
         bottom: margin + 'px',
+        display: 'flex',
+        flexDirection: 'column',
       },
     });
 
     const headerEl = renderFlyerHeader(page.header, page.styles);
     contentWrapper.appendChild(headerEl);
 
+    const branchesContainer = el('div', {
+      style: {
+        flex: '1',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+      },
+    });
+
     if (page.branches && page.branches.length > 0) {
       page.branches.forEach(function (branch) {
         const branchEl = renderBranch(branch, page.styles);
         if (branchEl) {
-          contentWrapper.appendChild(branchEl);
+          branchEl.style.marginBottom = '0';
+          branchesContainer.appendChild(branchEl);
         }
       });
     }
 
-    container.appendChild(contentWrapper);
+    contentWrapper.appendChild(branchesContainer);
 
     const footerEl = renderFooter(page.footer);
-    container.appendChild(footerEl);
+    contentWrapper.appendChild(footerEl);
   }
 
   // Debounced version for use in input handlers
