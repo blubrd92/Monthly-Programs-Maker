@@ -754,13 +754,11 @@ body {
   display: grid;
   grid-template-columns: 1fr auto auto;
   align-items: center;
-  border-bottom: 1px solid currentColor;
   padding: 1px 0;
 }
 
-.flyer-program:last-child,
-.flyer-program:last-of-type {
-  border-bottom: none;
+.flyer-program + .flyer-program {
+  border-top: 1px solid currentColor;
 }
 
 .flyer-program-name {
