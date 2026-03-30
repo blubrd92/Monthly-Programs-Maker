@@ -132,7 +132,7 @@ const CONFIG = (function () {
     SIDEBAR_WIDTH: 340,
 
     // ── Rendering ────────────────────────────────────────
-    SIDEBAR_STRIP_WIDTH: 4,  // px in preview (scaled for print)
+    SIDEBAR_STRIP_WIDTH: 22,  // px in preview, wide enough for vertical branch name
 
     // ── PDF Export ────────────────────────────────────────
     PDF: {

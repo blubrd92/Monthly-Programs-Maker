@@ -275,65 +275,40 @@ const FlyerApp = (function () {
     const branchSpacing = ptToPx(styles.branchSpacing);
     const nameSize = ptToPx(styles.branchNameFontSize);
     const addressSize = ptToPx(styles.branchAddressFontSize);
+    const stripWidth = 22; // px, wide enough for vertical branch name
 
-    // Container
+    // Container — enclosed box with colored border
     const branchEl = el('div', {
       'class': 'flyer-branch',
       style: {
         marginBottom: branchSpacing + 'px',
+        borderColor: color,
       },
     });
 
-    // Left sidebar strip
+    // Left sidebar strip with vertical branch name
     const leftStrip = el('div', {
       'class': 'flyer-branch-sidebar-left',
       style: {
         backgroundColor: color,
-        width: CONFIG.SIDEBAR_STRIP_WIDTH + 'px',
+        width: stripWidth + 'px',
       },
     });
 
-    // Right sidebar strip
-    const rightStrip = el('div', {
-      'class': 'flyer-branch-sidebar-right',
-      style: {
-        backgroundColor: color,
-        width: CONFIG.SIDEBAR_STRIP_WIDTH + 'px',
-      },
-    });
-
-    branchEl.appendChild(leftStrip);
-    branchEl.appendChild(rightStrip);
-
-    // Address on right strip (rotated)
-    if (branch.address) {
-      const addressEl = el('div', {
-        'class': 'flyer-branch-address',
-        text: branch.address,
-        style: {
-          color: color,
-          fontFamily: fontRoles.branchAddress,
-          fontSize: addressSize + 'px',
-        },
-      });
-      branchEl.appendChild(addressEl);
-    }
-
-    // Content area
-    const contentEl = el('div', { 'class': 'flyer-branch-content' });
-
-    // Branch name
     const nameEl = el('div', {
       'class': 'flyer-branch-name',
       text: branch.name || '',
       style: {
-        color: color,
         fontFamily: fontRoles.branchName,
         fontSize: nameSize + 'px',
-        lineHeight: '1.2',
+        lineHeight: '1',
       },
     });
-    contentEl.appendChild(nameEl);
+    leftStrip.appendChild(nameEl);
+    branchEl.appendChild(leftStrip);
+
+    // Content area (programs)
+    const contentEl = el('div', { 'class': 'flyer-branch-content' });
 
     // Branch note (if any)
     if (branch.note) {
@@ -359,6 +334,29 @@ const FlyerApp = (function () {
     }
 
     branchEl.appendChild(contentEl);
+
+    // Right sidebar strip with vertical address
+    if (branch.address) {
+      const rightStrip = el('div', {
+        'class': 'flyer-branch-sidebar-right',
+        style: {
+          backgroundColor: color,
+          width: stripWidth + 'px',
+        },
+      });
+
+      const addressEl = el('div', {
+        'class': 'flyer-branch-address',
+        text: branch.address,
+        style: {
+          fontFamily: fontRoles.branchAddress,
+          fontSize: addressSize + 'px',
+        },
+      });
+      rightStrip.appendChild(addressEl);
+      branchEl.appendChild(rightStrip);
+    }
+
     return branchEl;
   }
 
