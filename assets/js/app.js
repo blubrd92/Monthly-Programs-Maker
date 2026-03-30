@@ -963,11 +963,11 @@ const FlyerApp = (function () {
     branchDetails.appendChild(nameRow);
 
     const addressGroup = el('div', { 'class': 'form-group' });
-    addressGroup.appendChild(el('label', { text: 'Address' }));
-    const addressInput = el('input', {
-      type: 'text',
-      value: branch.address || '',
+    addressGroup.appendChild(el('label', { text: 'Address (use Enter for two lines)' }));
+    const addressInput = el('textarea', {
+      rows: '2',
       placeholder: 'e.g. 123 Main St · City, ST 12345',
+      style: { resize: 'none' },
       'on': {
         'input': function () {
           branch.address = addressInput.value;
@@ -976,6 +976,7 @@ const FlyerApp = (function () {
         },
       },
     });
+    addressInput.value = branch.address || '';
     addressGroup.appendChild(addressInput);
     branchDetails.appendChild(addressGroup);
 
