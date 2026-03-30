@@ -331,7 +331,7 @@ const FlyerApp = (function () {
     const branchSpacing = ptToPx(styles.branchSpacing);
     const nameSize = ptToPx(styles.branchNameFontSize);
     const addressSize = ptToPx(styles.branchAddressFontSize);
-    const stripWidth = 22; // px, wide enough for vertical branch name
+    const stripWidth = 25; // px, fixed width for vertical name/address strips
 
     // Container — enclosed box with colored border
     const branchEl = el('div', {
@@ -339,6 +339,7 @@ const FlyerApp = (function () {
       style: {
         marginBottom: branchSpacing + 'px',
         borderColor: color,
+        flex: '0 0 auto',
       },
     });
 

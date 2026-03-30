@@ -703,6 +703,7 @@ body {
   flex-shrink: 0;
   border: 2px solid transparent;
   border-radius: 2px;
+  overflow: hidden;
 }
 
 .flyer-branch-sidebar-left {
