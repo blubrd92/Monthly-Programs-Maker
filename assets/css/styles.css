@@ -4,7 +4,7 @@
 
 /* ── CSS Variables ──────────────────────────────── */
 :root {
-  --sidebar-width: 340px;
+  --sidebar-width: 370px;
   --header-height: 48px;
   --bg-primary: #f5f5f5;
   --bg-sidebar: #ffffff;
@@ -152,7 +152,8 @@ body {
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: hidden;
   transition: width 0.2s, min-width 0.2s;
   position: relative;
 }
@@ -427,10 +428,20 @@ body {
 }
 
 .settings-body {
-  padding: 10px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.settings-subheading {
+  font-size: 11px;
+  font-weight: 700;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 4px 0 -4px 0;
+  padding: 0;
 }
 
 /* ─── Form Elements ─── */
@@ -450,16 +461,27 @@ body {
 .form-group input[type="number"],
 .form-group textarea,
 .form-group select {
-  padding: 5px 8px;
+  padding: 6px 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 13px;
   font-family: inherit;
+  width: 100%;
+  min-width: 0;
+}
+
+.form-group input[type="number"] {
+  width: 100%;
+}
+
+.form-group select {
+  width: 100%;
+  text-overflow: ellipsis;
 }
 
 .form-group input[type="color"] {
-  width: 40px;
-  height: 28px;
+  width: 100%;
+  height: 32px;
   padding: 2px;
   border: 1px solid #ddd;
   border-radius: 4px;
@@ -468,14 +490,18 @@ body {
 
 .form-group textarea {
   resize: vertical;
+  min-height: 40px;
 }
 
 .form-row {
   display: flex;
-  gap: 10px;
+  gap: 12px;
 }
 
-.form-row .form-group { flex: 1; }
+.form-row .form-group {
+  flex: 1;
+  min-width: 0;
+}
 
 .toggle-group {
   display: flex;
@@ -491,7 +517,7 @@ body {
 
 .toggle-btn {
   flex: 1;
-  padding: 6px 10px;
+  padding: 8px 10px;
   border: none;
   background: #fff;
   font-size: 12px;
@@ -502,6 +528,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 6px;
+  min-height: 34px;
 }
 
 .toggle-group:not(.toggle-group-vertical) .toggle-btn + .toggle-btn {
