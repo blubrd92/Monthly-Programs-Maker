@@ -780,8 +780,7 @@ const FlyerApp = (function () {
   // ── Autosave to LocalStorage ───────────────────────────────────
   function autosave() {
     try {
-      const state = buildFullState();
-      const json = FlyerUtils.serializeState(state);
+      const json = serializeAll();
       localStorage.setItem(CONFIG.STORAGE_KEY, json);
     } catch (_e) {
       // Silently fail if localStorage is unavailable
@@ -1683,7 +1682,7 @@ const FlyerApp = (function () {
       fontRoles = FlyerUtils.deepClone(CONFIG.FONT_ROLES);
     }
 
-    // Restore pages
+    // Restore pages (supports both multi-page and legacy single-page format)
     if (data.pages && data.pages.length > 0) {
       pages = data.pages.map(function (p) {
         return {
@@ -1693,6 +1692,14 @@ const FlyerApp = (function () {
           styles: FlyerUtils.deepClone(p.styles || CONFIG.DEFAULT_STYLES),
         };
       });
+    } else if (data.header || data.branches) {
+      // Legacy single-page format
+      pages = [{
+        header: FlyerUtils.deepClone(data.header || CONFIG.DEFAULT_HEADER),
+        branches: FlyerUtils.deepClone(data.branches || []),
+        footer: FlyerUtils.deepClone(data.footer || CONFIG.DEFAULT_FOOTER),
+        styles: FlyerUtils.deepClone(data.styles || CONFIG.DEFAULT_STYLES),
+      }];
     }
 
     activePage = 0;

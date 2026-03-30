@@ -160,13 +160,15 @@ body {
   width: 0;
   min-width: 0;
   border-right: none;
-  overflow: hidden;
 }
 
 #sidebar.collapsed #sidebar-tabs,
-#sidebar.collapsed .tab-content,
-#sidebar.collapsed #sidebar-toggle i {
+#sidebar.collapsed .tab-content {
   display: none;
+}
+
+#sidebar.collapsed #sidebar-toggle i {
+  transform: rotate(180deg);
 }
 
 #sidebar-toggle {
