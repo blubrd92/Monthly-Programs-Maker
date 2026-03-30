@@ -152,8 +152,6 @@ body {
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  overflow-x: hidden;
-  overflow-y: hidden;
   transition: width 0.2s, min-width 0.2s;
   position: relative;
 }
@@ -162,6 +160,7 @@ body {
   width: 0;
   min-width: 0;
   border-right: none;
+  overflow: hidden;
 }
 
 #sidebar.collapsed #sidebar-tabs,
@@ -223,6 +222,7 @@ body {
 .tab-content {
   display: none;
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 12px;
 }
@@ -668,8 +668,9 @@ body {
 /* ═══════════ FLYER RENDERING ═══════════ */
 .flyer-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: baseline;
+  gap: 8px;
   padding-bottom: 4px;
 }
 
