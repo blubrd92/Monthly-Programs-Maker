@@ -876,20 +876,6 @@ const FlyerApp = (function () {
     });
     actions.appendChild(addBtn);
 
-    // Edit branch button
-    const editBtn = el('button', {
-      'class': 'btn btn-sm btn-outline',
-      html: '<i class="fas fa-pen"></i>',
-      'title': 'Edit branch',
-      'on': {
-        'click': function (e) {
-          e.stopPropagation();
-          editBranch(branch.id);
-        },
-      },
-    });
-    actions.appendChild(editBtn);
-
     // Delete branch button
     const deleteBtn = el('button', {
       'class': 'btn btn-sm btn-outline btn-delete',
@@ -921,8 +907,67 @@ const FlyerApp = (function () {
 
     section.appendChild(header);
 
-    // Branch body (programs list)
+    // Branch body
     const body = el('div', { 'class': 'branch-body' });
+
+    // Branch detail fields (name, address, color)
+    const branchDetails = el('div', { 'class': 'branch-details' });
+
+    const nameRow = el('div', { 'class': 'form-row' });
+    const nameGroup = el('div', { 'class': 'form-group', style: { flex: '1' } });
+    nameGroup.appendChild(el('label', { text: 'Name' }));
+    const nameInput = el('input', {
+      type: 'text',
+      value: branch.name || '',
+      'on': {
+        'input': function () {
+          branch.name = nameInput.value;
+          nameDisplay.textContent = nameInput.value || 'Untitled';
+          nameDisplay.style.color = branch.color || '#666666';
+          markDirty();
+          debouncedRenderPreview();
+        },
+      },
+    });
+    nameGroup.appendChild(nameInput);
+    nameRow.appendChild(nameGroup);
+
+    const colorGroup = el('div', { 'class': 'form-group', style: { width: '60px', flexShrink: '0' } });
+    colorGroup.appendChild(el('label', { text: 'Color' }));
+    const colorInput = el('input', {
+      type: 'color',
+      value: branch.color || '#666666',
+      'on': {
+        'input': function () {
+          branch.color = colorInput.value;
+          nameDisplay.style.color = colorInput.value;
+          markDirty();
+          debouncedRenderPreview();
+        },
+      },
+    });
+    colorGroup.appendChild(colorInput);
+    nameRow.appendChild(colorGroup);
+    branchDetails.appendChild(nameRow);
+
+    const addressGroup = el('div', { 'class': 'form-group' });
+    addressGroup.appendChild(el('label', { text: 'Address' }));
+    const addressInput = el('input', {
+      type: 'text',
+      value: branch.address || '',
+      placeholder: 'e.g. 123 Main St · City, ST 12345',
+      'on': {
+        'input': function () {
+          branch.address = addressInput.value;
+          markDirty();
+          debouncedRenderPreview();
+        },
+      },
+    });
+    addressGroup.appendChild(addressInput);
+    branchDetails.appendChild(addressGroup);
+
+    body.appendChild(branchDetails);
 
     // Program cards
     const programsContainer = el('div', {
@@ -1101,37 +1146,6 @@ const FlyerApp = (function () {
     showNotification('Branch deleted.', 'info');
   }
 
-  function editBranch(branchId) {
-    const page = getActivePage();
-    if (!page) return;
-
-    let branch = null;
-    for (let i = 0; i < page.branches.length; i++) {
-      if (page.branches[i].id === branchId) {
-        branch = page.branches[i];
-        break;
-      }
-    }
-    if (!branch) return;
-
-    const newName = prompt('Branch name:', branch.name);
-    if (newName === null) return;
-    branch.name = newName;
-
-    const newAddress = prompt('Branch address:', branch.address);
-    if (newAddress === null) return;
-    branch.address = newAddress;
-
-    const newColor = prompt('Branch color (hex):', branch.color);
-    if (newColor !== null && /^#[0-9A-Fa-f]{6}$/.test(newColor)) {
-      branch.color = newColor;
-    }
-
-    isDirty = true;
-    renderBranchList();
-    debouncedRenderPreview();
-    scheduleAutosave();
-  }
 
   // ══════════════════════════════════════════════════════════════
   //  SORTABLE.JS INTEGRATION

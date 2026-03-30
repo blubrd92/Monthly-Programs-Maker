@@ -154,6 +154,7 @@ body {
   flex-direction: column;
   transition: width 0.2s, min-width 0.2s;
   position: relative;
+  overflow: hidden;
 }
 
 #sidebar.collapsed {
@@ -274,6 +275,15 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.branch-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 2px;
 }
 
 .branch-actions {
