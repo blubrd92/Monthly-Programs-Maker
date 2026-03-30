@@ -83,16 +83,18 @@ const CONFIG = (function () {
 
     // ── Default Styles ───────────────────────────────────
     DEFAULT_STYLES: {
-      programNameFontSize: 11,
-      programDateFontSize: 11,
-      programTimeFontSize: 11,
-      programSubtitleFontSize: 9,
+      programNameFontSize: 15,
+      programDateFontSize: 15,
+      programTimeFontSize: 14,
+      programSubtitleFontSize: 12,
       branchNameFontSize: 14,
       branchAddressFontSize: 10,
       headerTitleFontSize: 28,
       headerMonthFontSize: 28,
       programSpacing: 2,
       branchSpacing: 6,
+      programNameDateGap: 12,
+      programDateTimeGap: 12,
       programDateBold: true,
       programTimeBold: false,
       programNameBold: true,

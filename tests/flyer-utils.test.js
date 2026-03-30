@@ -101,7 +101,7 @@ describe('FlyerUtils.createDefaultFlyer', () => {
 
   it('has default styles', () => {
     const flyer = FlyerUtils.createDefaultFlyer();
-    expect(flyer.styles.programNameFontSize).toBe(11);
+    expect(flyer.styles.programNameFontSize).toBe(15);
     expect(flyer.styles.branchSpacing).toBe(6);
   });
 });

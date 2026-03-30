@@ -752,8 +752,7 @@ body {
 .flyer-program {
   display: grid;
   grid-template-columns: 1fr auto auto;
-  gap: 4px;
-  align-items: baseline;
+  align-items: center;
   border-bottom: 1px solid currentColor;
   padding: 1px 0;
 }
@@ -768,6 +767,11 @@ body {
   padding-left: 8px;
 }
 
+.flyer-program-subtitle {
+  margin-top: 0;
+  line-height: 1.2;
+}
+
 .flyer-program-date {
   text-align: center;
   white-space: nowrap;
@@ -777,14 +781,6 @@ body {
   text-align: center;
   white-space: nowrap;
   padding-right: 8px;
-}
-
-.flyer-program-subtitle {
-  grid-column: 1 / -1;
-  text-align: left;
-  padding-left: 8px;
-  margin-top: -1px;
-  padding-bottom: 1px;
 }
 
 /* ─── Closure Row ─── */

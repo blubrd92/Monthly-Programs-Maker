@@ -208,48 +208,28 @@ const FlyerApp = (function () {
       nameText += '*';
     }
 
-    const nameEl = el('div', {
+    const nameDateGap = ptToPx(styles.programNameDateGap || CONFIG.DEFAULT_STYLES.programNameDateGap);
+    const dateTimeGap = ptToPx(styles.programDateTimeGap || CONFIG.DEFAULT_STYLES.programDateTimeGap);
+
+    // Name + subtitle combined cell
+    const nameCell = el('div', {
       'class': 'flyer-program-name',
-      text: nameText,
       style: {
         color: textColor,
+      },
+    });
+
+    const nameLine = el('div', {
+      text: nameText,
+      style: {
         fontFamily: fontRoles.programName,
         fontSize: nameSize + 'px',
         fontWeight: styles.programNameBold ? '700' : '400',
       },
     });
+    nameCell.appendChild(nameLine);
 
-    const dateEl = el('div', {
-      'class': 'flyer-program-date',
-      text: program.dateText || '',
-      style: {
-        color: textColor,
-        fontFamily: fontRoles.programDate,
-        fontSize: dateSize + 'px',
-        fontWeight: styles.programDateBold ? '700' : '400',
-      },
-    });
-
-    const timeEl = el('div', {
-      'class': 'flyer-program-time',
-      text: program.timeText || '',
-      style: {
-        color: textColor,
-        fontFamily: fontRoles.programTime,
-        fontSize: timeSize + 'px',
-        fontWeight: styles.programTimeBold ? '700' : '400',
-      },
-    });
-
-    const programEl = el('div', {
-      'class': 'flyer-program' + (isClosure ? ' closure' : ''),
-      style: {
-        backgroundColor: bgColor,
-        color: branchColor,
-      },
-    }, nameEl, dateEl, timeEl);
-
-    // Subtitle line
+    // Subtitle line (inside name cell)
     const subtitleText = FlyerUtils.buildSubtitleLine(program);
     if (subtitleText) {
       const subtitleEl = el('div', {
@@ -262,8 +242,40 @@ const FlyerApp = (function () {
           fontStyle: program.subtitleItalic ? 'italic' : 'normal',
         },
       });
-      programEl.appendChild(subtitleEl);
+      nameCell.appendChild(subtitleEl);
     }
+
+    const dateEl = el('div', {
+      'class': 'flyer-program-date',
+      text: program.dateText || '',
+      style: {
+        color: textColor,
+        fontFamily: fontRoles.programDate,
+        fontSize: dateSize + 'px',
+        fontWeight: styles.programDateBold ? '700' : '400',
+        paddingLeft: nameDateGap + 'px',
+      },
+    });
+
+    const timeEl = el('div', {
+      'class': 'flyer-program-time',
+      text: program.timeText || '',
+      style: {
+        color: textColor,
+        fontFamily: fontRoles.programTime,
+        fontSize: timeSize + 'px',
+        fontWeight: styles.programTimeBold ? '700' : '400',
+        paddingLeft: dateTimeGap + 'px',
+      },
+    });
+
+    const programEl = el('div', {
+      'class': 'flyer-program' + (isClosure ? ' closure' : ''),
+      style: {
+        backgroundColor: bgColor,
+        color: branchColor,
+      },
+    }, nameCell, dateEl, timeEl);
 
     return programEl;
   }
@@ -1328,6 +1340,8 @@ const FlyerApp = (function () {
       'style-branch-address-size': 'branchAddressFontSize',
       'style-program-spacing': 'programSpacing',
       'style-branch-spacing': 'branchSpacing',
+      'style-name-date-gap': 'programNameDateGap',
+      'style-date-time-gap': 'programDateTimeGap',
     };
 
     Object.keys(styleMap).forEach(function (inputId) {
@@ -1542,6 +1556,8 @@ const FlyerApp = (function () {
     document.getElementById('style-branch-address-size').value = page.styles.branchAddressFontSize;
     document.getElementById('style-program-spacing').value = page.styles.programSpacing;
     document.getElementById('style-branch-spacing').value = page.styles.branchSpacing;
+    document.getElementById('style-name-date-gap').value = page.styles.programNameDateGap || CONFIG.DEFAULT_STYLES.programNameDateGap;
+    document.getElementById('style-date-time-gap').value = page.styles.programDateTimeGap || CONFIG.DEFAULT_STYLES.programDateTimeGap;
 
     // Bold checkboxes
     document.getElementById('style-program-name-bold').checked = page.styles.programNameBold;
