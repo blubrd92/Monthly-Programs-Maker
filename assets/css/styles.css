@@ -722,6 +722,7 @@ body {
   letter-spacing: 0.5px;
   padding: 4px 0;
   text-align: center;
+  word-break: break-word;
 }
 
 .flyer-branch-sidebar-right {
@@ -739,12 +740,13 @@ body {
   transform: rotate(180deg);
   text-transform: uppercase;
   font-weight: 600;
-  white-space: pre-line;
+  white-space: nowrap;
   letter-spacing: 0.5px;
   padding: 4px 0;
   text-align: center;
   color: #fff;
   font-size: 7px;
+  word-break: break-word;
 }
 
 .flyer-branch-content {

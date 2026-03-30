@@ -145,8 +145,10 @@ const FlyerApp = (function () {
 
   /**
    * Auto-size vertical text in branch strips to fit the available height.
-   * For writing-mode: vertical-rl text, scrollWidth = visual height of text.
-   * We compare that to the strip's clientHeight and scale the font down/up.
+   * For writing-mode: vertical-rl:
+   *   scrollWidth = visual height of text (inline direction)
+   *   height (CSS) = constrains inline size, causing line wrapping
+   * Strategy: try single line first, then allow wrapping, then scale down.
    */
   function autoSizeVerticalText(root) {
     const elements = root.querySelectorAll('[data-auto-size]');
@@ -157,21 +159,30 @@ const FlyerApp = (function () {
       const availableHeight = strip.clientHeight;
       if (availableHeight <= 0) return;
 
-      // Get current font size
-      let fontSize = parseFloat(textEl.style.fontSize) || 14;
-      const maxSize = fontSize; // don't grow beyond the configured size
+      const fontSize = parseFloat(textEl.style.fontSize) || 14;
+      const padding = 8; // total vertical padding (4px top + 4px bottom)
 
-      // Temporarily remove any clamping so we can measure natural size
-      textEl.style.fontSize = maxSize + 'px';
-      let textHeight = textEl.scrollWidth; // vertical text: scrollWidth = visual height
+      // Step 1: Try single line at configured size
+      textEl.style.whiteSpace = 'nowrap';
+      textEl.style.height = '';
+      const singleLineHeight = textEl.scrollWidth;
 
-      if (textHeight <= availableHeight) return; // already fits
+      if (singleLineHeight <= availableHeight - padding) return; // fits in one line
 
-      // Scale down proportionally
-      const scale = availableHeight / textHeight;
-      fontSize = Math.floor(maxSize * scale * 0.95); // 5% margin for safety
-      if (fontSize < 6) fontSize = 6; // minimum readable size
-      textEl.style.fontSize = fontSize + 'px';
+      // Step 2: Allow wrapping — constrain height to force text onto two+ lines
+      textEl.style.whiteSpace = 'normal';
+      textEl.style.height = (availableHeight - padding) + 'px';
+
+      // Check if it fits within the strip width when wrapped
+      // scrollHeight in vertical-rl = physical width needed for wrapped lines
+      if (textEl.scrollHeight <= strip.clientWidth) return; // wrapping works
+
+      // Step 3: Scale font down until it fits
+      let size = fontSize;
+      while (size > 6 && textEl.scrollHeight > strip.clientWidth) {
+        size -= 0.5;
+        textEl.style.fontSize = size + 'px';
+      }
     });
   }
 
@@ -383,13 +394,11 @@ const FlyerApp = (function () {
 
     // Right sidebar strip with vertical address
     if (branch.address) {
-      const hasMultiLine = branch.address && branch.address.indexOf('\n') !== -1;
       const rightStrip = el('div', {
         'class': 'flyer-branch-sidebar-right',
         style: {
           backgroundColor: color,
-          width: hasMultiLine ? '' : stripWidth + 'px',
-          minWidth: hasMultiLine ? stripWidth + 'px' : '',
+          width: stripWidth + 'px',
         },
       });
 
