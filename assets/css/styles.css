@@ -728,6 +728,7 @@ body {
   align-items: center;
   justify-content: center;
   min-height: 30px;
+  padding: 0 2px;
 }
 
 .flyer-branch-address {

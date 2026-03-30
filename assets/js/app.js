@@ -354,7 +354,7 @@ const FlyerApp = (function () {
         'class': 'flyer-branch-sidebar-right',
         style: {
           backgroundColor: color,
-          width: stripWidth + 'px',
+          minWidth: stripWidth + 'px',
         },
       });
 
