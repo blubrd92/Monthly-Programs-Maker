@@ -190,7 +190,8 @@ const FlyerApp = (function () {
           color: branchColor,
           fontFamily: fontRoles.programName,
           fontSize: nameSize + 'px',
-          marginBottom: spacing + 'px',
+          borderBottom: '1px solid ' + branchColor,
+          padding: '1px 0',
         },
       });
       return freeDiv;
@@ -244,7 +245,7 @@ const FlyerApp = (function () {
       'class': 'flyer-program' + (isClosure ? ' closure' : ''),
       style: {
         backgroundColor: bgColor,
-        marginBottom: spacing + 'px',
+        color: branchColor,
       },
     }, nameEl, dateEl, timeEl);
 

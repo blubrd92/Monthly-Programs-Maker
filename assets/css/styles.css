@@ -604,7 +604,8 @@ body {
 
 #flyer-preview {
   background: #fff;
-  box-shadow: var(--shadow);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  border: 1px solid #ccc;
   position: relative;
   overflow: hidden;
 }
@@ -719,12 +720,19 @@ body {
 .flyer-program {
   display: grid;
   grid-template-columns: 1fr auto auto;
-  gap: 8px;
+  gap: 4px;
   align-items: baseline;
+  border-bottom: 1px solid currentColor;
+  padding: 1px 0;
+}
+
+.flyer-program:last-child,
+.flyer-program:last-of-type {
+  border-bottom: none;
 }
 
 .flyer-program-name {
-  font-weight: 700;
+  text-align: left;
 }
 
 .flyer-program-date {
@@ -733,19 +741,23 @@ body {
 }
 
 .flyer-program-time {
-  text-align: right;
+  text-align: center;
   white-space: nowrap;
 }
 
 .flyer-program-subtitle {
   grid-column: 1 / -1;
-  padding-left: 8px;
+  text-align: left;
+  padding-left: 0;
+  margin-top: -1px;
+  padding-bottom: 1px;
 }
 
 /* ─── Closure Row ─── */
 .flyer-program.closure {
-  padding: 2px 6px;
+  padding: 1px 6px;
   border-radius: 2px;
+  border-bottom-color: transparent;
 }
 
 .flyer-program.closure .flyer-program-name,
