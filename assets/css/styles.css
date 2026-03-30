@@ -668,7 +668,7 @@ body {
 /* ═══════════ FLYER RENDERING ═══════════ */
 .flyer-header {
   display: flex;
-  justify-content: flex-start;
+  justify-content: center;
   align-items: baseline;
   gap: 8px;
   padding-bottom: 4px;
