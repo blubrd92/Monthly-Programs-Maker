@@ -1390,8 +1390,6 @@ const FlyerApp = (function () {
       'style-program-date-size': 'programDateFontSize',
       'style-program-time-size': 'programTimeFontSize',
       'style-program-subtitle-size': 'programSubtitleFontSize',
-      'style-branch-name-size': 'branchNameFontSize',
-      'style-branch-address-size': 'branchAddressFontSize',
       'style-program-spacing': 'programSpacing',
       'style-branch-spacing': 'branchSpacing',
       'style-name-date-gap': 'programNameDateGap',
@@ -1606,8 +1604,6 @@ const FlyerApp = (function () {
     document.getElementById('style-program-date-size').value = page.styles.programDateFontSize;
     document.getElementById('style-program-time-size').value = page.styles.programTimeFontSize;
     document.getElementById('style-program-subtitle-size').value = page.styles.programSubtitleFontSize;
-    document.getElementById('style-branch-name-size').value = page.styles.branchNameFontSize;
-    document.getElementById('style-branch-address-size').value = page.styles.branchAddressFontSize;
     document.getElementById('style-program-spacing').value = page.styles.programSpacing;
     document.getElementById('style-branch-spacing').value = page.styles.branchSpacing;
     document.getElementById('style-name-date-gap').value = page.styles.programNameDateGap || CONFIG.DEFAULT_STYLES.programNameDateGap;
