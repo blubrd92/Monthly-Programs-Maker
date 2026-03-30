@@ -37,8 +37,11 @@
   <!-- ═══════════ HEADER BAR ═══════════ -->
   <header id="header-bar">
     <div class="header-left">
-      <i class="fas fa-file-alt"></i>
-      <h1>Library Flyer Maker</h1>
+      <button id="sidebar-toggle" class="btn-icon header-icon" title="Toggle sidebar">
+        <i class="fas fa-bars"></i>
+      </button>
+      <i class="fas fa-newspaper"></i>
+      <h1>Library Programs Flyer Maker</h1>
     </div>
     <div class="header-actions">
       <button id="btn-load" class="btn btn-secondary" title="Load .flyer file">
@@ -62,10 +65,6 @@
 
     <!-- ─── SIDEBAR ─── -->
     <aside id="sidebar">
-      <div id="sidebar-toggle" title="Toggle sidebar">
-        <i class="fas fa-chevron-left"></i>
-      </div>
-
       <!-- Tabs -->
       <div id="sidebar-tabs">
         <button class="tab-btn active" data-tab="programs">
