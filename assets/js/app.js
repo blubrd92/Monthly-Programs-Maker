@@ -143,6 +143,38 @@ const FlyerApp = (function () {
   //  RENDERING ENGINE
   // ══════════════════════════════════════════════════════════════
 
+  /**
+   * Auto-size vertical text in branch strips to fit the available height.
+   * For writing-mode: vertical-rl text, scrollWidth = visual height of text.
+   * We compare that to the strip's clientHeight and scale the font down/up.
+   */
+  function autoSizeVerticalText(root) {
+    const elements = root.querySelectorAll('[data-auto-size]');
+    elements.forEach(function (textEl) {
+      const strip = textEl.parentElement;
+      if (!strip) return;
+
+      const availableHeight = strip.clientHeight;
+      if (availableHeight <= 0) return;
+
+      // Get current font size
+      let fontSize = parseFloat(textEl.style.fontSize) || 14;
+      const maxSize = fontSize; // don't grow beyond the configured size
+
+      // Temporarily remove any clamping so we can measure natural size
+      textEl.style.fontSize = maxSize + 'px';
+      let textHeight = textEl.scrollWidth; // vertical text: scrollWidth = visual height
+
+      if (textHeight <= availableHeight) return; // already fits
+
+      // Scale down proportionally
+      const scale = availableHeight / textHeight;
+      fontSize = Math.floor(maxSize * scale * 0.95); // 5% margin for safety
+      if (fontSize < 6) fontSize = 6; // minimum readable size
+      textEl.style.fontSize = fontSize + 'px';
+    });
+  }
+
   // ── Render: Flyer Header ───────────────────────────────────────
   function renderFlyerHeader(header, styles) {
     const titleSize = ptToPx(styles.headerTitleFontSize || CONFIG.DEFAULT_STYLES.headerTitleFontSize);
@@ -310,6 +342,7 @@ const FlyerApp = (function () {
 
     const nameEl = el('div', {
       'class': 'flyer-branch-name',
+      'data-auto-size': 'true',
       text: branch.name || '',
       style: {
         fontFamily: fontRoles.branchName,
@@ -350,16 +383,19 @@ const FlyerApp = (function () {
 
     // Right sidebar strip with vertical address
     if (branch.address) {
+      const hasMultiLine = branch.address && branch.address.indexOf('\n') !== -1;
       const rightStrip = el('div', {
         'class': 'flyer-branch-sidebar-right',
         style: {
           backgroundColor: color,
-          minWidth: stripWidth + 'px',
+          width: hasMultiLine ? '' : stripWidth + 'px',
+          minWidth: hasMultiLine ? stripWidth + 'px' : '',
         },
       });
 
       const addressEl = el('div', {
         'class': 'flyer-branch-address',
+        'data-auto-size': 'true',
         text: branch.address,
         style: {
           fontFamily: fontRoles.branchAddress,
@@ -505,8 +541,9 @@ const FlyerApp = (function () {
       container.style.transform = 'scale(' + zoomLevel + ')';
     }
 
-    // Check overflow after DOM settles
+    // Auto-size vertical text and check overflow after DOM settles
     requestAnimationFrame(function () {
+      autoSizeVerticalText(preview);
       checkOverflow();
     });
   }
@@ -562,6 +599,7 @@ const FlyerApp = (function () {
     contentWrapper.appendChild(footerEl);
 
     container.appendChild(contentWrapper);
+    autoSizeVerticalText(container);
   }
 
   // Debounced version for use in input handlers
