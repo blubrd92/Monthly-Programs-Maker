@@ -1240,29 +1240,12 @@ const FlyerApp = (function () {
       });
     });
 
-    // ── Month / Year ──────────────────────────────────
-    const metaMonthInput = document.getElementById('meta-month');
-    const metaYearInput = document.getElementById('meta-year');
-
-    metaMonthInput.addEventListener('input', function () {
-      meta.month = metaMonthInput.value;
-      markDirty();
-      debouncedRenderPreview();
-    });
-
-    metaYearInput.addEventListener('input', function () {
-      meta.year = parseInt(metaYearInput.value, 10) || meta.year;
-      markDirty();
-      debouncedRenderPreview();
-    });
-
     // ── Header Text / Color / Size ────────────────────
     const headerTitleText = document.getElementById('header-title-text');
     const headerMonthText = document.getElementById('header-month-text');
     const headerTitleColor = document.getElementById('header-title-color');
     const headerMonthColor = document.getElementById('header-month-color');
     const headerTitleSize = document.getElementById('header-title-size');
-    const headerMonthSize = document.getElementById('header-month-size');
 
     headerTitleText.addEventListener('input', function () {
       getCurrentPage().header.titleText = headerTitleText.value;
@@ -1289,13 +1272,9 @@ const FlyerApp = (function () {
     });
 
     headerTitleSize.addEventListener('input', function () {
-      getCurrentPage().styles.headerTitleFontSize = parseInt(headerTitleSize.value, 10) || 28;
-      markDirty();
-      debouncedRenderPreview();
-    });
-
-    headerMonthSize.addEventListener('input', function () {
-      getCurrentPage().styles.headerMonthFontSize = parseInt(headerMonthSize.value, 10) || 28;
+      const size = parseInt(headerTitleSize.value, 10) || 28;
+      getCurrentPage().styles.headerTitleFontSize = size;
+      getCurrentPage().styles.headerMonthFontSize = size;
       markDirty();
       debouncedRenderPreview();
     });
@@ -1539,7 +1518,6 @@ const FlyerApp = (function () {
     document.getElementById('header-title-color').value = page.header.titleColor;
     document.getElementById('header-month-color').value = page.header.monthColor;
     document.getElementById('header-title-size').value = page.styles.headerTitleFontSize;
-    document.getElementById('header-month-size').value = page.styles.headerMonthFontSize;
 
     // Typography size inputs
     document.getElementById('style-program-name-size').value = page.styles.programNameFontSize;
@@ -1569,9 +1547,6 @@ const FlyerApp = (function () {
       btn.classList.toggle('active', btn.getAttribute('data-page-size') === meta.pageSize);
     });
 
-    // Month / Year
-    document.getElementById('meta-month').value = meta.month;
-    document.getElementById('meta-year').value = meta.year;
 
     // Font dropdowns
     const fontCondensed = document.getElementById('font-condensed');
