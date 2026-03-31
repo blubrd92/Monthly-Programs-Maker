@@ -89,8 +89,8 @@ const CONFIG = (function () {
       programSubtitleFontSize: 12,
       branchNameFontSize: 14,
       branchAddressFontSize: 10,
-      headerTitleFontSize: 28,
-      headerMonthFontSize: 28,
+      headerTitleFontSize: 34,
+      headerMonthFontSize: 34,
       programDateBold: true,
       programTimeBold: false,
       programNameBold: true,
@@ -99,7 +99,7 @@ const CONFIG = (function () {
     // ── Default Header ───────────────────────────────────
     DEFAULT_HEADER: {
       titleText: 'LIBRARY PROGRAMS',
-      monthText: 'FEBRUARY 2026',
+      monthText: 'MONTH YEAR',
       titleColor: '#000000',
       monthColor: '#cc007e',
     },
