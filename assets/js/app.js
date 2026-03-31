@@ -504,7 +504,10 @@ const FlyerApp = (function () {
     const branchEl = el('div', {
       'class': 'flyer-branch',
       style: {
-        borderColor: sideColor,
+        borderLeftColor: sideColor,
+        borderRightColor: sideColor,
+        borderTopColor: 'transparent',
+        borderBottomColor: 'transparent',
       },
     });
 
