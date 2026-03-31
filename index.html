@@ -88,6 +88,21 @@
       <!-- ─── Settings Tab ─── -->
       <div id="tab-settings" class="tab-content">
 
+        <!-- Pages -->
+        <div class="settings-section">
+          <h3 class="settings-heading" data-toggle="section-pages">
+            <i class="fas fa-chevron-down"></i> Pages
+          </h3>
+          <div id="section-pages" class="settings-body">
+            <div id="page-list">
+              <!-- Pages rendered by app.js -->
+            </div>
+            <button id="btn-duplicate-page" class="btn btn-outline btn-full">
+              <i class="fas fa-copy"></i> Duplicate Current Page
+            </button>
+          </div>
+        </div>
+
         <!-- Page Setup -->
         <div class="settings-section">
           <h3 class="settings-heading" data-toggle="section-page">
@@ -238,21 +253,6 @@
           </div>
         </div>
 
-        <!-- Pages -->
-        <div class="settings-section">
-          <h3 class="settings-heading" data-toggle="section-pages">
-            <i class="fas fa-chevron-down"></i> Pages
-          </h3>
-          <div id="section-pages" class="settings-body">
-            <div id="page-list">
-              <!-- Pages rendered by app.js -->
-            </div>
-            <button id="btn-duplicate-page" class="btn btn-outline btn-full">
-              <i class="fas fa-copy"></i> Duplicate Current Page
-            </button>
-          </div>
-        </div>
-
       </div>
     </aside>
 
@@ -262,6 +262,17 @@
       <div id="overflow-warning" class="hidden">
         <i class="fas fa-exclamation-triangle"></i>
         <span>Content overflows the page! Remove programs, switch to legal size, or reduce font sizes.</span>
+      </div>
+
+      <!-- Page Indicator -->
+      <div id="page-indicator">
+        <button id="page-prev" class="btn-icon btn-sm" title="Previous page">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <span id="page-indicator-text">Page 1 of 1</span>
+        <button id="page-next" class="btn-icon btn-sm" title="Next page">
+          <i class="fas fa-chevron-right"></i>
+        </button>
       </div>
 
       <!-- Preview Container -->

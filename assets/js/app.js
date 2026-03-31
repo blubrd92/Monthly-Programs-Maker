@@ -1820,12 +1820,25 @@ const FlyerApp = (function () {
       switchToPage(pages.length - 1);
       markDirty();
     };
+
+    updatePageIndicator();
+  }
+
+  function updatePageIndicator() {
+    const text = document.getElementById('page-indicator-text');
+    const prevBtn = document.getElementById('page-prev');
+    const nextBtn = document.getElementById('page-next');
+    if (!text) return;
+    text.textContent = 'Page ' + (activePage + 1) + ' of ' + pages.length;
+    if (prevBtn) prevBtn.disabled = (activePage <= 0);
+    if (nextBtn) nextBtn.disabled = (activePage >= pages.length - 1);
   }
 
   function switchToPage(index) {
     activePage = index;
     syncSettingsFromPage();
     renderPageList();
+    updatePageIndicator();
     renderBranchList();
     renderPreview();
   }
@@ -1910,8 +1923,8 @@ const FlyerApp = (function () {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    const page = getCurrentPage();
-    const baseName = (page.header.titleText + ' - ' + page.header.monthText).trim() || 'flyer';
+    const firstPage = pages[0];
+    const baseName = (firstPage.header.titleText + ' - ' + firstPage.header.monthText).trim() || 'flyer';
     a.download = baseName + '.flyer';
     document.body.appendChild(a);
     a.click();
@@ -2158,8 +2171,8 @@ const FlyerApp = (function () {
       });
 
       chain.then(function () {
-        const page = getCurrentPage();
-        const filename = (page.header.titleText + ' - ' + page.header.monthText).trim() + '.pdf' || 'flyer.pdf';
+        const firstPage = pages[0];
+        const filename = (firstPage.header.titleText + ' - ' + firstPage.header.monthText).trim() + '.pdf' || 'flyer.pdf';
         pdf.save(filename);
         showNotification('PDF exported successfully!', 'success');
       }).catch(function (err) {
@@ -2325,6 +2338,14 @@ const FlyerApp = (function () {
     });
     document.getElementById('btn-export-pdf').addEventListener('click', function () {
       exportPDF();
+    });
+
+    // Page indicator prev/next
+    document.getElementById('page-prev').addEventListener('click', function () {
+      if (activePage > 0) switchToPage(activePage - 1);
+    });
+    document.getElementById('page-next').addEventListener('click', function () {
+      if (activePage < pages.length - 1) switchToPage(activePage + 1);
     });
 
     // Sidebar toggle and tab switching

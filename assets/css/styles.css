@@ -662,6 +662,30 @@ body {
 
 #overflow-warning.hidden { display: none; }
 
+/* ─── Page Indicator ─── */
+#page-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #555;
+  background: #f0f0f0;
+  border-bottom: 1px solid #ddd;
+  user-select: none;
+}
+#page-indicator .btn-icon {
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
+}
+#page-indicator .btn-icon:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
 /* ─── Preview ─── */
 #preview-wrapper {
   flex: 1;
