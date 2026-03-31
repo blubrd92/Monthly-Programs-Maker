@@ -670,6 +670,7 @@ body {
 }
 
 #preview-container {
+  width: fit-content;
   margin: 0 auto;
   transform-origin: top center;
   transition: transform 0.15s;
