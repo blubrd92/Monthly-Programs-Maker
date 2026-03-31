@@ -380,7 +380,6 @@ const FlyerApp = (function () {
     if (!branch.visible) return null;
 
     const color = branch.color || '#666666';
-    const branchSpacing = ptToPx(styles.branchSpacing);
     const nameSize = ptToPx(styles.branchNameFontSize);
     const addressSize = ptToPx(styles.branchAddressFontSize);
     const stripWidth = 30; // px, fixed width for vertical name/address strips
@@ -1523,8 +1522,6 @@ const FlyerApp = (function () {
       'style-program-date-size': 'programDateFontSize',
       'style-program-time-size': 'programTimeFontSize',
       'style-program-subtitle-size': 'programSubtitleFontSize',
-      'style-program-spacing': 'programSpacing',
-      'style-branch-spacing': 'branchSpacing',
     };
 
     Object.keys(styleMap).forEach(function (inputId) {
@@ -1756,8 +1753,6 @@ const FlyerApp = (function () {
     document.getElementById('style-program-date-size').value = page.styles.programDateFontSize;
     document.getElementById('style-program-time-size').value = page.styles.programTimeFontSize;
     document.getElementById('style-program-subtitle-size').value = page.styles.programSubtitleFontSize;
-    document.getElementById('style-program-spacing').value = page.styles.programSpacing;
-    document.getElementById('style-branch-spacing').value = page.styles.branchSpacing;
 
     // Bold checkboxes
     document.getElementById('style-program-name-bold').checked = page.styles.programNameBold;

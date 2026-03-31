@@ -91,8 +91,6 @@ const CONFIG = (function () {
       branchAddressFontSize: 10,
       headerTitleFontSize: 28,
       headerMonthFontSize: 28,
-      programSpacing: 2,
-      branchSpacing: 6,
       programDateBold: true,
       programTimeBold: false,
       programNameBold: true,
