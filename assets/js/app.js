@@ -2363,7 +2363,7 @@ const FlyerApp = (function () {
       container.style.height = preview.offsetHeight + 'px';
       container.style.marginBottom = (h - preview.offsetHeight) + 'px';
       // Center horizontally: use auto margins when content fits, explicit margin when it overflows
-      const wrapperWidth = wrapper.clientWidth;
+      const wrapperWidth = wrapper.clientWidth - 40; // subtract 20px padding each side
       if (w <= wrapperWidth) {
         container.style.marginLeft = 'auto';
         container.style.marginRight = 'auto';
