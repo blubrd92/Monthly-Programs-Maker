@@ -304,11 +304,7 @@ const FlyerApp = (function () {
     const textColor = isClosure ? CONFIG.COLORS.closureText : branchColor;
     const bgColor = isClosure ? branchColor : 'transparent';
 
-    // Build program name text
-    let nameText = program.name || '';
-    if (program.asterisk) {
-      nameText += '*';
-    }
+    const nameText = program.name || '';
 
     // Name + subtitle combined cell
     const nameCell = el('div', {
@@ -836,18 +832,10 @@ const FlyerApp = (function () {
     );
     structuredFields.appendChild(dateTimeRow);
 
-    // Checkboxes: Registration, Asterisk, Closure
+    // Checkbox: Closure
     const checkboxGroup = el('div', { 'class': 'form-group' },
       el('label', { text: 'Options' }),
       el('div', { 'class': 'checkbox-group' },
-        el('label', { 'class': 'checkbox-label' },
-          el('input', { 'type': 'checkbox', 'class': 'input-registration' }),
-          'Registration required'
-        ),
-        el('label', { 'class': 'checkbox-label' },
-          el('input', { 'type': 'checkbox', 'class': 'input-asterisk' }),
-          'Asterisk (*)'
-        ),
         el('label', { 'class': 'checkbox-label' },
           el('input', { 'type': 'checkbox', 'class': 'input-closure' }),
           'Closure (colored row)'
@@ -855,12 +843,7 @@ const FlyerApp = (function () {
       )
     );
 
-    // Set checkbox states
-    const regCheckbox = checkboxGroup.querySelector('.input-registration');
-    const astCheckbox = checkboxGroup.querySelector('.input-asterisk');
     const closCheckbox = checkboxGroup.querySelector('.input-closure');
-    regCheckbox.checked = !!program.registrationRequired;
-    astCheckbox.checked = !!program.asterisk;
     closCheckbox.checked = !!program.isClosure;
 
     structuredFields.appendChild(checkboxGroup);
@@ -934,8 +917,6 @@ const FlyerApp = (function () {
       program.subtitle = form.querySelector('.input-subtitle').value;
       program.dateText = form.querySelector('.input-date').value;
       program.timeText = form.querySelector('.input-time').value;
-      program.registrationRequired = form.querySelector('.input-registration').checked;
-      program.asterisk = form.querySelector('.input-asterisk').checked;
       program.isClosure = form.querySelector('.input-closure').checked;
     }
 
@@ -1242,9 +1223,6 @@ const FlyerApp = (function () {
 
     if (program.isClosure) {
       displayName = '[CLOSURE] ' + displayName;
-    }
-    if (program.asterisk) {
-      displayName += '*';
     }
 
     const infoName = el('div', {

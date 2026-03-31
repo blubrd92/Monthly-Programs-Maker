@@ -40,9 +40,6 @@ describe('FlyerUtils.createBlankProgram', () => {
     expect(prog.timeText).toBe('');
     expect(prog.nameBold).toBe(true);
     expect(prog.subtitleItalic).toBe(false);
-    expect(prog.asterisk).toBe(false);
-    expect(prog.registrationRequired).toBe(false);
-    expect(prog.isClosure).toBe(false);
     expect(prog.isClosure).toBe(false);
     expect(prog.freeTextOverride).toBeNull();
   });
@@ -195,25 +192,15 @@ describe('FlyerUtils.getContentArea', () => {
 });
 
 describe('FlyerUtils.buildSubtitleLine', () => {
-  it('returns empty string for program with no subtitle info', () => {
-    expect(FlyerUtils.buildSubtitleLine({
-      subtitle: '', registrationRequired: false,
-    })).toBe('');
+  it('returns empty string for program with no subtitle', () => {
+    expect(FlyerUtils.buildSubtitleLine({ subtitle: '' })).toBe('');
   });
 
-  it('combines subtitle and registration', () => {
+  it('returns subtitle text directly', () => {
     const line = FlyerUtils.buildSubtitleLine({
-      subtitle: 'The Lake Merritt Monster',
-      registrationRequired: true,
+      subtitle: 'Ages 5-12 · Registration required.',
     });
-    expect(line).toBe('The Lake Merritt Monster Registration required.');
-  });
-
-  it('handles just registration required', () => {
-    const line = FlyerUtils.buildSubtitleLine({
-      subtitle: '', registrationRequired: true,
-    });
-    expect(line).toBe('Registration required.');
+    expect(line).toBe('Ages 5-12 · Registration required.');
   });
 });
 

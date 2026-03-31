@@ -31,8 +31,6 @@ const FlyerUtils = (function () {
       timeText: d.timeText || '',
       nameBold: d.nameBold !== undefined ? d.nameBold : true,
       subtitleItalic: d.subtitleItalic || false,
-      asterisk: d.asterisk || false,
-      registrationRequired: d.registrationRequired || false,
       isClosure: d.isClosure || false,
       freeTextOverride: d.freeTextOverride || null,
     };
@@ -158,14 +156,7 @@ const FlyerUtils = (function () {
    * Build subtitle line text from program fields.
    */
   function buildSubtitleLine(program) {
-    const parts = [];
-    if (program.subtitle) {
-      parts.push(program.subtitle);
-    }
-    if (program.registrationRequired) {
-      parts.push('Registration required.');
-    }
-    return parts.join(' ');
+    return program.subtitle || '';
   }
 
   /**
