@@ -533,10 +533,6 @@ const FlyerApp = (function () {
     // Content area (programs)
     const contentEl = el('div', {
       'class': 'flyer-branch-content',
-      style: {
-        paddingTop: filled ? '0' : '2px',
-        paddingBottom: filled ? '0' : '2px',
-      },
     });
 
     // Branch note (if any)
