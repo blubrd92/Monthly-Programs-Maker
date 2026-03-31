@@ -965,9 +965,11 @@ const FlyerApp = (function () {
         'class': 'input-subtitle',
         'value': program.subtitle || '',
       }),
-      el('label', { 'class': 'checkbox-label', style: { marginTop: '4px', fontSize: '12px' } },
-        subtitleInlineCheck,
-        ' Append to program name'
+      el('div', { 'class': 'checkbox-group', style: { marginTop: '4px' } },
+        el('label', { 'class': 'checkbox-label' },
+          subtitleInlineCheck,
+          'Append to program name'
+        )
       )
     );
     structuredFields.appendChild(subtitleGroup);
