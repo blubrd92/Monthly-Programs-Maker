@@ -196,6 +196,14 @@ const FlyerApp = (function () {
       textEl.style.height = usableH + 'px';
       textEl.style.wordBreak = 'break-word';
 
+      // Grow wrapped text as large as possible while it fits
+      while (size < maxFontSize) {
+        textEl.style.fontSize = (size + 1) + 'px';
+        if (textEl.scrollHeight > stripW) break;
+        size += 1;
+      }
+      textEl.style.fontSize = size + 'px';
+
       // If wrapped text fits in strip width, done
       if (textEl.scrollHeight <= stripW) return;
 
