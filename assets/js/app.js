@@ -503,6 +503,7 @@ const FlyerApp = (function () {
       'class': 'flyer-branch',
       style: {
         borderColor: filled ? color : 'transparent',
+        borderWidth: filled ? '0' : '2px',
       },
     });
 
@@ -531,7 +532,13 @@ const FlyerApp = (function () {
     branchEl.appendChild(leftStrip);
 
     // Content area (programs)
-    const contentEl = el('div', { 'class': 'flyer-branch-content' });
+    const contentEl = el('div', {
+      'class': 'flyer-branch-content',
+      style: {
+        paddingTop: filled ? '0' : '2px',
+        paddingBottom: filled ? '0' : '2px',
+      },
+    });
 
     // Branch note (if any)
     if (branch.note) {
