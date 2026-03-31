@@ -1265,7 +1265,7 @@ const FlyerApp = (function () {
       CONFIG.BRANCH_DEFAULTS.forEach(function (b) {
         if (defaultColors.indexOf(b.color) === -1) defaultColors.push(b.color);
       });
-      const swatchRow = el('div', { style: { display: 'flex', gap: '6px', margin: '4px 0 8px' } });
+      const swatchRow = el('div', { style: { display: 'flex', gap: '6px', margin: '4px 0 8px', justifyContent: 'center' } });
       defaultColors.forEach(function (c) {
         const swatch = el('div', {
           style: {
