@@ -144,42 +144,55 @@ const FlyerApp = (function () {
   // ══════════════════════════════════════════════════════════════
 
   /**
-   * Auto-size vertical text in branch strips to fit the available height.
+   * Auto-size vertical text in branch strips to fill available height.
    * For writing-mode: vertical-rl:
    *   scrollWidth = visual height of text (inline direction)
    *   height (CSS) = constrains inline size, causing line wrapping
-   * Strategy: try single line first, then allow wrapping, then scale down.
+   * Strategy: grow to fill single line, then try wrapping, then shrink.
    */
   function autoSizeVerticalText(root) {
+    const maxFontSize = 72; // cap so text doesn't get absurdly large
+    const minFontSize = 6;
+
     const elements = root.querySelectorAll('[data-auto-size]');
     elements.forEach(function (textEl) {
       const strip = textEl.parentElement;
       if (!strip) return;
 
       const availableHeight = strip.clientHeight;
-      if (availableHeight <= 0) return;
+      const stripWidth = strip.clientWidth;
+      if (availableHeight <= 0 || stripWidth <= 0) return;
 
-      const fontSize = parseFloat(textEl.style.fontSize) || 14;
-      const padding = 8; // total vertical padding (4px top + 4px bottom)
+      const padding = 8;
+      const usable = availableHeight - padding;
+      if (usable <= 0) return;
 
-      // Step 1: Try single line at configured size
+      let size = parseFloat(textEl.style.fontSize) || 14;
+
+      // Step 1: Try single line — grow font to fill available height
       textEl.style.whiteSpace = 'nowrap';
       textEl.style.height = '';
-      const singleLineHeight = textEl.scrollWidth;
+      textEl.style.fontSize = size + 'px';
 
-      if (singleLineHeight <= availableHeight - padding) return; // fits in one line
+      // Grow while text fits in one line and within strip width
+      while (size < maxFontSize) {
+        textEl.style.fontSize = (size + 1) + 'px';
+        if (textEl.scrollWidth > usable || textEl.scrollHeight > stripWidth) break;
+        size += 1;
+      }
+      textEl.style.fontSize = size + 'px';
 
-      // Step 2: Allow wrapping — constrain height to force text onto two+ lines
+      // Check if it fits as single line
+      if (textEl.scrollWidth <= usable) return;
+
+      // Step 2: Allow wrapping to two lines at current size
       textEl.style.whiteSpace = 'normal';
-      textEl.style.height = (availableHeight - padding) + 'px';
+      textEl.style.height = usable + 'px';
 
-      // Check if it fits within the strip width when wrapped
-      // scrollHeight in vertical-rl = physical width needed for wrapped lines
-      if (textEl.scrollHeight <= strip.clientWidth) return; // wrapping works
+      if (textEl.scrollHeight <= stripWidth) return; // wrapping fits
 
-      // Step 3: Scale font down until it fits
-      let size = fontSize;
-      while (size > 6 && textEl.scrollHeight > strip.clientWidth) {
+      // Step 3: Shrink until it fits (wrapped)
+      while (size > minFontSize && textEl.scrollHeight > stripWidth) {
         size -= 0.5;
         textEl.style.fontSize = size + 'px';
       }
@@ -391,16 +404,16 @@ const FlyerApp = (function () {
 
     branchEl.appendChild(contentEl);
 
-    // Right sidebar strip with vertical address
-    if (branch.address) {
-      const rightStrip = el('div', {
-        'class': 'flyer-branch-sidebar-right',
-        style: {
-          backgroundColor: color,
-          width: stripWidth + 'px',
-        },
-      });
+    // Right sidebar strip with vertical address (always shown)
+    const rightStrip = el('div', {
+      'class': 'flyer-branch-sidebar-right',
+      style: {
+        backgroundColor: color,
+        width: stripWidth + 'px',
+      },
+    });
 
+    if (branch.address) {
       const addressEl = el('div', {
         'class': 'flyer-branch-address',
         'data-auto-size': 'true',
@@ -411,8 +424,8 @@ const FlyerApp = (function () {
         },
       });
       rightStrip.appendChild(addressEl);
-      branchEl.appendChild(rightStrip);
     }
+    branchEl.appendChild(rightStrip);
 
     return branchEl;
   }
