@@ -575,7 +575,7 @@ const FlyerApp = (function () {
         style: {
           fontFamily: fontRoles.programSubtitle,
           fontSize: astSize + 'px',
-          textAlign: 'left',
+          textAlign: 'center',
           fontWeight: footer.asteriskBold ? '700' : '400',
           fontStyle: footer.asteriskItalic ? 'italic' : 'normal',
         },
