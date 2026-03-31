@@ -2233,16 +2233,25 @@ const FlyerApp = (function () {
 
   function applyZoom() {
     const container = document.getElementById('preview-container');
+    const wrapper = document.getElementById('preview-wrapper');
     const preview = document.getElementById('flyer-preview');
     container.style.transform = 'scale(' + zoomLevel + ')';
     // Set container dimensions so the scrollable wrapper knows the scaled size
-    if (preview) {
+    if (preview && wrapper) {
       const w = preview.offsetWidth * zoomLevel;
       const h = preview.offsetHeight * zoomLevel;
       container.style.width = preview.offsetWidth + 'px';
       container.style.height = preview.offsetHeight + 'px';
       container.style.marginBottom = (h - preview.offsetHeight) + 'px';
-      container.style.marginRight = (w - preview.offsetWidth) + 'px';
+      // Center horizontally: use auto margins when content fits, explicit margin when it overflows
+      const wrapperWidth = wrapper.clientWidth;
+      if (w <= wrapperWidth) {
+        container.style.marginLeft = 'auto';
+        container.style.marginRight = 'auto';
+      } else {
+        container.style.marginLeft = '0';
+        container.style.marginRight = (w - preview.offsetWidth) + 'px';
+      }
     }
     const zoomText = document.getElementById('zoom-level');
     zoomText.textContent = Math.round(zoomLevel * 100) + '%';
