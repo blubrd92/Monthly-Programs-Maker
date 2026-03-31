@@ -544,6 +544,7 @@ const FlyerApp = (function () {
       style: {
         borderTop: '2px solid ' + contentBorderColor,
         borderBottom: '2px solid ' + contentBorderColor,
+        backgroundColor: '#ffffff',
       },
     });
 
