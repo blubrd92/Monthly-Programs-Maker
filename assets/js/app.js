@@ -1261,17 +1261,17 @@ const FlyerApp = (function () {
       branchDetails.appendChild(nameRow);
 
       // Default color swatches
-      const swatchLabel = el('label', { text: 'Default Colors', style: { fontSize: '11px', marginBottom: '2px', display: 'block', textAlign: 'center' } });
+      const swatchLabel = el('label', { text: 'Default Colors' });
       branchDetails.appendChild(swatchLabel);
       const defaultColors = [];
       CONFIG.BRANCH_DEFAULTS.forEach(function (b) {
         if (defaultColors.indexOf(b.color) === -1) defaultColors.push(b.color);
       });
-      const swatchRow = el('div', { style: { display: 'flex', gap: '6px', margin: '0 0 8px', justifyContent: 'center' } });
+      const swatchRow = el('div', { style: { display: 'flex', gap: '8px', margin: '0 0 8px' } });
       defaultColors.forEach(function (c) {
         const swatch = el('div', {
           style: {
-            width: '20px', height: '20px', borderRadius: '3px',
+            flex: '1', height: '20px', borderRadius: '3px', maxWidth: '60px',
             backgroundColor: c, cursor: 'pointer',
             border: branch.color === c ? '2px solid #333' : '2px solid transparent',
           },
