@@ -565,7 +565,7 @@ const FlyerApp = (function () {
     branchEl.appendChild(leftStrip);
 
     // Content area (programs)
-    const contentBorderColor = showBorders ? color : 'transparent';
+    const contentBorderColor = showBorders ? color : (filled ? '#ffffff' : 'transparent');
     const contentEl = el('div', {
       'class': 'flyer-branch-content',
       style: {
