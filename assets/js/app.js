@@ -239,7 +239,7 @@ const FlyerApp = (function () {
 
     // Free-text override: render as a single text block
     if (program.freeTextOverride) {
-      const ftSize = ptToPx(program.freeTextFontSize || styles.programNameFontSize);
+      const ftSize = ptToPx(program.freeTextFontSize || 12);
       const freeDiv = el('div', {
         'class': 'flyer-program flyer-program-freetext',
         text: program.freeTextOverride,
@@ -684,8 +684,7 @@ const FlyerApp = (function () {
     const ftSizeInput = el('input', {
       type: 'number',
       'class': 'input-freetext-size',
-      value: String(program.freeTextFontSize || ''),
-      placeholder: 'Auto',
+      value: String(program.freeTextFontSize || 12),
       min: '6',
       max: '36',
     });
@@ -859,7 +858,7 @@ const FlyerApp = (function () {
     if (freeTextChecked) {
       program.freeTextOverride = form.querySelector('.input-freetext').value || null;
       const ftSize = form.querySelector('.input-freetext-size');
-      program.freeTextFontSize = ftSize && ftSize.value ? parseInt(ftSize.value, 10) : null;
+      program.freeTextFontSize = ftSize && ftSize.value ? parseInt(ftSize.value, 10) : 12;
       const ftAlign = form.querySelector('.input-freetext-align');
       program.freeTextAlign = ftAlign ? ftAlign.value : 'left';
     } else {
