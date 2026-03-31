@@ -144,33 +144,6 @@ const FlyerApp = (function () {
   // ══════════════════════════════════════════════════════════════
 
   /**
-   * Distribute remaining vertical space evenly as gaps between branches.
-   * Branches are block-level with natural heights; this adds equal margins.
-   */
-  function distributeBranchGaps(container) {
-    const branches = container.querySelectorAll('.flyer-branch');
-    if (branches.length === 0) return;
-
-    const containerHeight = container.clientHeight;
-    let totalBranchHeight = 0;
-    branches.forEach(function (b) {
-      totalBranchHeight += b.offsetHeight;
-    });
-
-    const remainingSpace = containerHeight - totalBranchHeight;
-    if (remainingSpace <= 0) return;
-
-    // Distribute space: gaps between branches + top/bottom padding
-    const gapCount = branches.length + 1; // space above first, between each, below last
-    const gap = Math.floor(remainingSpace / gapCount);
-
-    branches.forEach(function (b, i) {
-      b.style.marginTop = (i === 0 ? gap : gap) + 'px';
-      b.style.marginBottom = (i === branches.length - 1 ? gap : 0) + 'px';
-    });
-  }
-
-  /**
    * Auto-size vertical text in branch strips to fit the available height.
    * For writing-mode: vertical-rl:
    *   scrollWidth = visual height of text (inline direction)
@@ -541,11 +514,13 @@ const FlyerApp = (function () {
     const headerEl = renderFlyerHeader(page.header, page.styles);
     contentWrapper.appendChild(headerEl);
 
-    // Branches container — block layout, auto-size gaps after render
+    // Branches container — flex-grow to fill available space, distribute gaps evenly
     const branchesContainer = el('div', {
-      'class': 'flyer-branches-container',
       style: {
         flex: '1',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
       },
     });
 
@@ -572,9 +547,8 @@ const FlyerApp = (function () {
       container.style.transform = 'scale(' + zoomLevel + ')';
     }
 
-    // Auto-size vertical text, distribute branch gaps, check overflow
+    // Auto-size vertical text and check overflow after DOM settles
     requestAnimationFrame(function () {
-      distributeBranchGaps(branchesContainer);
       autoSizeVerticalText(preview);
       checkOverflow();
     });
@@ -607,9 +581,11 @@ const FlyerApp = (function () {
     contentWrapper.appendChild(headerEl);
 
     const branchesContainer = el('div', {
-      'class': 'flyer-branches-container',
       style: {
         flex: '1',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
       },
     });
 
@@ -628,7 +604,6 @@ const FlyerApp = (function () {
     contentWrapper.appendChild(footerEl);
 
     container.appendChild(contentWrapper);
-    distributeBranchGaps(branchesContainer);
     autoSizeVerticalText(container);
   }
 
