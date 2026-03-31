@@ -335,9 +335,10 @@ const FlyerApp = (function () {
     let titleEl;
     if (delaMatch) {
       const stackSize = titleSize * 0.45;
+      const stackOffset = titleSize * 0.08;
       const titleHtml =
         '<span>' + delaMatch[1] + '</span> ' +
-        '<span style="display:inline-flex;flex-direction:column;vertical-align:middle;align-items:center;line-height:0.95;gap:0;font-size:' + stackSize + 'px;margin:0 1px">' +
+        '<span style="display:inline-flex;flex-direction:column;vertical-align:baseline;align-items:center;line-height:0.9;gap:0;font-size:' + stackSize + 'px;margin:0 1px;position:relative;top:-' + stackOffset + 'px">' +
           '<span>' + delaMatch[2] + '</span>' +
           '<span>' + delaMatch[3] + '</span>' +
         '</span> ' +
