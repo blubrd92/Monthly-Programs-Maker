@@ -806,6 +806,7 @@ body {
 
 /* ─── Free Text ─── */
 .flyer-program-freetext {
+  display: block;
   white-space: pre-wrap;
   line-height: 1.3;
 }

@@ -237,17 +237,18 @@ const FlyerApp = (function () {
     const subtitleSize = ptToPx(styles.programSubtitleFontSize);
     const spacing = ptToPx(styles.programSpacing);
 
-    // Free-text override: render as a single text block instead of grid
+    // Free-text override: render as a single text block
     if (program.freeTextOverride) {
+      const ftSize = ptToPx(program.freeTextFontSize || styles.programNameFontSize);
       const freeDiv = el('div', {
-        'class': 'flyer-program-freetext',
+        'class': 'flyer-program flyer-program-freetext',
         text: program.freeTextOverride,
         style: {
           color: branchColor,
           fontFamily: fontRoles.programName,
-          fontSize: nameSize + 'px',
-          borderBottom: '1px solid ' + branchColor,
-          padding: '1px 0',
+          fontSize: ftSize + 'px',
+          textAlign: program.freeTextAlign || 'left',
+          padding: '1px 8px',
         },
       });
       return freeDiv;
@@ -660,20 +661,49 @@ const FlyerApp = (function () {
     freeTextCheckbox.checked = isFreeText;
     form.appendChild(freeTextToggle);
 
-    // Free-text textarea
+    // Free-text fields
     const freeTextField = el('div', {
       'class': 'freetext-field',
       style: { display: isFreeText ? 'block' : 'none' },
-    },
-      el('div', { 'class': 'form-group' },
-        el('label', { text: 'Free Text' }),
-        el('textarea', {
-          'class': 'input-freetext',
-          'rows': '3',
-          text: program.freeTextOverride || '',
-        })
-      )
+    });
+
+    const ftTextGroup = el('div', { 'class': 'form-group' },
+      el('label', { text: 'Free Text' }),
+      el('textarea', {
+        'class': 'input-freetext',
+        'rows': '3',
+        text: program.freeTextOverride || '',
+      })
     );
+    freeTextField.appendChild(ftTextGroup);
+
+    const ftOptionsRow = el('div', { 'class': 'form-row' });
+
+    const ftSizeGroup = el('div', { 'class': 'form-group' });
+    ftSizeGroup.appendChild(el('label', { text: 'Font Size (pt)' }));
+    const ftSizeInput = el('input', {
+      type: 'number',
+      'class': 'input-freetext-size',
+      value: String(program.freeTextFontSize || ''),
+      placeholder: 'Auto',
+      min: '6',
+      max: '36',
+    });
+    ftSizeGroup.appendChild(ftSizeInput);
+    ftOptionsRow.appendChild(ftSizeGroup);
+
+    const ftAlignGroup = el('div', { 'class': 'form-group' });
+    ftAlignGroup.appendChild(el('label', { text: 'Alignment' }));
+    const ftAlignSelect = el('select', { 'class': 'input-freetext-align' });
+    ['left', 'center', 'right'].forEach(function (val) {
+      const opt = el('option', { value: val, text: val.charAt(0).toUpperCase() + val.slice(1) });
+      if (val === (program.freeTextAlign || 'left')) opt.selected = true;
+      ftAlignSelect.appendChild(opt);
+    });
+    ftAlignGroup.appendChild(ftAlignSelect);
+    ftOptionsRow.appendChild(ftAlignGroup);
+
+    freeTextField.appendChild(ftOptionsRow);
     form.appendChild(freeTextField);
 
     // Structured fields
@@ -828,6 +858,10 @@ const FlyerApp = (function () {
 
     if (freeTextChecked) {
       program.freeTextOverride = form.querySelector('.input-freetext').value || null;
+      const ftSize = form.querySelector('.input-freetext-size');
+      program.freeTextFontSize = ftSize && ftSize.value ? parseInt(ftSize.value, 10) : null;
+      const ftAlign = form.querySelector('.input-freetext-align');
+      program.freeTextAlign = ftAlign ? ftAlign.value : 'left';
     } else {
       program.freeTextOverride = null;
       program.name = form.querySelector('.input-name').value;
