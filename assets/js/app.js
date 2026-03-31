@@ -159,24 +159,29 @@ const FlyerApp = (function () {
       const strip = textEl.parentElement;
       if (!strip) return;
 
-      const stripH = strip.clientHeight;
-      const stripW = strip.clientWidth;
-      if (stripH <= 0 || stripW <= 0) return;
+      // Use getBoundingClientRect for reliable physical dimensions
+      // regardless of writing-mode quirks with scrollWidth/scrollHeight
+      const stripRect = strip.getBoundingClientRect();
+      const stripPhysW = stripRect.width;
+      const stripPhysH = stripRect.height;
+      if (stripPhysH <= 0 || stripPhysW <= 0) return;
 
       const padding = 2;
-      const usableH = stripH - padding;
+      const usableH = stripPhysH - padding;
       if (usableH <= 0) return;
 
-      // For writing-mode: vertical-rl (rotated 180):
-      //   scrollWidth = physical height of text (must fit in stripH)
-      //   scrollHeight = physical width of text (must fit in stripW)
-
-      // Ensure tight line-height so scrollHeight accurately reflects text width
       textEl.style.lineHeight = '1.05';
 
-      // Helper: check if text fits in strip at current settings
-      function fits() {
-        return textEl.scrollWidth <= usableH && textEl.scrollHeight <= stripW;
+      // Helper: check if text physically fits inside the strip
+      function textFits() {
+        const r = textEl.getBoundingClientRect();
+        return r.height <= usableH + 0.5 && r.width <= stripPhysW + 0.5;
+      }
+
+      // Helper: check if text width (lines) fits in strip width
+      function widthFits() {
+        const r = textEl.getBoundingClientRect();
+        return r.width <= stripPhysW + 0.5;
       }
 
       // Strategy A: single line — find max font size
@@ -186,28 +191,26 @@ const FlyerApp = (function () {
       textEl.style.fontSize = minFontSize + 'px';
 
       let singleSize = minFontSize;
-      if (fits()) {
+      if (textFits()) {
         while (singleSize < maxFontSize) {
           textEl.style.fontSize = (singleSize + 1) + 'px';
-          if (!fits()) break;
+          if (!textFits()) break;
           singleSize += 1;
         }
       }
-      textEl.style.fontSize = singleSize + 'px';
-      // Verify single-line actually fits at this size
-      if (!fits()) singleSize = minFontSize;
 
-      // Strategy B: wrapped — find max font size with wrapping
+      // Strategy B: wrapped — constrain height to force line wrapping,
+      // then grow font while lines still fit in strip width
       textEl.style.whiteSpace = 'normal';
       textEl.style.height = usableH + 'px';
       textEl.style.wordBreak = 'break-word';
       textEl.style.fontSize = minFontSize + 'px';
 
       let wrapSize = minFontSize;
-      if (textEl.scrollHeight <= stripW) {
+      if (widthFits()) {
         while (wrapSize < maxFontSize) {
           textEl.style.fontSize = (wrapSize + 1) + 'px';
-          if (textEl.scrollHeight > stripW) break;
+          if (!widthFits()) break;
           wrapSize += 1;
         }
       }
@@ -276,6 +279,8 @@ const FlyerApp = (function () {
           fontFamily: fontRoles.programName,
           fontSize: ftSize + 'px',
           textAlign: program.freeTextAlign || 'left',
+          fontWeight: program.freeTextBold ? '700' : '400',
+          fontStyle: program.freeTextItalic ? 'italic' : 'normal',
           padding: '1px 8px',
         },
       });
@@ -295,6 +300,10 @@ const FlyerApp = (function () {
 
     const nameDateGap = ptToPx(styles.programNameDateGap || CONFIG.DEFAULT_STYLES.programNameDateGap);
     const dateTimeGap = ptToPx(styles.programDateTimeGap || CONFIG.DEFAULT_STYLES.programDateTimeGap);
+
+    // Fixed-width date and time columns so fields align across programs
+    const dateColWidth = ptToPx(styles.programDateColWidth || CONFIG.DEFAULT_STYLES.programDateColWidth || 80);
+    const timeColWidth = ptToPx(styles.programTimeColWidth || CONFIG.DEFAULT_STYLES.programTimeColWidth || 55);
 
     // Name + subtitle combined cell
     const nameCell = el('div', {
@@ -338,7 +347,6 @@ const FlyerApp = (function () {
         fontFamily: fontRoles.programDate,
         fontSize: dateSize + 'px',
         fontWeight: styles.programDateBold ? '700' : '400',
-        paddingLeft: nameDateGap + 'px',
       },
     });
 
@@ -350,7 +358,7 @@ const FlyerApp = (function () {
         fontFamily: fontRoles.programTime,
         fontSize: timeSize + 'px',
         fontWeight: styles.programTimeBold ? '700' : '400',
-        paddingLeft: dateTimeGap + 'px',
+        marginLeft: dateTimeGap + 'px',
       },
     });
 
@@ -359,6 +367,8 @@ const FlyerApp = (function () {
       style: {
         backgroundColor: bgColor,
         color: branchColor,
+        gridTemplateColumns: '1fr ' + dateColWidth + 'px ' + timeColWidth + 'px',
+        columnGap: nameDateGap + 'px',
       },
     }, nameCell, dateEl, timeEl);
 
@@ -738,6 +748,27 @@ const FlyerApp = (function () {
     ftOptionsRow.appendChild(ftAlignGroup);
 
     freeTextField.appendChild(ftOptionsRow);
+
+    // Bold / Italic toggles for free text
+    const ftStyleGroup = el('div', { 'class': 'form-group' },
+      el('label', { text: 'Style' }),
+      el('div', { 'class': 'checkbox-group' },
+        el('label', { 'class': 'checkbox-label' },
+          el('input', { 'type': 'checkbox', 'class': 'input-freetext-bold' }),
+          'Bold'
+        ),
+        el('label', { 'class': 'checkbox-label' },
+          el('input', { 'type': 'checkbox', 'class': 'input-freetext-italic' }),
+          'Italic'
+        )
+      )
+    );
+    const ftBoldCheckbox = ftStyleGroup.querySelector('.input-freetext-bold');
+    const ftItalicCheckbox = ftStyleGroup.querySelector('.input-freetext-italic');
+    ftBoldCheckbox.checked = !!program.freeTextBold;
+    ftItalicCheckbox.checked = !!program.freeTextItalic;
+    freeTextField.appendChild(ftStyleGroup);
+
     form.appendChild(freeTextField);
 
     // Structured fields
@@ -896,6 +927,8 @@ const FlyerApp = (function () {
       program.freeTextFontSize = ftSize && ftSize.value ? parseInt(ftSize.value, 10) : 12;
       const ftAlign = form.querySelector('.input-freetext-align');
       program.freeTextAlign = ftAlign ? ftAlign.value : 'left';
+      program.freeTextBold = !!form.querySelector('.input-freetext-bold').checked;
+      program.freeTextItalic = !!form.querySelector('.input-freetext-italic').checked;
     } else {
       program.freeTextOverride = null;
       program.name = form.querySelector('.input-name').value;
