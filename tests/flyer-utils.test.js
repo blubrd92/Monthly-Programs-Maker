@@ -78,11 +78,11 @@ describe('FlyerUtils.createDefaultFlyer', () => {
   it('has 5 default branches', () => {
     const flyer = FlyerUtils.createDefaultFlyer();
     expect(flyer.branches).toHaveLength(5);
-    expect(flyer.branches[0].name).toBe('DOWNTOWN');
-    expect(flyer.branches[1].name).toBe('CITY HALL');
-    expect(flyer.branches[2].name).toBe('NORTHGATE');
-    expect(flyer.branches[3].name).toBe('AL BORO CC');
-    expect(flyer.branches[4].name).toBe('ONLINE');
+    expect(flyer.branches[0].name).toBe('Downtown');
+    expect(flyer.branches[1].name).toBe('City Hall');
+    expect(flyer.branches[2].name).toBe('Northgate');
+    expect(flyer.branches[3].name).toBe('Al Boro CC');
+    expect(flyer.branches[4].name).toBe('Online');
   });
 
   it('has default header', () => {
@@ -213,7 +213,7 @@ describe('FlyerUtils.duplicatePage', () => {
     const dup = FlyerUtils.duplicatePage(flyer);
     expect(dup.branches[0].id).not.toBe(originalBranchId);
     expect(dup.branches[0].programs[0].id).not.toBe(originalProgramId);
-    expect(dup.branches[0].name).toBe('DOWNTOWN');
+    expect(dup.branches[0].name).toBe('Downtown');
   });
 
   it('is independent from the original', () => {

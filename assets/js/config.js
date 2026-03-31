@@ -62,11 +62,11 @@ const CONFIG = (function () {
 
     // ── Branch Defaults ──────────────────────────────────
     BRANCH_DEFAULTS: [
-      { name: 'DOWNTOWN',    address: '1100 E STREET',              color: '#0474bf' },
-      { name: 'CITY HALL',   address: '1400 5TH AVE',              color: '#ff1a05' },
-      { name: 'NORTHGATE',   address: '5800 NORTHGATE DR STE. 083', color: '#e87c09' },
-      { name: 'AL BORO CC',  address: '50 CANAL ST',               color: '#7ca633' },
-      { name: 'ONLINE',      address: '',                           color: '#8d44ad' },
+      { name: 'Downtown',    address: '1100 E Street',              color: '#0474bf' },
+      { name: 'City Hall',   address: '1400 5th Ave',              color: '#ff1a05' },
+      { name: 'Northgate',   address: '5800 Northgate Dr Ste. 083', color: '#e87c09' },
+      { name: 'Al Boro CC',  address: '50 Canal St',               color: '#7ca633' },
+      { name: 'Online',      address: '',                           color: '#8d44ad' },
     ],
 
     // ── Footer ───────────────────────────────────────────
