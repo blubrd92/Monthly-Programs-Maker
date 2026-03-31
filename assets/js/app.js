@@ -337,7 +337,7 @@ const FlyerApp = (function () {
       const stackSize = titleSize * 0.45;
       const titleHtml =
         '<span>' + delaMatch[1] + '</span> ' +
-        '<span style="display:inline-flex;flex-direction:column;vertical-align:middle;align-items:center;line-height:1.05;font-size:' + stackSize + 'px">' +
+        '<span style="display:inline-flex;flex-direction:column;vertical-align:middle;align-items:center;line-height:0.95;gap:0;font-size:' + stackSize + 'px;margin:0 1px">' +
           '<span>' + delaMatch[2] + '</span>' +
           '<span>' + delaMatch[3] + '</span>' +
         '</span> ' +
