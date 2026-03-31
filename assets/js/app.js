@@ -1261,8 +1261,8 @@ const FlyerApp = (function () {
       branchDetails.appendChild(nameRow);
 
       // Default color swatches
-      const swatchLabel = el('label', { text: 'Default Colors' });
-      branchDetails.appendChild(swatchLabel);
+      const swatchGroup = el('div', { 'class': 'form-group', style: { marginBottom: '0' } });
+      swatchGroup.appendChild(el('label', { text: 'Default Colors' }));
       const defaultColors = [];
       CONFIG.BRANCH_DEFAULTS.forEach(function (b) {
         if (defaultColors.indexOf(b.color) === -1) defaultColors.push(b.color);
@@ -1289,7 +1289,8 @@ const FlyerApp = (function () {
         });
         swatchRow.appendChild(swatch);
       });
-      branchDetails.appendChild(swatchRow);
+      swatchGroup.appendChild(swatchRow);
+      branchDetails.appendChild(swatchGroup);
 
       const addressGroup = el('div', { 'class': 'form-group' });
       addressGroup.appendChild(el('label', { text: 'Address (use Enter for two lines)' }));
