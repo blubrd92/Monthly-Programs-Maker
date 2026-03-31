@@ -534,9 +534,8 @@ const FlyerApp = (function () {
       style: {
         borderLeftColor: sideColor,
         borderRightColor: sideColor,
-        borderTopColor: (showBorders && filled) ? color : (filled ? '#ffffff' : 'transparent'),
-        borderBottomColor: (showBorders && filled) ? color : (filled ? '#ffffff' : 'transparent'),
-        backgroundColor: filled ? color : 'transparent',
+        borderTopColor: 'transparent',
+        borderBottomColor: 'transparent',
       },
     });
 
@@ -565,7 +564,7 @@ const FlyerApp = (function () {
     branchEl.appendChild(leftStrip);
 
     // Content area (programs)
-    const contentBorderColor = showBorders ? color : (filled ? '#ffffff' : 'transparent');
+    const contentBorderColor = showBorders ? color : 'transparent';
     const contentEl = el('div', {
       'class': 'flyer-branch-content',
       style: {
