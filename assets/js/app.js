@@ -509,6 +509,7 @@ const FlyerApp = (function () {
         borderRightColor: sideColor,
         borderTopColor: 'transparent',
         borderBottomColor: 'transparent',
+        backgroundColor: filled ? color : 'transparent',
       },
     });
 
