@@ -686,6 +686,8 @@ body {
 .flyer-header-title {
   font-weight: 700;
   text-transform: uppercase;
+  /* Pull text up to cancel font ascender space above cap height */
+  margin-top: -0.1em;
 }
 
 .flyer-header-month {
