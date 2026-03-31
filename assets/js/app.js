@@ -266,7 +266,6 @@ const FlyerApp = (function () {
     const dateSize = ptToPx(styles.programDateFontSize);
     const timeSize = ptToPx(styles.programTimeFontSize);
     const subtitleSize = ptToPx(styles.programSubtitleFontSize);
-    const spacing = ptToPx(styles.programSpacing);
 
     // Free-text override: render as a single text block
     if (program.freeTextOverride) {
@@ -297,13 +296,6 @@ const FlyerApp = (function () {
     if (program.asterisk) {
       nameText += '*';
     }
-
-    const nameDateGap = ptToPx(styles.programNameDateGap || CONFIG.DEFAULT_STYLES.programNameDateGap);
-    const dateTimeGap = ptToPx(styles.programDateTimeGap || CONFIG.DEFAULT_STYLES.programDateTimeGap);
-
-    // Fixed-width date and time columns so fields align across programs
-    const dateColWidth = ptToPx(styles.programDateColWidth || CONFIG.DEFAULT_STYLES.programDateColWidth || 80);
-    const timeColWidth = ptToPx(styles.programTimeColWidth || CONFIG.DEFAULT_STYLES.programTimeColWidth || 55);
 
     // Name + subtitle combined cell
     const nameCell = el('div', {
@@ -358,17 +350,16 @@ const FlyerApp = (function () {
         fontFamily: fontRoles.programTime,
         fontSize: timeSize + 'px',
         fontWeight: styles.programTimeBold ? '700' : '400',
-        marginLeft: dateTimeGap + 'px',
       },
     });
 
+    // Percentage-based columns: name 60%, date 20%, time gets the rest (20%)
     const programEl = el('div', {
       'class': 'flyer-program' + (isClosure ? ' closure' : ''),
       style: {
         backgroundColor: bgColor,
         color: branchColor,
-        gridTemplateColumns: '1fr ' + dateColWidth + 'px ' + timeColWidth + 'px',
-        columnGap: nameDateGap + 'px',
+        gridTemplateColumns: '60% 20% 1fr',
       },
     }, nameCell, dateEl, timeEl);
 

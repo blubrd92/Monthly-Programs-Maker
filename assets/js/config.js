@@ -98,8 +98,6 @@ const CONFIG = (function () {
       programDateBold: true,
       programTimeBold: false,
       programNameBold: true,
-      programDateColWidth: 80,
-      programTimeColWidth: 55,
     },
 
     // ── Default Header ───────────────────────────────────
