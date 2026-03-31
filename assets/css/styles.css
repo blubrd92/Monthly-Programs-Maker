@@ -784,6 +784,7 @@ body {
 .flyer-program-date {
   text-align: left;
   white-space: pre-line;
+  padding: 0;
 }
 
 .flyer-program-time {
