@@ -329,16 +329,41 @@ const FlyerApp = (function () {
     const titleSize = ptToPx(styles.headerTitleFontSize || CONFIG.DEFAULT_STYLES.headerTitleFontSize);
     const monthSize = ptToPx(styles.headerMonthFontSize || CONFIG.DEFAULT_STYLES.headerMonthFontSize);
 
-    const titleEl = el('div', {
-      'class': 'flyer-header-title',
-      text: header.titleText || '',
-      style: {
-        color: header.titleColor || CONFIG.COLORS.headerTitle,
-        fontFamily: fontRoles.headerTitle,
-        fontSize: titleSize + 'px',
-        lineHeight: '1',
-      },
-    });
+    // Check if title contains a "de la" pattern for stacked rendering
+    const delaMatch = (header.titleText || '').match(/^(.+?)\s+(de)\s+(la)\s+(.+)$/i);
+
+    let titleEl;
+    if (delaMatch) {
+      const stackSize = titleSize * 0.45;
+      const titleHtml =
+        '<span>' + delaMatch[1] + '</span> ' +
+        '<span style="display:inline-flex;flex-direction:column;vertical-align:middle;align-items:center;line-height:1.05;font-size:' + stackSize + 'px">' +
+          '<span>' + delaMatch[2] + '</span>' +
+          '<span>' + delaMatch[3] + '</span>' +
+        '</span> ' +
+        '<span>' + delaMatch[4] + '</span>';
+      titleEl = el('div', {
+        'class': 'flyer-header-title',
+        html: titleHtml,
+        style: {
+          color: header.titleColor || CONFIG.COLORS.headerTitle,
+          fontFamily: fontRoles.headerTitle,
+          fontSize: titleSize + 'px',
+          lineHeight: '1',
+        },
+      });
+    } else {
+      titleEl = el('div', {
+        'class': 'flyer-header-title',
+        text: header.titleText || '',
+        style: {
+          color: header.titleColor || CONFIG.COLORS.headerTitle,
+          fontFamily: fontRoles.headerTitle,
+          fontSize: titleSize + 'px',
+          lineHeight: '1',
+        },
+      });
+    }
 
     const monthEl = el('div', {
       'class': 'flyer-header-month',
