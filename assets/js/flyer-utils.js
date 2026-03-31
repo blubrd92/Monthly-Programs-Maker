@@ -21,20 +21,21 @@ const FlyerUtils = (function () {
   /**
    * Create a blank program entry with default values.
    */
-  function createBlankProgram() {
+  function createBlankProgram(defaults) {
+    const d = defaults || {};
     return {
       id: generateId(),
-      name: '',
-      subtitle: '',
-      dateText: '',
-      timeText: '',
-      nameBold: true,
-      subtitleItalic: false,
-      asterisk: false,
-      registrationRequired: false,
-      ageGroup: null,
-      isClosure: false,
-      freeTextOverride: null,
+      name: d.name || '',
+      subtitle: d.subtitle || '',
+      dateText: d.dateText || '',
+      timeText: d.timeText || '',
+      nameBold: d.nameBold !== undefined ? d.nameBold : true,
+      subtitleItalic: d.subtitleItalic || false,
+      asterisk: d.asterisk || false,
+      registrationRequired: d.registrationRequired || false,
+      ageGroup: d.ageGroup || null,
+      isClosure: d.isClosure || false,
+      freeTextOverride: d.freeTextOverride || null,
     };
   }
 
@@ -53,7 +54,12 @@ const FlyerUtils = (function () {
       visible: true,
       note: null,
       noteStyle: null,
-      programs: [createBlankProgram()],
+      programs: [createBlankProgram({
+        name: 'Program Name',
+        subtitle: 'Age Group · Details',
+        dateText: 'Day, Month #',
+        timeText: '00:00 AM',
+      })],
     };
   }
 
