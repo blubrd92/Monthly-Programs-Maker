@@ -464,7 +464,6 @@ const FlyerApp = (function () {
   // ── Render: Footer ─────────────────────────────────────────────
   function renderFooter(footer) {
     const footerEl = el('div', { 'class': 'flyer-footer' });
-    const margin = getMarginPx();
 
     // Asterisk note (positioned above footer image)
     if (footer.asteriskNote) {
@@ -475,8 +474,9 @@ const FlyerApp = (function () {
         style: {
           fontFamily: fontRoles.programSubtitle,
           fontSize: astSize + 'px',
-          paddingLeft: margin + 'px',
-          paddingRight: margin + 'px',
+          textAlign: 'left',
+          fontWeight: footer.asteriskBold ? '700' : '400',
+          fontStyle: footer.asteriskItalic ? 'italic' : 'normal',
         },
       });
       footerEl.appendChild(noteEl);
@@ -1572,6 +1572,20 @@ const FlyerApp = (function () {
       debouncedRenderPreview();
     });
 
+    const asteriskBold = document.getElementById('footer-asterisk-bold');
+    asteriskBold.addEventListener('change', function () {
+      getCurrentPage().footer.asteriskBold = asteriskBold.checked;
+      markDirty();
+      debouncedRenderPreview();
+    });
+
+    const asteriskItalic = document.getElementById('footer-asterisk-italic');
+    asteriskItalic.addEventListener('change', function () {
+      getCurrentPage().footer.asteriskItalic = asteriskItalic.checked;
+      markDirty();
+      debouncedRenderPreview();
+    });
+
     // ── Settings Section Collapse Toggles ─────────────
     const settingsHeadings = document.querySelectorAll('.settings-heading');
     settingsHeadings.forEach(function (heading) {
@@ -1725,6 +1739,8 @@ const FlyerApp = (function () {
     });
     document.getElementById('footer-asterisk-note').value = page.footer.asteriskNote || '';
     document.getElementById('footer-asterisk-size').value = page.footer.asteriskFontSize || 7;
+    document.getElementById('footer-asterisk-bold').checked = !!page.footer.asteriskBold;
+    document.getElementById('footer-asterisk-italic').checked = !!page.footer.asteriskItalic;
 
     // Page size
     const pageSizeBtns = document.querySelectorAll('[data-page-size]');
