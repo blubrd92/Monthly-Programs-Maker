@@ -1260,6 +1260,35 @@ const FlyerApp = (function () {
       nameRow.appendChild(colorGroup);
       branchDetails.appendChild(nameRow);
 
+      // Default color swatches
+      const defaultColors = [];
+      CONFIG.BRANCH_DEFAULTS.forEach(function (b) {
+        if (defaultColors.indexOf(b.color) === -1) defaultColors.push(b.color);
+      });
+      const swatchRow = el('div', { style: { display: 'flex', gap: '6px', margin: '4px 0 8px' } });
+      defaultColors.forEach(function (c) {
+        const swatch = el('div', {
+          style: {
+            width: '20px', height: '20px', borderRadius: '3px',
+            backgroundColor: c, cursor: 'pointer',
+            border: branch.color === c ? '2px solid #333' : '2px solid transparent',
+          },
+          title: c,
+          'on': {
+            'click': function () {
+              branch.color = c;
+              colorInput.value = c;
+              nameDisplay.style.color = c;
+              markDirty();
+              debouncedRenderPreview();
+              renderBranchList();
+            },
+          },
+        });
+        swatchRow.appendChild(swatch);
+      });
+      branchDetails.appendChild(swatchRow);
+
       const addressGroup = el('div', { 'class': 'form-group' });
       addressGroup.appendChild(el('label', { text: 'Address (use Enter for two lines)' }));
       const addressInput = el('textarea', {
