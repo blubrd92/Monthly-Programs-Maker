@@ -238,6 +238,92 @@ const FlyerApp = (function () {
     });
   }
 
+  /**
+   * Replace vertical text elements with canvas images for PDF export.
+   * html2canvas doesn't support writing-mode: vertical-rl, so we
+   * pre-render vertical text onto canvas elements that look identical.
+   */
+  function rasterizeVerticalText(root, scale) {
+    const elements = root.querySelectorAll('[data-auto-size]');
+    elements.forEach(function (textEl) {
+      const strip = textEl.parentElement;
+      if (!strip) return;
+
+      const stripW = strip.offsetWidth;
+      const stripH = strip.offsetHeight;
+      if (stripW <= 0 || stripH <= 0) return;
+
+      // Read computed styles from the text element
+      const cs = window.getComputedStyle(textEl);
+      const fontSize = parseFloat(cs.fontSize);
+      const fontFamily = cs.fontFamily;
+      const fontWeight = cs.fontWeight;
+      const color = cs.color;
+      const textContent = textEl.textContent || '';
+      const lineHeight = parseFloat(cs.lineHeight) || fontSize * 1.05;
+      const isWrapped = cs.whiteSpace !== 'nowrap';
+
+      // Create a canvas the size of the strip
+      const canvas = document.createElement('canvas');
+      canvas.width = stripW * scale;
+      canvas.height = stripH * scale;
+      canvas.style.width = stripW + 'px';
+      canvas.style.height = stripH + 'px';
+      canvas.style.position = 'absolute';
+      canvas.style.top = '0';
+      canvas.style.left = '0';
+
+      const ctx = canvas.getContext('2d');
+      ctx.scale(scale, scale);
+      ctx.fillStyle = color;
+      ctx.font = fontWeight + ' ' + fontSize + 'px ' + fontFamily;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'center';
+
+      // Split text into lines (manual breaks or wrapped)
+      let lines;
+      if (isWrapped && textContent.indexOf('\n') !== -1) {
+        lines = textContent.split('\n');
+      } else if (isWrapped) {
+        // Approximate word wrapping for vertical text
+        // Each "line" in vertical mode stacks horizontally
+        const words = textContent.split(/\s+/);
+        lines = [];
+        let current = words[0] || '';
+        for (let i = 1; i < words.length; i++) {
+          const test = current + ' ' + words[i];
+          if (ctx.measureText(test).width > stripH - 8) {
+            lines.push(current);
+            current = words[i];
+          } else {
+            current = test;
+          }
+        }
+        if (current) lines.push(current);
+      } else {
+        lines = [textContent];
+      }
+
+      // Draw lines vertically (rotated 90° CCW, reading bottom to top)
+      const totalWidth = lines.length * lineHeight;
+      const startX = (stripW - totalWidth) / 2 + lineHeight / 2;
+
+      lines.forEach(function (line, i) {
+        const x = startX + i * lineHeight;
+        const y = stripH / 2;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillText(line, 0, 0);
+        ctx.restore();
+      });
+
+      // Hide original text, show canvas
+      textEl.style.visibility = 'hidden';
+      strip.appendChild(canvas);
+    });
+  }
+
   // ── Render: Flyer Header ───────────────────────────────────────
   function renderFlyerHeader(header, styles) {
     const titleSize = ptToPx(styles.headerTitleFontSize || CONFIG.DEFAULT_STYLES.headerTitleFontSize);
@@ -2028,10 +2114,11 @@ const FlyerApp = (function () {
             // Render the flyer content into the temp div
             renderPreviewInto(tempDiv, page);
 
-            // Wait for layout to settle, then auto-size text, then capture
+            // Wait for layout to settle, then auto-size text, rasterize, then capture
             requestAnimationFrame(function () {
               requestAnimationFrame(function () {
                 autoSizeVerticalText(tempDiv);
+                rasterizeVerticalText(tempDiv, scaleRatio);
 
                 html2canvas(tempDiv, {
                   scale: scaleRatio,
