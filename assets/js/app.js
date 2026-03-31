@@ -500,10 +500,15 @@ const FlyerApp = (function () {
 
     // Container — enclosed box with colored border
     const showBorders = styles.branchBorders !== false;
+    const borderColor = filled ? color : 'transparent';
+    const topBottomColor = showBorders ? borderColor : 'transparent';
     const branchEl = el('div', {
       'class': 'flyer-branch',
       style: {
-        borderColor: (filled && showBorders) ? color : 'transparent',
+        borderTopColor: topBottomColor,
+        borderBottomColor: topBottomColor,
+        borderLeftColor: borderColor,
+        borderRightColor: borderColor,
       },
     });
 
@@ -513,7 +518,7 @@ const FlyerApp = (function () {
       style: {
         backgroundColor: stripBg,
         width: stripWidth + 'px',
-        borderRight: (filled || !showBorders) ? 'none' : '2px solid ' + color,
+        borderRight: filled ? 'none' : '2px solid ' + color,
       },
     });
 
@@ -567,7 +572,7 @@ const FlyerApp = (function () {
       style: {
         backgroundColor: stripBg,
         width: stripWidth + 'px',
-        borderLeft: (filled || !showBorders) ? 'none' : '2px solid ' + color,
+        borderLeft: filled ? 'none' : '2px solid ' + color,
       },
     });
 
