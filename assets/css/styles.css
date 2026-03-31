@@ -288,6 +288,47 @@ body {
   margin-bottom: 2px;
 }
 
+.branch-details-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 4px 2px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.branch-details-summary:hover {
+  background: var(--bg-hover, rgba(0,0,0,0.04));
+}
+
+.branch-color-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  border: 1px solid rgba(0,0,0,0.15);
+}
+
+.branch-details-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.branch-details-edit-icon {
+  flex-shrink: 0;
+  opacity: 0.4;
+  font-size: 0.75rem;
+}
+
+.branch-details-summary:hover .branch-details-edit-icon {
+  opacity: 0.8;
+}
+
 .branch-actions {
   display: flex;
   gap: 4px;

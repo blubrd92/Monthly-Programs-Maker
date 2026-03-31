@@ -12,6 +12,7 @@ const FlyerApp = (function () {
   let zoomLevel = 1;
   let isDirty = false;
   let editingProgramId = null;
+  let editingBranchDetailsId = null;
   const collapsedBranches = new Set();
   let autosaveTimer = null;
 
@@ -1082,63 +1083,110 @@ const FlyerApp = (function () {
     // Branch body
     const body = el('div', { 'class': 'branch-body' });
 
-    // Branch detail fields (name, address, color)
+    // Branch detail fields (name, address, color) — toggleable compact/edit
     const branchDetails = el('div', { 'class': 'branch-details' });
 
-    const nameRow = el('div', { 'class': 'form-row' });
-    const nameGroup = el('div', { 'class': 'form-group', style: { flex: '1' } });
-    nameGroup.appendChild(el('label', { text: 'Name' }));
-    const nameInput = el('input', {
-      type: 'text',
-      value: branch.name || '',
-      'on': {
-        'input': function () {
-          branch.name = nameInput.value;
-          nameDisplay.textContent = nameInput.value || 'Untitled';
-          nameDisplay.style.color = branch.color || '#666666';
-          markDirty();
-          debouncedRenderPreview();
+    if (editingBranchDetailsId === branch.id) {
+      // ── Edit mode ──
+      const nameRow = el('div', { 'class': 'form-row' });
+      const nameGroup = el('div', { 'class': 'form-group', style: { flex: '1' } });
+      nameGroup.appendChild(el('label', { text: 'Name' }));
+      const nameInput = el('input', {
+        type: 'text',
+        value: branch.name || '',
+        'on': {
+          'input': function () {
+            branch.name = nameInput.value;
+            nameDisplay.textContent = nameInput.value || 'Untitled';
+            nameDisplay.style.color = branch.color || '#666666';
+            markDirty();
+            debouncedRenderPreview();
+          },
         },
-      },
-    });
-    nameGroup.appendChild(nameInput);
-    nameRow.appendChild(nameGroup);
+      });
+      nameGroup.appendChild(nameInput);
+      nameRow.appendChild(nameGroup);
 
-    const colorGroup = el('div', { 'class': 'form-group', style: { width: '60px', flexShrink: '0' } });
-    colorGroup.appendChild(el('label', { text: 'Color' }));
-    const colorInput = el('input', {
-      type: 'color',
-      value: branch.color || '#666666',
-      'on': {
-        'input': function () {
-          branch.color = colorInput.value;
-          nameDisplay.style.color = colorInput.value;
-          markDirty();
-          debouncedRenderPreview();
+      const colorGroup = el('div', { 'class': 'form-group', style: { width: '60px', flexShrink: '0' } });
+      colorGroup.appendChild(el('label', { text: 'Color' }));
+      const colorInput = el('input', {
+        type: 'color',
+        value: branch.color || '#666666',
+        'on': {
+          'input': function () {
+            branch.color = colorInput.value;
+            nameDisplay.style.color = colorInput.value;
+            markDirty();
+            debouncedRenderPreview();
+          },
         },
-      },
-    });
-    colorGroup.appendChild(colorInput);
-    nameRow.appendChild(colorGroup);
-    branchDetails.appendChild(nameRow);
+      });
+      colorGroup.appendChild(colorInput);
+      nameRow.appendChild(colorGroup);
+      branchDetails.appendChild(nameRow);
 
-    const addressGroup = el('div', { 'class': 'form-group' });
-    addressGroup.appendChild(el('label', { text: 'Address (use Enter for two lines)' }));
-    const addressInput = el('textarea', {
-      rows: '2',
-      placeholder: 'e.g. 123 Main St · City, ST 12345',
-      style: { resize: 'none' },
-      'on': {
-        'input': function () {
-          branch.address = addressInput.value;
-          markDirty();
-          debouncedRenderPreview();
+      const addressGroup = el('div', { 'class': 'form-group' });
+      addressGroup.appendChild(el('label', { text: 'Address (use Enter for two lines)' }));
+      const addressInput = el('textarea', {
+        rows: '2',
+        placeholder: 'e.g. 123 Main St · City, ST 12345',
+        style: { resize: 'none' },
+        'on': {
+          'input': function () {
+            branch.address = addressInput.value;
+            markDirty();
+            debouncedRenderPreview();
+          },
         },
-      },
-    });
-    addressInput.value = branch.address || '';
-    addressGroup.appendChild(addressInput);
-    branchDetails.appendChild(addressGroup);
+      });
+      addressInput.value = branch.address || '';
+      addressGroup.appendChild(addressInput);
+      branchDetails.appendChild(addressGroup);
+
+      // Done button
+      const doneBtn = el('button', {
+        'class': 'btn btn-sm btn-outline',
+        html: '<i class="fas fa-check"></i> Done',
+        'on': {
+          'click': function () {
+            editingBranchDetailsId = null;
+            renderBranchList();
+          },
+        },
+      });
+      branchDetails.appendChild(doneBtn);
+    } else {
+      // ── Compact mode ──
+      const summary = el('div', {
+        'class': 'branch-details-summary',
+        'on': {
+          'click': function () {
+            editingBranchDetailsId = branch.id;
+            renderBranchList();
+          },
+        },
+      });
+
+      const colorSwatch = el('span', {
+        'class': 'branch-color-swatch',
+        style: { backgroundColor: color },
+      });
+      summary.appendChild(colorSwatch);
+
+      const summaryText = el('span', {
+        'class': 'branch-details-text',
+        text: (branch.name || 'Untitled') + (branch.address ? ' · ' + branch.address.replace(/\n/g, ', ') : ''),
+      });
+      summary.appendChild(summaryText);
+
+      const editIcon = el('span', {
+        'class': 'branch-details-edit-icon',
+        html: '<i class="fas fa-pen"></i>',
+      });
+      summary.appendChild(editIcon);
+
+      branchDetails.appendChild(summary);
+    }
 
     body.appendChild(branchDetails);
 
