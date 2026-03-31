@@ -160,10 +160,11 @@ const FlyerApp = (function () {
       if (!strip) return;
 
       // Use getBoundingClientRect for reliable physical dimensions
-      // regardless of writing-mode quirks with scrollWidth/scrollHeight
+      // regardless of writing-mode quirks with scrollWidth/scrollHeight.
+      // Divide by zoomLevel since getBoundingClientRect includes CSS transforms.
       const stripRect = strip.getBoundingClientRect();
-      const stripPhysW = stripRect.width;
-      const stripPhysH = stripRect.height;
+      const stripPhysW = stripRect.width / zoomLevel;
+      const stripPhysH = stripRect.height / zoomLevel;
       if (stripPhysH <= 0 || stripPhysW <= 0) return;
 
       const padding = 2;
@@ -175,13 +176,13 @@ const FlyerApp = (function () {
       // Helper: check if text physically fits inside the strip
       function textFits() {
         const r = textEl.getBoundingClientRect();
-        return r.height <= usableH + 0.5 && r.width <= stripPhysW + 0.5;
+        return r.height / zoomLevel <= usableH + 0.5 && r.width / zoomLevel <= stripPhysW + 0.5;
       }
 
       // Helper: check if text width (lines) fits in strip width
       function widthFits() {
         const r = textEl.getBoundingClientRect();
-        return r.width <= stripPhysW + 0.5;
+        return r.width / zoomLevel <= stripPhysW + 0.5;
       }
 
       // Strategy A: single line — find max font size
