@@ -1133,20 +1133,6 @@ const FlyerApp = (function () {
     // Action buttons
     const actions = el('div', { 'class': 'branch-actions' });
 
-    // Add program button
-    const addBtn = el('button', {
-      'class': 'btn btn-sm btn-outline',
-      html: '<i class="fas fa-plus"></i>',
-      'title': 'Add program',
-      'on': {
-        'click': function (e) {
-          e.stopPropagation();
-          addProgramToBranch(branch.id);
-        },
-      },
-    });
-    actions.appendChild(addBtn);
-
     // Delete branch button
     const deleteBtn = el('button', {
       'class': 'btn btn-sm btn-outline btn-delete',
@@ -1309,6 +1295,20 @@ const FlyerApp = (function () {
     }
 
     body.appendChild(programsContainer);
+
+    // Add program button (below program list)
+    const addProgramBtn = el('button', {
+      'class': 'btn btn-sm btn-outline btn-full',
+      html: '<i class="fas fa-plus"></i> Add Program',
+      style: { marginTop: '6px' },
+      'on': {
+        'click': function () {
+          addProgramToBranch(branch.id);
+        },
+      },
+    });
+    body.appendChild(addProgramBtn);
+
     section.appendChild(body);
 
     // Initialize sortable on program list
