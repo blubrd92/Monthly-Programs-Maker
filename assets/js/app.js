@@ -161,6 +161,7 @@ const FlyerApp = (function () {
 
       const availableHeight = strip.clientHeight;
       const stripWidth = strip.clientWidth;
+      console.log('AUTO-SIZE:', textEl.textContent, 'stripH:', availableHeight, 'stripW:', stripWidth, 'scrollW:', textEl.scrollWidth, 'scrollH:', textEl.scrollHeight);
       if (availableHeight <= 0 || stripWidth <= 0) return;
 
       const padding = 8;
