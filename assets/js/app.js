@@ -171,39 +171,54 @@ const FlyerApp = (function () {
       //   scrollWidth = physical height of text (must fit in stripH)
       //   scrollHeight = physical width of text (must fit in stripW)
 
-      // Strategy A: single line — find max font size
-      let singleSize = minFontSize;
-      textEl.style.whiteSpace = 'nowrap';
-      textEl.style.height = '';
-      textEl.style.fontSize = singleSize + 'px';
+      // Ensure tight line-height so scrollHeight accurately reflects text width
+      textEl.style.lineHeight = '1.05';
 
-      while (singleSize < maxFontSize) {
-        textEl.style.fontSize = (singleSize + 1) + 'px';
-        if (textEl.scrollWidth > usableH || textEl.scrollHeight > stripW) break;
-        singleSize += 1;
+      // Helper: check if text fits in strip at current settings
+      function fits() {
+        return textEl.scrollWidth <= usableH && textEl.scrollHeight <= stripW;
       }
 
+      // Strategy A: single line — find max font size
+      textEl.style.whiteSpace = 'nowrap';
+      textEl.style.height = '';
+      textEl.style.wordBreak = '';
+      textEl.style.fontSize = minFontSize + 'px';
+
+      let singleSize = minFontSize;
+      if (fits()) {
+        while (singleSize < maxFontSize) {
+          textEl.style.fontSize = (singleSize + 1) + 'px';
+          if (!fits()) break;
+          singleSize += 1;
+        }
+      }
+      textEl.style.fontSize = singleSize + 'px';
+      // Verify single-line actually fits at this size
+      if (!fits()) singleSize = minFontSize;
+
       // Strategy B: wrapped — find max font size with wrapping
-      let wrapSize = minFontSize;
       textEl.style.whiteSpace = 'normal';
       textEl.style.height = usableH + 'px';
       textEl.style.wordBreak = 'break-word';
-      textEl.style.fontSize = wrapSize + 'px';
+      textEl.style.fontSize = minFontSize + 'px';
 
-      while (wrapSize < maxFontSize) {
-        textEl.style.fontSize = (wrapSize + 1) + 'px';
-        if (textEl.scrollHeight > stripW) break;
-        wrapSize += 1;
+      let wrapSize = minFontSize;
+      if (textEl.scrollHeight <= stripW) {
+        while (wrapSize < maxFontSize) {
+          textEl.style.fontSize = (wrapSize + 1) + 'px';
+          if (textEl.scrollHeight > stripW) break;
+          wrapSize += 1;
+        }
       }
 
       // Pick whichever strategy gives the larger font
       if (singleSize >= wrapSize) {
-        // Single line wins
         textEl.style.whiteSpace = 'nowrap';
         textEl.style.height = '';
+        textEl.style.wordBreak = '';
         textEl.style.fontSize = singleSize + 'px';
       } else {
-        // Wrapped wins
         textEl.style.whiteSpace = 'normal';
         textEl.style.height = usableH + 'px';
         textEl.style.wordBreak = 'break-word';
@@ -435,6 +450,7 @@ const FlyerApp = (function () {
         style: {
           fontFamily: fontRoles.branchAddress,
           fontSize: addressSize + 'px',
+          lineHeight: '1',
         },
       });
       rightStrip.appendChild(addressEl);
@@ -576,10 +592,14 @@ const FlyerApp = (function () {
       container.style.transform = 'scale(' + zoomLevel + ')';
     }
 
-    // Auto-size vertical text and check overflow after DOM settles
+    // Auto-size vertical text and check overflow after layout is fully resolved.
+    // Double rAF ensures the browser has completed at least one layout pass
+    // (absolute-positioned strips need the parent's height from content first).
     requestAnimationFrame(function () {
-      autoSizeVerticalText(preview);
-      checkOverflow();
+      requestAnimationFrame(function () {
+        autoSizeVerticalText(preview);
+        checkOverflow();
+      });
     });
   }
 
