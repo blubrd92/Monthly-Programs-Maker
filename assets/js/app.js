@@ -503,7 +503,6 @@ const FlyerApp = (function () {
       'class': 'flyer-branch',
       style: {
         borderColor: filled ? color : 'transparent',
-        borderWidth: filled ? '0' : '2px',
       },
     });
 
