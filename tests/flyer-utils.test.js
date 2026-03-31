@@ -54,7 +54,7 @@ describe('FlyerUtils.createBlankProgram', () => {
 describe('FlyerUtils.createBlankBranch', () => {
   it('creates a branch with default values', () => {
     const branch = FlyerUtils.createBlankBranch();
-    expect(branch.name).toBe('NEW BRANCH');
+    expect(branch.name).toBe('New Branch');
     expect(branch.address).toBe('');
     expect(branch.color).toBe('#666666');
     expect(branch.visible).toBe(true);
@@ -87,7 +87,7 @@ describe('FlyerUtils.createDefaultFlyer', () => {
 
   it('has default header', () => {
     const flyer = FlyerUtils.createDefaultFlyer();
-    expect(flyer.header.titleText).toBe('LIBRARY PROGRAMS');
+    expect(flyer.header.titleText).toBe('Library Programs');
     expect(flyer.header.monthColor).toBe('#cc007e');
   });
 
@@ -220,7 +220,7 @@ describe('FlyerUtils.duplicatePage', () => {
     const flyer = FlyerUtils.createDefaultFlyer();
     const dup = FlyerUtils.duplicatePage(flyer);
     dup.header.titleText = 'CHANGED';
-    expect(flyer.header.titleText).toBe('LIBRARY PROGRAMS');
+    expect(flyer.header.titleText).toBe('Library Programs');
   });
 });
 

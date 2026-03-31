@@ -45,7 +45,7 @@ const FlyerUtils = (function () {
   function createBlankBranch(name, address, color) {
     return {
       id: generateId(),
-      name: name || 'NEW BRANCH',
+      name: name || 'New Branch',
       address: address || '',
       color: color || '#666666',
       visible: true,

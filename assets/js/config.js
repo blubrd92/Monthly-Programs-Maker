@@ -98,16 +98,16 @@ const CONFIG = (function () {
 
     // ── Default Header ───────────────────────────────────
     DEFAULT_HEADER: {
-      titleText: 'LIBRARY PROGRAMS',
-      monthText: 'MONTH YEAR',
+      titleText: 'Library Programs',
+      monthText: 'Month Year',
       titleColor: '#000000',
       monthColor: '#cc007e',
     },
 
     // ── Language-based Title Mapping ─────────────────────
     HEADER_TITLE_BY_LANGUAGE: {
-      'default-english': { text: 'LIBRARY PROGRAMS', fontSize: 34 },
-      'default-spanish': { text: 'PROGRAMAS DE LA BIBLIOTECA', fontSize: 32 },
+      'default-english': { text: 'Library Programs', fontSize: 34 },
+      'default-spanish': { text: 'Programas de la Biblioteca', fontSize: 32 },
     },
 
     // ── Default Footer ───────────────────────────────────
