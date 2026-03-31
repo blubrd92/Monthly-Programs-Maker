@@ -173,6 +173,9 @@ const FlyerApp = (function () {
 
       textEl.style.lineHeight = '1.05';
 
+      // Check if text contains manual line breaks — if so, skip single-line strategy
+      const hasLineBreaks = textEl.textContent.indexOf('\n') !== -1;
+
       // Helper: check if text physically fits inside the strip
       function textFits() {
         const r = textEl.getBoundingClientRect();
@@ -185,24 +188,27 @@ const FlyerApp = (function () {
         return r.width / zoomLevel <= stripPhysW + 0.5;
       }
 
-      // Strategy A: single line — find max font size
-      textEl.style.whiteSpace = 'nowrap';
-      textEl.style.height = '';
-      textEl.style.wordBreak = '';
-      textEl.style.fontSize = minFontSize + 'px';
-
+      // Strategy A: single line — only if no manual line breaks
       let singleSize = minFontSize;
-      if (textFits()) {
-        while (singleSize < maxFontSize) {
-          textEl.style.fontSize = (singleSize + 1) + 'px';
-          if (!textFits()) break;
-          singleSize += 1;
+      if (!hasLineBreaks) {
+        textEl.style.whiteSpace = 'nowrap';
+        textEl.style.height = '';
+        textEl.style.wordBreak = '';
+        textEl.style.fontSize = minFontSize + 'px';
+
+        if (textFits()) {
+          while (singleSize < maxFontSize) {
+            textEl.style.fontSize = (singleSize + 1) + 'px';
+            if (!textFits()) break;
+            singleSize += 1;
+          }
         }
       }
 
       // Strategy B: wrapped — constrain height to force line wrapping,
-      // then grow font while lines still fit in strip width
-      textEl.style.whiteSpace = 'normal';
+      // then grow font while lines still fit in strip width.
+      // Use pre-wrap to preserve manual \n line breaks.
+      textEl.style.whiteSpace = 'pre-wrap';
       textEl.style.height = usableH + 'px';
       textEl.style.wordBreak = 'break-word';
       textEl.style.fontSize = minFontSize + 'px';
@@ -217,13 +223,13 @@ const FlyerApp = (function () {
       }
 
       // Pick whichever strategy gives the larger font
-      if (singleSize >= wrapSize) {
+      if (!hasLineBreaks && singleSize >= wrapSize) {
         textEl.style.whiteSpace = 'nowrap';
         textEl.style.height = '';
         textEl.style.wordBreak = '';
         textEl.style.fontSize = singleSize + 'px';
       } else {
-        textEl.style.whiteSpace = 'normal';
+        textEl.style.whiteSpace = 'pre-wrap';
         textEl.style.height = usableH + 'px';
         textEl.style.wordBreak = 'break-word';
         textEl.style.fontSize = wrapSize + 'px';
