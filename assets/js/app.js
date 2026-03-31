@@ -151,7 +151,7 @@ const FlyerApp = (function () {
    * Strategy: grow to fill single line, then try wrapping, then shrink.
    */
   function autoSizeVerticalText(root) {
-    const maxFontSize = 72; // cap so text doesn't get absurdly large
+    const maxFontSize = 72;
     const minFontSize = 6;
 
     const elements = root.querySelectorAll('[data-auto-size]');
@@ -159,41 +159,48 @@ const FlyerApp = (function () {
       const strip = textEl.parentElement;
       if (!strip) return;
 
-      const availableHeight = strip.clientHeight;
-      const stripWidth = strip.clientWidth;
-      console.log('AUTO-SIZE:', textEl.textContent, 'stripH:', availableHeight, 'stripW:', stripWidth, 'scrollW:', textEl.scrollWidth, 'scrollH:', textEl.scrollHeight);
-      if (availableHeight <= 0 || stripWidth <= 0) return;
+      const stripH = strip.clientHeight;
+      const stripW = strip.clientWidth;
+      if (stripH <= 0 || stripW <= 0) return;
 
       const padding = 8;
-      const usable = availableHeight - padding;
-      if (usable <= 0) return;
+      const usableH = stripH - padding;
+      if (usableH <= 0) return;
 
       let size = parseFloat(textEl.style.fontSize) || 14;
 
-      // Step 1: Try single line — grow font to fill available height
+      // For writing-mode: vertical-rl (rotated 180):
+      //   scrollWidth = physical height of text (must fit in stripH)
+      //   scrollHeight = physical width of text (must fit in stripW)
+
+      // Step 1: Start small, try single line, grow to fill
+      size = minFontSize;
       textEl.style.whiteSpace = 'nowrap';
       textEl.style.height = '';
       textEl.style.fontSize = size + 'px';
 
-      // Grow while text fits in one line and within strip width
+      // Grow while text fits in both dimensions as single line
       while (size < maxFontSize) {
         textEl.style.fontSize = (size + 1) + 'px';
-        if (textEl.scrollWidth > usable || textEl.scrollHeight > stripWidth) break;
+        if (textEl.scrollWidth > usableH || textEl.scrollHeight > stripW) break;
         size += 1;
       }
       textEl.style.fontSize = size + 'px';
 
-      // Check if it fits as single line
-      if (textEl.scrollWidth <= usable) return;
+      // If single line fits in both dimensions, done
+      if (textEl.scrollWidth <= usableH && textEl.scrollHeight <= stripW) return;
 
-      // Step 2: Allow wrapping to two lines at current size
+      // Step 2: Text is too long for single line at this size.
+      // Try wrapping: constrain the height so text wraps to 2+ lines
       textEl.style.whiteSpace = 'normal';
-      textEl.style.height = usable + 'px';
+      textEl.style.height = usableH + 'px';
+      textEl.style.wordBreak = 'break-word';
 
-      if (textEl.scrollHeight <= stripWidth) return; // wrapping fits
+      // If wrapped text fits in strip width, done
+      if (textEl.scrollHeight <= stripW) return;
 
-      // Step 3: Shrink until it fits (wrapped)
-      while (size > minFontSize && textEl.scrollHeight > stripWidth) {
+      // Step 3: Shrink wrapped text until it fits
+      while (size > minFontSize && textEl.scrollHeight > stripW) {
         size -= 0.5;
         textEl.style.fontSize = size + 'px';
       }
