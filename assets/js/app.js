@@ -499,10 +499,11 @@ const FlyerApp = (function () {
     const stripTextColor = filled ? '#ffffff' : color;
 
     // Container — enclosed box with colored border
+    const showBorders = styles.branchBorders !== false;
     const branchEl = el('div', {
       'class': 'flyer-branch',
       style: {
-        borderColor: filled ? color : 'transparent',
+        borderColor: (filled && showBorders) ? color : 'transparent',
       },
     });
 
@@ -531,9 +532,8 @@ const FlyerApp = (function () {
     branchEl.appendChild(leftStrip);
 
     // Content area (programs)
-    const showSeparators = styles.programSeparators !== false;
     const contentEl = el('div', {
-      'class': 'flyer-branch-content' + (showSeparators ? '' : ' no-separators'),
+      'class': 'flyer-branch-content',
     });
 
     // Branch note (if any)
@@ -1612,9 +1612,9 @@ const FlyerApp = (function () {
       debouncedRenderPreview();
     });
 
-    const separatorsToggle = document.getElementById('style-program-separators');
-    separatorsToggle.addEventListener('change', function () {
-      getCurrentPage().styles.programSeparators = separatorsToggle.checked;
+    const branchBordersToggle = document.getElementById('style-branch-borders');
+    branchBordersToggle.addEventListener('change', function () {
+      getCurrentPage().styles.branchBorders = branchBordersToggle.checked;
       markDirty();
       debouncedRenderPreview();
     });
@@ -1897,7 +1897,7 @@ const FlyerApp = (function () {
     document.getElementById('header-month-color').value = page.header.monthColor;
     document.getElementById('header-title-size').value = page.styles.headerTitleFontSize;
     document.getElementById('header-strip-filled').checked = !!page.styles.stripFilled;
-    document.getElementById('style-program-separators').checked = page.styles.programSeparators !== false;
+    document.getElementById('style-branch-borders').checked = page.styles.branchBorders !== false;
 
     // Typography size inputs
     document.getElementById('style-program-name-size').value = page.styles.programNameFontSize;

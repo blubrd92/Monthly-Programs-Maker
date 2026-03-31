@@ -836,10 +836,6 @@ body {
   border-top: 1px solid currentColor;
 }
 
-.no-separators .flyer-program + .flyer-program {
-  border-top: none;
-}
-
 .flyer-program-name {
   text-align: left;
   padding-left: 8px;
