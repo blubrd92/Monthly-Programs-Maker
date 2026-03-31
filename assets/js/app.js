@@ -500,15 +500,11 @@ const FlyerApp = (function () {
 
     // Container — enclosed box with colored border
     const showBorders = styles.branchBorders !== false;
-    const topBottomColor = showBorders ? color : 'transparent';
     const sideColor = filled ? color : 'transparent';
     const branchEl = el('div', {
       'class': 'flyer-branch',
       style: {
-        borderTopColor: topBottomColor,
-        borderBottomColor: topBottomColor,
-        borderLeftColor: sideColor,
-        borderRightColor: sideColor,
+        borderColor: sideColor,
       },
     });
 
@@ -537,8 +533,13 @@ const FlyerApp = (function () {
     branchEl.appendChild(leftStrip);
 
     // Content area (programs)
+    const contentBorderColor = showBorders ? color : 'transparent';
     const contentEl = el('div', {
       'class': 'flyer-branch-content',
+      style: {
+        borderTop: '2px solid ' + contentBorderColor,
+        borderBottom: '2px solid ' + contentBorderColor,
+      },
     });
 
     // Branch note (if any)
