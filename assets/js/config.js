@@ -38,7 +38,7 @@ const CONFIG = (function () {
     FONT_ROLES: {
       headerTitle:     "'Barlow Condensed', sans-serif",
       headerMonth:     "'Barlow Condensed', sans-serif",
-      branchName:      "'Red Hat Display', sans-serif",
+      branchName:      "'Outfit', sans-serif",
       programName:     "'Barlow Condensed', sans-serif",
       programDate:     "'Barlow Condensed', sans-serif",
       programTime:     "'Barlow Condensed', sans-serif",
