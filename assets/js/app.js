@@ -531,8 +531,9 @@ const FlyerApp = (function () {
     branchEl.appendChild(leftStrip);
 
     // Content area (programs)
+    const showSeparators = styles.programSeparators !== false;
     const contentEl = el('div', {
-      'class': 'flyer-branch-content',
+      'class': 'flyer-branch-content' + (showSeparators ? '' : ' no-separators'),
     });
 
     // Branch note (if any)
@@ -1611,6 +1612,13 @@ const FlyerApp = (function () {
       debouncedRenderPreview();
     });
 
+    const separatorsToggle = document.getElementById('style-program-separators');
+    separatorsToggle.addEventListener('change', function () {
+      getCurrentPage().styles.programSeparators = separatorsToggle.checked;
+      markDirty();
+      debouncedRenderPreview();
+    });
+
     // ── Font Family Dropdowns ─────────────────────────
     populateFontDropdowns();
 
@@ -1889,6 +1897,7 @@ const FlyerApp = (function () {
     document.getElementById('header-month-color').value = page.header.monthColor;
     document.getElementById('header-title-size').value = page.styles.headerTitleFontSize;
     document.getElementById('header-strip-filled').checked = !!page.styles.stripFilled;
+    document.getElementById('style-program-separators').checked = page.styles.programSeparators !== false;
 
     // Typography size inputs
     document.getElementById('style-program-name-size').value = page.styles.programNameFontSize;
