@@ -152,7 +152,7 @@ const FlyerApp = (function () {
    * Strategy: grow to fill single line, then try wrapping, then shrink.
    */
   function autoSizeVerticalText(root) {
-    const maxFontSize = 72;
+    const maxFontSize = 18;
     const minFontSize = 6;
 
     const elements = root.querySelectorAll('[data-auto-size]');
