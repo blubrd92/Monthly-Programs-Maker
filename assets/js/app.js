@@ -426,7 +426,7 @@ const FlyerApp = (function () {
     });
 
     const subtitleText = FlyerUtils.buildSubtitleLine(program);
-    const inlineSubtitle = !!styles.subtitleInline;
+    const inlineSubtitle = !!program.subtitleInline;
 
     if (inlineSubtitle && subtitleText) {
       // Append subtitle inline after program name
@@ -954,13 +954,22 @@ const FlyerApp = (function () {
     structuredFields.appendChild(nameGroup);
 
     // Subtitle
+    const subtitleInlineCheck = el('input', {
+      'type': 'checkbox',
+      'class': 'input-subtitle-inline',
+    });
+    subtitleInlineCheck.checked = !!program.subtitleInline;
     const subtitleGroup = el('div', { 'class': 'form-group' },
       el('label', { text: 'Subtitle' }),
       el('input', {
         'type': 'text',
         'class': 'input-subtitle',
         'value': program.subtitle || '',
-      })
+      }),
+      el('label', { 'class': 'checkbox-label', style: { marginTop: '4px', fontSize: '12px' } },
+        subtitleInlineCheck,
+        ' Append to program name'
+      )
     );
     structuredFields.appendChild(subtitleGroup);
 
@@ -1074,6 +1083,7 @@ const FlyerApp = (function () {
       program.freeTextOverride = null;
       program.name = form.querySelector('.input-name').value;
       program.subtitle = form.querySelector('.input-subtitle').value;
+      program.subtitleInline = !!form.querySelector('.input-subtitle-inline').checked;
       program.dateText = form.querySelector('.input-date').value;
       program.timeText = form.querySelector('.input-time').value;
       program.isClosure = form.querySelector('.input-closure').checked;
@@ -1658,12 +1668,7 @@ const FlyerApp = (function () {
       debouncedRenderPreview();
     });
 
-    const subtitleInlineToggle = document.getElementById('style-subtitle-inline');
-    subtitleInlineToggle.addEventListener('change', function () {
-      getCurrentPage().styles.subtitleInline = subtitleInlineToggle.checked;
-      markDirty();
-      debouncedRenderPreview();
-    });
+
 
     // ── Font Family Dropdowns ─────────────────────────
     populateFontDropdowns();
@@ -1944,7 +1949,6 @@ const FlyerApp = (function () {
     document.getElementById('header-title-size').value = page.styles.headerTitleFontSize;
     document.getElementById('header-strip-filled').checked = !!page.styles.stripFilled;
     document.getElementById('style-branch-borders').checked = page.styles.branchBorders !== false;
-    document.getElementById('style-subtitle-inline').checked = !!page.styles.subtitleInline;
 
     // Typography size inputs
     document.getElementById('style-program-name-size').value = page.styles.programNameFontSize;
