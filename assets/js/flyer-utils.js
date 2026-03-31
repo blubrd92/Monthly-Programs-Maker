@@ -53,7 +53,7 @@ const FlyerUtils = (function () {
       visible: true,
       note: null,
       noteStyle: null,
-      programs: [],
+      programs: [createBlankProgram()],
     };
   }
 

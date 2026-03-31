@@ -61,7 +61,7 @@ describe('FlyerUtils.createBlankBranch', () => {
     expect(branch.address).toBe('');
     expect(branch.color).toBe('#666666');
     expect(branch.visible).toBe(true);
-    expect(branch.programs).toEqual([]);
+    expect(branch.programs).toHaveLength(1);
   });
 
   it('accepts custom values', () => {
