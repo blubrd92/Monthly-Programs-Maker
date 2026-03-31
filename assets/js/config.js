@@ -107,7 +107,7 @@ const CONFIG = (function () {
     // ── Language-based Title Mapping ─────────────────────
     HEADER_TITLE_BY_LANGUAGE: {
       'default-english': { text: 'Library Programs', fontSize: 34 },
-      'default-spanish': { text: 'Programas de la Biblioteca', fontSize: 32 },
+      'default-spanish': { text: 'Programas de la Biblioteca', fontSize: 34 },
     },
 
     // ── Default Footer ───────────────────────────────────
