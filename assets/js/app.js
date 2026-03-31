@@ -446,11 +446,13 @@ const FlyerApp = (function () {
 
     // Asterisk note (positioned above footer image)
     if (footer.asteriskNote) {
+      const astSize = ptToPx(footer.asteriskFontSize || 7);
       const noteEl = el('div', {
         'class': 'flyer-footer-asterisk',
         text: footer.asteriskNote,
         style: {
           fontFamily: fontRoles.programSubtitle,
+          fontSize: astSize + 'px',
           paddingLeft: margin + 'px',
           paddingRight: margin + 'px',
         },
@@ -1516,6 +1518,13 @@ const FlyerApp = (function () {
       debouncedRenderPreview();
     });
 
+    const asteriskSize = document.getElementById('footer-asterisk-size');
+    asteriskSize.addEventListener('input', function () {
+      getCurrentPage().footer.asteriskFontSize = parseInt(asteriskSize.value, 10) || 7;
+      markDirty();
+      debouncedRenderPreview();
+    });
+
     // ── Settings Section Collapse Toggles ─────────────
     const settingsHeadings = document.querySelectorAll('.settings-heading');
     settingsHeadings.forEach(function (heading) {
@@ -1670,6 +1679,7 @@ const FlyerApp = (function () {
       btn.classList.toggle('active', btn.getAttribute('data-footer-source') === page.footer.source);
     });
     document.getElementById('footer-asterisk-note').value = page.footer.asteriskNote || '';
+    document.getElementById('footer-asterisk-size').value = page.footer.asteriskFontSize || 7;
 
     // Page size
     const pageSizeBtns = document.querySelectorAll('[data-page-size]');
@@ -2004,7 +2014,17 @@ const FlyerApp = (function () {
 
   function applyZoom() {
     const container = document.getElementById('preview-container');
+    const preview = document.getElementById('flyer-preview');
     container.style.transform = 'scale(' + zoomLevel + ')';
+    // Set container dimensions so the scrollable wrapper knows the scaled size
+    if (preview) {
+      const w = preview.offsetWidth * zoomLevel;
+      const h = preview.offsetHeight * zoomLevel;
+      container.style.width = preview.offsetWidth + 'px';
+      container.style.height = preview.offsetHeight + 'px';
+      container.style.marginBottom = (h - preview.offsetHeight) + 'px';
+      container.style.marginRight = (w - preview.offsetWidth) + 'px';
+    }
     const zoomText = document.getElementById('zoom-level');
     zoomText.textContent = Math.round(zoomLevel * 100) + '%';
   }
