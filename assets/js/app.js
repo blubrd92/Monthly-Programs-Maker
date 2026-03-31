@@ -662,7 +662,6 @@ const FlyerApp = (function () {
     contentWrapper.appendChild(footerEl);
 
     container.appendChild(contentWrapper);
-    autoSizeVerticalText(container);
   }
 
   // Debounced version for use in input handlers
@@ -2009,28 +2008,36 @@ const FlyerApp = (function () {
             // Render the flyer content into the temp div
             renderPreviewInto(tempDiv, page);
 
-            // Allow a moment for rendering to settle
-            setTimeout(function () {
-              html2canvas(tempDiv, {
-                scale: scaleRatio,
-                useCORS: true,
-                logging: false,
-                width: previewWidthPx,
-                height: previewHeightPx,
-                windowWidth: previewWidthPx,
-                windowHeight: previewHeightPx,
-              }).then(function (canvas) {
-                if (index > 0) {
-                  pdf.addPage([pageWidth, pageHeight], 'portrait');
-                }
-                const imgData = canvas.toDataURL('image/jpeg', CONFIG.PDF.jpegQuality);
-                pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight);
+            // Wait for layout to settle, then auto-size text, then capture
+            requestAnimationFrame(function () {
+              requestAnimationFrame(function () {
+                autoSizeVerticalText(tempDiv);
 
-                // Clean up temp div
-                document.body.removeChild(tempDiv);
-                resolve();
+                html2canvas(tempDiv, {
+                  scale: scaleRatio,
+                  useCORS: true,
+                  logging: false,
+                  width: previewWidthPx,
+                  height: previewHeightPx,
+                  windowWidth: previewWidthPx,
+                  windowHeight: previewHeightPx,
+                }).then(function (canvas) {
+                  if (index > 0) {
+                    pdf.addPage([pageWidth, pageHeight], 'portrait');
+                  }
+                  const imgData = canvas.toDataURL('image/jpeg', CONFIG.PDF.jpegQuality);
+                  pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight);
+
+                  // Clean up temp div
+                  document.body.removeChild(tempDiv);
+                  resolve();
+                }).catch(function (err) {
+                  document.body.removeChild(tempDiv);
+                  resolve();
+                  showNotification('Page render failed: ' + err.message, 'error');
+                });
               });
-            }, 100);
+            });
           });
         });
       });
