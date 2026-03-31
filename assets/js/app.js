@@ -425,30 +425,57 @@ const FlyerApp = (function () {
       },
     });
 
-    const nameLine = el('div', {
-      text: nameText,
-      style: {
-        fontFamily: fontRoles.programName,
-        fontSize: nameSize + 'px',
-        fontWeight: styles.programNameBold ? '700' : '400',
-      },
-    });
-    nameCell.appendChild(nameLine);
-
-    // Subtitle line (inside name cell)
     const subtitleText = FlyerUtils.buildSubtitleLine(program);
-    if (subtitleText) {
-      const subtitleEl = el('div', {
-        'class': 'flyer-program-subtitle',
+    const inlineSubtitle = !!styles.subtitleInline;
+
+    if (inlineSubtitle && subtitleText) {
+      // Append subtitle inline after program name
+      const nameSpan = el('span', {
+        text: nameText,
+        style: {
+          fontFamily: fontRoles.programName,
+          fontSize: nameSize + 'px',
+          fontWeight: styles.programNameBold ? '700' : '400',
+        },
+      });
+      const separator = el('span', {
+        text: ' ',
+      });
+      const subtitleSpan = el('span', {
         text: subtitleText,
         style: {
-          color: textColor,
           fontFamily: fontRoles.programSubtitle,
           fontSize: subtitleSize + 'px',
           fontStyle: program.subtitleItalic ? 'italic' : 'normal',
         },
       });
-      nameCell.appendChild(subtitleEl);
+      nameCell.appendChild(nameSpan);
+      nameCell.appendChild(separator);
+      nameCell.appendChild(subtitleSpan);
+    } else {
+      const nameLine = el('div', {
+        text: nameText,
+        style: {
+          fontFamily: fontRoles.programName,
+          fontSize: nameSize + 'px',
+          fontWeight: styles.programNameBold ? '700' : '400',
+        },
+      });
+      nameCell.appendChild(nameLine);
+
+      if (subtitleText) {
+        const subtitleEl = el('div', {
+          'class': 'flyer-program-subtitle',
+          text: subtitleText,
+          style: {
+            color: textColor,
+            fontFamily: fontRoles.programSubtitle,
+            fontSize: subtitleSize + 'px',
+            fontStyle: program.subtitleItalic ? 'italic' : 'normal',
+          },
+        });
+        nameCell.appendChild(subtitleEl);
+      }
     }
 
     const dateEl = el('div', {
@@ -1631,6 +1658,13 @@ const FlyerApp = (function () {
       debouncedRenderPreview();
     });
 
+    const subtitleInlineToggle = document.getElementById('style-subtitle-inline');
+    subtitleInlineToggle.addEventListener('change', function () {
+      getCurrentPage().styles.subtitleInline = subtitleInlineToggle.checked;
+      markDirty();
+      debouncedRenderPreview();
+    });
+
     // ── Font Family Dropdowns ─────────────────────────
     populateFontDropdowns();
 
@@ -1910,6 +1944,7 @@ const FlyerApp = (function () {
     document.getElementById('header-title-size').value = page.styles.headerTitleFontSize;
     document.getElementById('header-strip-filled').checked = !!page.styles.stripFilled;
     document.getElementById('style-branch-borders').checked = page.styles.branchBorders !== false;
+    document.getElementById('style-subtitle-inline').checked = !!page.styles.subtitleInline;
 
     // Typography size inputs
     document.getElementById('style-program-name-size').value = page.styles.programNameFontSize;
