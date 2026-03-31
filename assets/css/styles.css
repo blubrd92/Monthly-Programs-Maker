@@ -783,7 +783,7 @@ body {
   writing-mode: vertical-rl;
   transform: rotate(180deg);
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: 400;
   white-space: nowrap;
   letter-spacing: 0;
   padding: 1px 0;

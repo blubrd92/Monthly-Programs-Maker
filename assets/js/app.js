@@ -383,6 +383,9 @@ const FlyerApp = (function () {
     const nameSize = ptToPx(styles.branchNameFontSize);
     const addressSize = ptToPx(styles.branchAddressFontSize);
     const stripWidth = 30; // px, fixed width for vertical name/address strips
+    const filled = !!styles.stripFilled;
+    const stripBg = filled ? color : '#ffffff';
+    const stripTextColor = filled ? '#ffffff' : color;
 
     // Container — enclosed box with colored border
     const branchEl = el('div', {
@@ -396,7 +399,7 @@ const FlyerApp = (function () {
     const leftStrip = el('div', {
       'class': 'flyer-branch-sidebar-left',
       style: {
-        backgroundColor: '#ffffff',
+        backgroundColor: stripBg,
         width: stripWidth + 'px',
       },
     });
@@ -409,7 +412,7 @@ const FlyerApp = (function () {
         fontFamily: fontRoles.branchName,
         fontSize: nameSize + 'px',
         lineHeight: '1',
-        color: color,
+        color: stripTextColor,
       },
     });
     leftStrip.appendChild(nameEl);
@@ -447,7 +450,7 @@ const FlyerApp = (function () {
     const rightStrip = el('div', {
       'class': 'flyer-branch-sidebar-right',
       style: {
-        backgroundColor: '#ffffff',
+        backgroundColor: stripBg,
         width: stripWidth + 'px',
       },
     });
@@ -461,7 +464,7 @@ const FlyerApp = (function () {
           fontFamily: fontRoles.branchAddress,
           fontSize: addressSize + 'px',
           lineHeight: '1',
-          color: color,
+          color: stripTextColor,
         },
       });
       rightStrip.appendChild(addressEl);
@@ -1492,6 +1495,13 @@ const FlyerApp = (function () {
       debouncedRenderPreview();
     });
 
+    const stripFilledToggle = document.getElementById('header-strip-filled');
+    stripFilledToggle.addEventListener('change', function () {
+      getCurrentPage().styles.stripFilled = stripFilledToggle.checked;
+      markDirty();
+      debouncedRenderPreview();
+    });
+
     // ── Font Family Dropdowns ─────────────────────────
     populateFontDropdowns();
 
@@ -1748,6 +1758,7 @@ const FlyerApp = (function () {
     document.getElementById('header-title-color').value = page.header.titleColor;
     document.getElementById('header-month-color').value = page.header.monthColor;
     document.getElementById('header-title-size').value = page.styles.headerTitleFontSize;
+    document.getElementById('header-strip-filled').checked = !!page.styles.stripFilled;
 
     // Typography size inputs
     document.getElementById('style-program-name-size').value = page.styles.programNameFontSize;
