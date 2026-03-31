@@ -359,7 +359,7 @@ const FlyerApp = (function () {
       style: {
         backgroundColor: bgColor,
         color: branchColor,
-        gridTemplateColumns: '60% 20% 1fr',
+        gridTemplateColumns: '1fr 25% 25%',
       },
     }, nameCell, dateEl, timeEl);
 
