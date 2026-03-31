@@ -593,7 +593,7 @@ const FlyerApp = (function () {
 
     // Asterisk note (positioned above footer image)
     if (footer.asteriskNote) {
-      const astSize = ptToPx(footer.asteriskFontSize || 7);
+      const astSize = ptToPx(footer.asteriskFontSize || 12);
       const noteEl = el('div', {
         'class': 'flyer-footer-asterisk',
         text: footer.asteriskNote,
@@ -1905,7 +1905,7 @@ const FlyerApp = (function () {
       btn.classList.toggle('active', btn.getAttribute('data-footer-source') === page.footer.source);
     });
     document.getElementById('footer-asterisk-note').value = page.footer.asteriskNote || '';
-    document.getElementById('footer-asterisk-size').value = page.footer.asteriskFontSize || 7;
+    document.getElementById('footer-asterisk-size').value = page.footer.asteriskFontSize || 12;
     document.getElementById('footer-asterisk-bold').checked = !!page.footer.asteriskBold;
     document.getElementById('footer-asterisk-italic').checked = !!page.footer.asteriskItalic;
 
