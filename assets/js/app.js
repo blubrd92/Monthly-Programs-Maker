@@ -163,7 +163,7 @@ const FlyerApp = (function () {
       const stripW = strip.clientWidth;
       if (stripH <= 0 || stripW <= 0) return;
 
-      const padding = 8;
+      const padding = 2;
       const usableH = stripH - padding;
       if (usableH <= 0) return;
 

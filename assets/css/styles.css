@@ -720,8 +720,8 @@ body {
   font-weight: 700;
   color: #fff;
   white-space: nowrap;
-  letter-spacing: 0.5px;
-  padding: 4px 0;
+  letter-spacing: 0;
+  padding: 1px 0;
   text-align: center;
   word-break: break-word;
 }
@@ -735,7 +735,6 @@ body {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  padding: 0 2px;
 }
 
 .flyer-branch-address {
@@ -744,8 +743,8 @@ body {
   text-transform: uppercase;
   font-weight: 600;
   white-space: nowrap;
-  letter-spacing: 0.5px;
-  padding: 4px 0;
+  letter-spacing: 0;
+  padding: 1px 0;
   text-align: center;
   color: #fff;
   font-size: 7px;
