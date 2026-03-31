@@ -167,50 +167,47 @@ const FlyerApp = (function () {
       const usableH = stripH - padding;
       if (usableH <= 0) return;
 
-      let size = parseFloat(textEl.style.fontSize) || 14;
-
       // For writing-mode: vertical-rl (rotated 180):
       //   scrollWidth = physical height of text (must fit in stripH)
       //   scrollHeight = physical width of text (must fit in stripW)
 
-      // Step 1: Start small, try single line, grow to fill
-      size = minFontSize;
+      // Strategy A: single line — find max font size
+      let singleSize = minFontSize;
       textEl.style.whiteSpace = 'nowrap';
       textEl.style.height = '';
-      textEl.style.fontSize = size + 'px';
+      textEl.style.fontSize = singleSize + 'px';
 
-      // Grow while text fits in both dimensions as single line
-      while (size < maxFontSize) {
-        textEl.style.fontSize = (size + 1) + 'px';
+      while (singleSize < maxFontSize) {
+        textEl.style.fontSize = (singleSize + 1) + 'px';
         if (textEl.scrollWidth > usableH || textEl.scrollHeight > stripW) break;
-        size += 1;
+        singleSize += 1;
       }
-      textEl.style.fontSize = size + 'px';
 
-      // If single line fits in both dimensions, done
-      if (textEl.scrollWidth <= usableH && textEl.scrollHeight <= stripW) return;
-
-      // Step 2: Text is too long for single line at this size.
-      // Try wrapping: constrain the height so text wraps to 2+ lines
+      // Strategy B: wrapped — find max font size with wrapping
+      let wrapSize = minFontSize;
       textEl.style.whiteSpace = 'normal';
       textEl.style.height = usableH + 'px';
       textEl.style.wordBreak = 'break-word';
+      textEl.style.fontSize = wrapSize + 'px';
 
-      // Grow wrapped text as large as possible while it fits
-      while (size < maxFontSize) {
-        textEl.style.fontSize = (size + 1) + 'px';
+      while (wrapSize < maxFontSize) {
+        textEl.style.fontSize = (wrapSize + 1) + 'px';
         if (textEl.scrollHeight > stripW) break;
-        size += 1;
+        wrapSize += 1;
       }
-      textEl.style.fontSize = size + 'px';
 
-      // If wrapped text fits in strip width, done
-      if (textEl.scrollHeight <= stripW) return;
-
-      // Step 3: Shrink wrapped text until it fits
-      while (size > minFontSize && textEl.scrollHeight > stripW) {
-        size -= 0.5;
-        textEl.style.fontSize = size + 'px';
+      // Pick whichever strategy gives the larger font
+      if (singleSize >= wrapSize) {
+        // Single line wins
+        textEl.style.whiteSpace = 'nowrap';
+        textEl.style.height = '';
+        textEl.style.fontSize = singleSize + 'px';
+      } else {
+        // Wrapped wins
+        textEl.style.whiteSpace = 'normal';
+        textEl.style.height = usableH + 'px';
+        textEl.style.wordBreak = 'break-word';
+        textEl.style.fontSize = wrapSize + 'px';
       }
     });
   }
