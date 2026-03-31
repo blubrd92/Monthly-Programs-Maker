@@ -1545,17 +1545,10 @@ const FlyerApp = (function () {
     });
 
     // ── Header Text / Color / Size ────────────────────
-    const headerTitleText = document.getElementById('header-title-text');
     const headerMonthText = document.getElementById('header-month-text');
     const headerTitleColor = document.getElementById('header-title-color');
     const headerMonthColor = document.getElementById('header-month-color');
     const headerTitleSize = document.getElementById('header-title-size');
-
-    headerTitleText.addEventListener('input', function () {
-      getCurrentPage().header.titleText = headerTitleText.value;
-      markDirty();
-      debouncedRenderPreview();
-    });
 
     headerMonthText.addEventListener('input', function () {
       getCurrentPage().header.monthText = headerMonthText.value;
@@ -1659,7 +1652,16 @@ const FlyerApp = (function () {
         footerSourceBtns.forEach(function (b) { b.classList.remove('active'); });
         btn.classList.add('active');
         const source = btn.getAttribute('data-footer-source');
-        getCurrentPage().footer.source = source;
+        const page = getCurrentPage();
+        page.footer.source = source;
+        // Auto-set title text and font size based on language
+        const langTitle = CONFIG.HEADER_TITLE_BY_LANGUAGE[source];
+        if (langTitle) {
+          page.header.titleText = langTitle.text;
+          page.styles.headerTitleFontSize = langTitle.fontSize;
+          page.styles.headerMonthFontSize = langTitle.fontSize;
+          document.getElementById('header-title-size').value = langTitle.fontSize;
+        }
         if (source === 'custom') {
           document.getElementById('footer-upload').click();
         }
@@ -1854,7 +1856,6 @@ const FlyerApp = (function () {
     const page = getCurrentPage();
 
     // Header inputs
-    document.getElementById('header-title-text').value = page.header.titleText;
     document.getElementById('header-month-text').value = page.header.monthText;
     document.getElementById('header-title-color').value = page.header.titleColor;
     document.getElementById('header-month-color').value = page.header.monthColor;

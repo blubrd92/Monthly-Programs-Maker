@@ -104,6 +104,12 @@ const CONFIG = (function () {
       monthColor: '#cc007e',
     },
 
+    // ── Language-based Title Mapping ─────────────────────
+    HEADER_TITLE_BY_LANGUAGE: {
+      'default-english': { text: 'LIBRARY PROGRAMS', fontSize: 34 },
+      'default-spanish': { text: 'PROGRAMAS DE LA BIBLIOTECA', fontSize: 32 },
+    },
+
     // ── Default Footer ───────────────────────────────────
     DEFAULT_FOOTER: {
       source: 'default-english',
