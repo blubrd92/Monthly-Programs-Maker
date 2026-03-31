@@ -500,15 +500,15 @@ const FlyerApp = (function () {
 
     // Container — enclosed box with colored border
     const showBorders = styles.branchBorders !== false;
-    const borderColor = filled ? color : 'transparent';
-    const topBottomColor = showBorders ? borderColor : 'transparent';
+    const topBottomColor = showBorders ? color : 'transparent';
+    const sideColor = filled ? color : 'transparent';
     const branchEl = el('div', {
       'class': 'flyer-branch',
       style: {
         borderTopColor: topBottomColor,
         borderBottomColor: topBottomColor,
-        borderLeftColor: borderColor,
-        borderRightColor: borderColor,
+        borderLeftColor: sideColor,
+        borderRightColor: sideColor,
       },
     });
 
