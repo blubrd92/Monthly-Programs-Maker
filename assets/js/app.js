@@ -445,7 +445,7 @@ const FlyerApp = (function () {
         text: subtitleText,
         style: {
           fontFamily: fontRoles.programSubtitle,
-          fontSize: subtitleSize + 'px',
+          fontSize: nameSize + 'px',
           fontStyle: program.subtitleItalic ? 'italic' : 'normal',
         },
       });
