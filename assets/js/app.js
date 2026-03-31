@@ -396,7 +396,7 @@ const FlyerApp = (function () {
     const leftStrip = el('div', {
       'class': 'flyer-branch-sidebar-left',
       style: {
-        backgroundColor: color,
+        backgroundColor: '#ffffff',
         width: stripWidth + 'px',
       },
     });
@@ -409,6 +409,7 @@ const FlyerApp = (function () {
         fontFamily: fontRoles.branchName,
         fontSize: nameSize + 'px',
         lineHeight: '1',
+        color: color,
       },
     });
     leftStrip.appendChild(nameEl);
@@ -446,7 +447,7 @@ const FlyerApp = (function () {
     const rightStrip = el('div', {
       'class': 'flyer-branch-sidebar-right',
       style: {
-        backgroundColor: color,
+        backgroundColor: '#ffffff',
         width: stripWidth + 'px',
       },
     });
@@ -460,6 +461,7 @@ const FlyerApp = (function () {
           fontFamily: fontRoles.branchAddress,
           fontSize: addressSize + 'px',
           lineHeight: '1',
+          color: color,
         },
       });
       rightStrip.appendChild(addressEl);
