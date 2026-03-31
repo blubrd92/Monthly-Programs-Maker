@@ -33,7 +33,6 @@ const FlyerUtils = (function () {
       subtitleItalic: d.subtitleItalic || false,
       asterisk: d.asterisk || false,
       registrationRequired: d.registrationRequired || false,
-      ageGroup: d.ageGroup || null,
       isClosure: d.isClosure || false,
       freeTextOverride: d.freeTextOverride || null,
     };
@@ -162,9 +161,6 @@ const FlyerUtils = (function () {
     const parts = [];
     if (program.subtitle) {
       parts.push(program.subtitle);
-    }
-    if (program.ageGroup) {
-      parts.push(program.ageGroup);
     }
     if (program.registrationRequired) {
       parts.push('Registration required.');

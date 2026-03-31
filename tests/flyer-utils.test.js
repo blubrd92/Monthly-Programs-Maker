@@ -42,7 +42,7 @@ describe('FlyerUtils.createBlankProgram', () => {
     expect(prog.subtitleItalic).toBe(false);
     expect(prog.asterisk).toBe(false);
     expect(prog.registrationRequired).toBe(false);
-    expect(prog.ageGroup).toBeNull();
+    expect(prog.isClosure).toBe(false);
     expect(prog.isClosure).toBe(false);
     expect(prog.freeTextOverride).toBeNull();
   });
@@ -197,22 +197,21 @@ describe('FlyerUtils.getContentArea', () => {
 describe('FlyerUtils.buildSubtitleLine', () => {
   it('returns empty string for program with no subtitle info', () => {
     expect(FlyerUtils.buildSubtitleLine({
-      subtitle: '', ageGroup: null, registrationRequired: false,
+      subtitle: '', registrationRequired: false,
     })).toBe('');
   });
 
-  it('combines subtitle, age group, and registration', () => {
+  it('combines subtitle and registration', () => {
     const line = FlyerUtils.buildSubtitleLine({
       subtitle: 'The Lake Merritt Monster',
-      ageGroup: 'For teens.',
       registrationRequired: true,
     });
-    expect(line).toBe('The Lake Merritt Monster For teens. Registration required.');
+    expect(line).toBe('The Lake Merritt Monster Registration required.');
   });
 
   it('handles just registration required', () => {
     const line = FlyerUtils.buildSubtitleLine({
-      subtitle: '', ageGroup: null, registrationRequired: true,
+      subtitle: '', registrationRequired: true,
     });
     expect(line).toBe('Registration required.');
   });

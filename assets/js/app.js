@@ -835,18 +835,6 @@ const FlyerApp = (function () {
     );
     structuredFields.appendChild(dateTimeRow);
 
-    // Age Group
-    const ageGroup = el('div', { 'class': 'form-group' },
-      el('label', { text: 'Age Group' }),
-      el('input', {
-        'type': 'text',
-        'class': 'input-age-group',
-        'value': program.ageGroup || '',
-        'placeholder': 'e.g., Ages 5-12, All Ages',
-      })
-    );
-    structuredFields.appendChild(ageGroup);
-
     // Checkboxes: Registration, Asterisk, Closure
     const checkboxGroup = el('div', { 'class': 'form-group' },
       el('label', { text: 'Options' }),
@@ -945,7 +933,6 @@ const FlyerApp = (function () {
       program.subtitle = form.querySelector('.input-subtitle').value;
       program.dateText = form.querySelector('.input-date').value;
       program.timeText = form.querySelector('.input-time').value;
-      program.ageGroup = form.querySelector('.input-age-group').value || null;
       program.registrationRequired = form.querySelector('.input-registration').checked;
       program.asterisk = form.querySelector('.input-asterisk').checked;
       program.isClosure = form.querySelector('.input-closure').checked;
