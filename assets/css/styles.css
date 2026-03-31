@@ -625,12 +625,11 @@ body {
 #preview-wrapper {
   flex: 1;
   overflow: auto;
-  display: flex;
-  justify-content: center;
   padding: 20px;
 }
 
 #preview-container {
+  margin: 0 auto;
   transform-origin: top center;
   transition: transform 0.15s;
 }
