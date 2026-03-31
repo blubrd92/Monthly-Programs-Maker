@@ -697,10 +697,8 @@ body {
 .flyer-branch {
   position: relative;
   margin-bottom: 0;
-  display: flex;
-  flex-direction: row;
-  flex-grow: 0;
-  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   border: 2px solid transparent;
   border-radius: 2px;
   overflow: hidden;
@@ -708,11 +706,10 @@ body {
 
 .flyer-branch-sidebar-left {
   position: relative;
-  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 30px;
+  overflow: hidden;
 }
 
 .flyer-branch-name {
@@ -730,11 +727,10 @@ body {
 
 .flyer-branch-sidebar-right {
   position: relative;
-  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 30px;
+  overflow: hidden;
   padding: 0 2px;
 }
 
@@ -753,7 +749,6 @@ body {
 }
 
 .flyer-branch-content {
-  flex: 1;
   min-width: 0;
   padding: 2px 4px;
 }
