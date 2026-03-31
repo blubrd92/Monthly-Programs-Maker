@@ -1910,7 +1910,9 @@ const FlyerApp = (function () {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = (meta.listName || 'flyer') + '.flyer';
+    const page = getCurrentPage();
+    const baseName = (page.header.titleText + ' - ' + page.header.monthText).trim() || 'flyer';
+    a.download = baseName + '.flyer';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -2156,7 +2158,8 @@ const FlyerApp = (function () {
       });
 
       chain.then(function () {
-        const filename = (meta.listName || 'flyer') + '.pdf';
+        const page = getCurrentPage();
+        const filename = (page.header.titleText + ' - ' + page.header.monthText).trim() + '.pdf' || 'flyer.pdf';
         pdf.save(filename);
         showNotification('PDF exported successfully!', 'success');
       }).catch(function (err) {
