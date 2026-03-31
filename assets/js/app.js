@@ -534,8 +534,8 @@ const FlyerApp = (function () {
       style: {
         borderLeftColor: sideColor,
         borderRightColor: sideColor,
-        borderTopColor: 'transparent',
-        borderBottomColor: 'transparent',
+        borderTopColor: (showBorders && filled) ? color : (filled ? '#ffffff' : 'transparent'),
+        borderBottomColor: (showBorders && filled) ? color : (filled ? '#ffffff' : 'transparent'),
         backgroundColor: filled ? color : 'transparent',
       },
     });
