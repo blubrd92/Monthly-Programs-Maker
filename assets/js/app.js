@@ -1978,8 +1978,13 @@ const FlyerApp = (function () {
       const pageWidth = pageDims.width;
       const pageHeight = pageDims.height;
 
-      /* jshint -W031 */
-      const pdf = new jspdf.jsPDF({
+      const jsPDFLib = window.jspdf || window.jsPDF;
+      if (!jsPDFLib) {
+        showNotification('PDF library failed to load. Check your internet connection.', 'error');
+        return;
+      }
+      const JsPDFConstructor = jsPDFLib.jsPDF || jsPDFLib;
+      const pdf = new JsPDFConstructor({
         unit: 'in',
         format: [pageWidth, pageHeight],
         orientation: 'portrait',
