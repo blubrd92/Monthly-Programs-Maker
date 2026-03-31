@@ -2211,6 +2211,13 @@ const FlyerApp = (function () {
   function exportPDF() {
     showNotification('Exporting PDF...', 'info');
 
+    // Reset zoom to 100% during export, restore after
+    const savedZoom = zoomLevel;
+    if (zoomLevel !== 1) {
+      zoomLevel = 1;
+      applyZoom();
+    }
+
     document.fonts.ready.then(function () {
       const pageDims = CONFIG.PAGE[meta.pageSize] || CONFIG.PAGE.letter;
       const pageWidth = pageDims.width;
@@ -2299,6 +2306,11 @@ const FlyerApp = (function () {
         showNotification('PDF exported successfully!', 'success');
       }).catch(function (err) {
         showNotification('PDF export failed: ' + err.message, 'error');
+      }).finally(function () {
+        if (savedZoom !== 1) {
+          zoomLevel = savedZoom;
+          applyZoom();
+        }
       });
     });
   }
