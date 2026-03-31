@@ -391,7 +391,7 @@ const FlyerApp = (function () {
     const branchEl = el('div', {
       'class': 'flyer-branch',
       style: {
-        borderColor: color,
+        borderColor: filled ? color : 'transparent',
       },
     });
 
@@ -401,6 +401,7 @@ const FlyerApp = (function () {
       style: {
         backgroundColor: stripBg,
         width: stripWidth + 'px',
+        borderRight: filled ? 'none' : '2px solid ' + color,
       },
     });
 
@@ -452,6 +453,7 @@ const FlyerApp = (function () {
       style: {
         backgroundColor: stripBg,
         width: stripWidth + 'px',
+        borderLeft: filled ? 'none' : '2px solid ' + color,
       },
     });
 
