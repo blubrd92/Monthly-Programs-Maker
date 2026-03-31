@@ -271,11 +271,16 @@ const FlyerApp = (function () {
     // Free-text override: render as a single text block
     if (program.freeTextOverride) {
       const ftSize = ptToPx(program.freeTextFontSize || 12);
+      const ftClosure = program.isClosure;
+      const ftColor = ftClosure ? CONFIG.COLORS.closureText : branchColor;
+      const ftBg = ftClosure ? branchColor : 'transparent';
+      const classes = 'flyer-program flyer-program-freetext' + (ftClosure ? ' closure' : '');
       const freeDiv = el('div', {
-        'class': 'flyer-program flyer-program-freetext',
+        'class': classes,
         text: program.freeTextOverride,
         style: {
-          color: branchColor,
+          color: ftColor,
+          backgroundColor: ftBg,
           fontFamily: fontRoles.programName,
           fontSize: ftSize + 'px',
           textAlign: program.freeTextAlign || 'left',
@@ -741,7 +746,7 @@ const FlyerApp = (function () {
 
     freeTextField.appendChild(ftOptionsRow);
 
-    // Bold / Italic toggles for free text
+    // Bold / Italic / Closure toggles for free text
     const ftStyleGroup = el('div', { 'class': 'form-group' },
       el('label', { text: 'Style' }),
       el('div', { 'class': 'checkbox-group' },
@@ -752,13 +757,19 @@ const FlyerApp = (function () {
         el('label', { 'class': 'checkbox-label' },
           el('input', { 'type': 'checkbox', 'class': 'input-freetext-italic' }),
           'Italic'
+        ),
+        el('label', { 'class': 'checkbox-label' },
+          el('input', { 'type': 'checkbox', 'class': 'input-freetext-closure' }),
+          'Closure (colored row)'
         )
       )
     );
     const ftBoldCheckbox = ftStyleGroup.querySelector('.input-freetext-bold');
     const ftItalicCheckbox = ftStyleGroup.querySelector('.input-freetext-italic');
+    const ftClosureCheckbox = ftStyleGroup.querySelector('.input-freetext-closure');
     ftBoldCheckbox.checked = !!program.freeTextBold;
     ftItalicCheckbox.checked = !!program.freeTextItalic;
+    ftClosureCheckbox.checked = !!program.isClosure;
     freeTextField.appendChild(ftStyleGroup);
 
     form.appendChild(freeTextField);
@@ -921,6 +932,7 @@ const FlyerApp = (function () {
       program.freeTextAlign = ftAlign ? ftAlign.value : 'left';
       program.freeTextBold = !!form.querySelector('.input-freetext-bold').checked;
       program.freeTextItalic = !!form.querySelector('.input-freetext-italic').checked;
+      program.isClosure = !!form.querySelector('.input-freetext-closure').checked;
     } else {
       program.freeTextOverride = null;
       program.name = form.querySelector('.input-name').value;
