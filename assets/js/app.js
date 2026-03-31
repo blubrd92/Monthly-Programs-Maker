@@ -1242,7 +1242,7 @@ const FlyerApp = (function () {
       nameGroup.appendChild(nameInput);
       nameRow.appendChild(nameGroup);
 
-      const colorGroup = el('div', { 'class': 'form-group', style: { width: '60px', flexShrink: '0' } });
+      const colorGroup = el('div', { 'class': 'form-group', style: { width: '40px', flexShrink: '0' } });
       colorGroup.appendChild(el('label', { text: 'Color' }));
       const colorInput = el('input', {
         type: 'color',
@@ -1261,11 +1261,13 @@ const FlyerApp = (function () {
       branchDetails.appendChild(nameRow);
 
       // Default color swatches
+      const swatchLabel = el('label', { text: 'Default Colors', style: { fontSize: '11px', marginBottom: '2px', display: 'block', textAlign: 'center' } });
+      branchDetails.appendChild(swatchLabel);
       const defaultColors = [];
       CONFIG.BRANCH_DEFAULTS.forEach(function (b) {
         if (defaultColors.indexOf(b.color) === -1) defaultColors.push(b.color);
       });
-      const swatchRow = el('div', { style: { display: 'flex', gap: '6px', margin: '4px 0 8px', justifyContent: 'center' } });
+      const swatchRow = el('div', { style: { display: 'flex', gap: '6px', margin: '0 0 8px', justifyContent: 'center' } });
       defaultColors.forEach(function (c) {
         const swatch = el('div', {
           style: {
