@@ -93,8 +93,6 @@ const CONFIG = (function () {
       headerMonthFontSize: 28,
       programSpacing: 2,
       branchSpacing: 6,
-      programNameDateGap: 12,
-      programDateTimeGap: 60,
       programDateBold: true,
       programTimeBold: false,
       programNameBold: true,

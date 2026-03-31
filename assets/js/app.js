@@ -1493,8 +1493,6 @@ const FlyerApp = (function () {
       'style-program-subtitle-size': 'programSubtitleFontSize',
       'style-program-spacing': 'programSpacing',
       'style-branch-spacing': 'branchSpacing',
-      'style-name-date-gap': 'programNameDateGap',
-      'style-date-time-gap': 'programDateTimeGap',
     };
 
     Object.keys(styleMap).forEach(function (inputId) {
@@ -1714,8 +1712,6 @@ const FlyerApp = (function () {
     document.getElementById('style-program-subtitle-size').value = page.styles.programSubtitleFontSize;
     document.getElementById('style-program-spacing').value = page.styles.programSpacing;
     document.getElementById('style-branch-spacing').value = page.styles.branchSpacing;
-    document.getElementById('style-name-date-gap').value = page.styles.programNameDateGap || CONFIG.DEFAULT_STYLES.programNameDateGap;
-    document.getElementById('style-date-time-gap').value = page.styles.programDateTimeGap || CONFIG.DEFAULT_STYLES.programDateTimeGap;
 
     // Bold checkboxes
     document.getElementById('style-program-name-bold').checked = page.styles.programNameBold;
