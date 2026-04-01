@@ -829,7 +829,7 @@ body {
 /* ─── Program Entry ─── */
 .flyer-program {
   display: grid;
-  grid-template-columns: 1fr 32% 20%;
+  grid-template-columns: 1fr 32% 20%; /* also update inline style in app.js renderProgram() */
   align-items: center;
   padding: 1px 0;
 }
