@@ -506,7 +506,7 @@ const FlyerApp = (function () {
       style: {
         backgroundColor: bgColor,
         color: branchColor,
-        gridTemplateColumns: '1fr 32% 20%',
+        gridTemplateColumns: '1fr 33% 19%',
       },
     }, nameCell, dateEl, timeEl);
 
