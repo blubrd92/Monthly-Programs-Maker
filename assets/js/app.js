@@ -337,7 +337,7 @@ const FlyerApp = (function () {
       const stackSize = titleSize * 0.45;
       const titleHtml =
         '<span>' + delaMatch[1] + '</span> ' +
-        '<span style="display:inline-flex;flex-direction:column;vertical-align:middle;align-items:center;line-height:0.9;gap:0;font-size:' + stackSize + 'px;margin:0 1px;position:relative;top:-5px">' +
+        '<span style="display:inline-flex;flex-direction:column;vertical-align:middle;align-items:center;line-height:0.9;gap:0;font-size:' + stackSize + 'px;margin:0 1px;position:relative;top:-4px">' +
           '<span>' + delaMatch[2] + '</span>' +
           '<span>' + delaMatch[3] + '</span>' +
         '</span> ' +
@@ -425,41 +425,89 @@ const FlyerApp = (function () {
       },
     });
 
-    const nameLine = el('div', {
-      text: nameText,
-      style: {
-        fontFamily: fontRoles.programName,
-        fontSize: nameSize + 'px',
-        fontWeight: styles.programNameBold ? '700' : '400',
-      },
-    });
-    nameCell.appendChild(nameLine);
-
-    // Subtitle line (inside name cell)
     const subtitleText = FlyerUtils.buildSubtitleLine(program);
-    if (subtitleText) {
-      const subtitleEl = el('div', {
-        'class': 'flyer-program-subtitle',
+    const inlineSubtitle = !!program.subtitleInline;
+
+    if (inlineSubtitle && subtitleText) {
+      // Append subtitle inline after program name
+      const nameSpan = el('span', {
+        text: nameText,
+        style: {
+          fontFamily: fontRoles.programName,
+          fontSize: nameSize + 'px',
+          fontWeight: styles.programNameBold ? '700' : '400',
+        },
+      });
+      const separator = el('span', {
+        text: ' ',
+      });
+      const subtitleSpan = el('span', {
         text: subtitleText,
         style: {
-          color: textColor,
           fontFamily: fontRoles.programSubtitle,
-          fontSize: subtitleSize + 'px',
+          fontSize: nameSize + 'px',
           fontStyle: program.subtitleItalic ? 'italic' : 'normal',
         },
       });
-      nameCell.appendChild(subtitleEl);
+      nameCell.appendChild(nameSpan);
+      nameCell.appendChild(separator);
+      nameCell.appendChild(subtitleSpan);
+    } else {
+      const nameLine = el('div', {
+        text: nameText,
+        style: {
+          fontFamily: fontRoles.programName,
+          fontSize: nameSize + 'px',
+          fontWeight: styles.programNameBold ? '700' : '400',
+        },
+      });
+      nameCell.appendChild(nameLine);
+
+      if (subtitleText) {
+        const subtitleEl = el('div', {
+          'class': 'flyer-program-subtitle',
+          text: subtitleText,
+          style: {
+            color: textColor,
+            fontFamily: fontRoles.programSubtitle,
+            fontSize: subtitleSize + 'px',
+            fontStyle: program.subtitleItalic ? 'italic' : 'normal',
+          },
+        });
+        nameCell.appendChild(subtitleEl);
+      }
     }
 
     const dateEl = el('div', {
       'class': 'flyer-program-date',
-      text: program.dateText || '',
       style: {
         color: textColor,
         fontFamily: fontRoles.programDate,
         fontSize: dateSize + 'px',
         fontWeight: styles.programDateBold ? '700' : '400',
       },
+    });
+
+    const dateLines = (program.dateText || '').split('\n');
+    const dateNoteLines = (program.dateNote || '').split('\n');
+
+    dateLines.forEach(function (line, i) {
+      if (i > 0) dateEl.appendChild(document.createElement('br'));
+      const dateSpan = document.createTextNode(line);
+      dateEl.appendChild(dateSpan);
+      const note = dateNoteLines[i];
+      if (note) {
+        dateEl.appendChild(document.createTextNode(' '));
+        const noteSpan = el('span', {
+          text: note,
+          style: {
+            fontFamily: fontRoles.programSubtitle,
+            fontSize: dateSize + 'px',
+            fontWeight: '400',
+          },
+        });
+        dateEl.appendChild(noteSpan);
+      }
     });
 
     const timeEl = el('div', {
@@ -499,10 +547,16 @@ const FlyerApp = (function () {
     const stripTextColor = filled ? '#ffffff' : color;
 
     // Container — enclosed box with colored border
+    const isSingleClosure = branch.programs && branch.programs.length === 1 && branch.programs[0].isClosure;
+    const showBorders = styles.branchBorders !== false || isSingleClosure;
+    const sideColor = filled ? color : 'transparent';
     const branchEl = el('div', {
       'class': 'flyer-branch',
       style: {
-        borderColor: filled ? color : 'transparent',
+        borderLeftColor: sideColor,
+        borderRightColor: sideColor,
+        borderTopColor: 'transparent',
+        borderBottomColor: 'transparent',
       },
     });
 
@@ -531,7 +585,15 @@ const FlyerApp = (function () {
     branchEl.appendChild(leftStrip);
 
     // Content area (programs)
-    const contentEl = el('div', { 'class': 'flyer-branch-content' });
+    const contentBorderColor = showBorders ? color : 'transparent';
+    const contentEl = el('div', {
+      'class': 'flyer-branch-content',
+      style: {
+        borderTop: '2px solid ' + contentBorderColor,
+        borderBottom: '2px solid ' + contentBorderColor,
+        backgroundColor: '#ffffff',
+      },
+    });
 
     // Branch note (if any)
     if (branch.note) {
@@ -912,13 +974,24 @@ const FlyerApp = (function () {
     structuredFields.appendChild(nameGroup);
 
     // Subtitle
+    const subtitleInlineCheck = el('input', {
+      'type': 'checkbox',
+      'class': 'input-subtitle-inline',
+    });
+    subtitleInlineCheck.checked = !!program.subtitleInline;
     const subtitleGroup = el('div', { 'class': 'form-group' },
       el('label', { text: 'Subtitle' }),
       el('input', {
         'type': 'text',
         'class': 'input-subtitle',
         'value': program.subtitle || '',
-      })
+      }),
+      el('div', { 'class': 'checkbox-group', style: { marginTop: '4px' } },
+        el('label', { 'class': 'checkbox-label' },
+          subtitleInlineCheck,
+          'Append to program name'
+        )
+      )
     );
     structuredFields.appendChild(subtitleGroup);
 
@@ -937,10 +1010,20 @@ const FlyerApp = (function () {
     });
     timeInput.value = program.timeText || '';
 
+    const dateNoteInput = el('textarea', {
+      'class': 'input-date-note',
+      'rows': '2',
+      'placeholder': 'e.g. (Repeats Weekly)',
+      style: { resize: 'none' },
+    });
+    dateNoteInput.value = program.dateNote || '';
+
     const dateTimeRow = el('div', { 'class': 'form-row' },
       el('div', { 'class': 'form-group' },
         el('label', { text: 'Date' }),
-        dateInput
+        dateInput,
+        el('label', { text: 'Date Note (appended)', style: { marginTop: '4px' } }),
+        dateNoteInput
       ),
       el('div', { 'class': 'form-group' },
         el('label', { text: 'Time' }),
@@ -1032,7 +1115,9 @@ const FlyerApp = (function () {
       program.freeTextOverride = null;
       program.name = form.querySelector('.input-name').value;
       program.subtitle = form.querySelector('.input-subtitle').value;
+      program.subtitleInline = !!form.querySelector('.input-subtitle-inline').checked;
       program.dateText = form.querySelector('.input-date').value;
+      program.dateNote = form.querySelector('.input-date-note').value;
       program.timeText = form.querySelector('.input-time').value;
       program.isClosure = form.querySelector('.input-closure').checked;
     }
@@ -1191,7 +1276,7 @@ const FlyerApp = (function () {
       nameGroup.appendChild(nameInput);
       nameRow.appendChild(nameGroup);
 
-      const colorGroup = el('div', { 'class': 'form-group', style: { width: '60px', flexShrink: '0' } });
+      const colorGroup = el('div', { 'class': 'form-group', style: { width: '40px', flexShrink: '0' } });
       colorGroup.appendChild(el('label', { text: 'Color' }));
       const colorInput = el('input', {
         type: 'color',
@@ -1208,6 +1293,38 @@ const FlyerApp = (function () {
       colorGroup.appendChild(colorInput);
       nameRow.appendChild(colorGroup);
       branchDetails.appendChild(nameRow);
+
+      // Default color swatches
+      const swatchGroup = el('div', { 'class': 'form-group', style: { marginBottom: '0' } });
+      swatchGroup.appendChild(el('label', { text: 'Default Colors' }));
+      const defaultColors = [];
+      CONFIG.BRANCH_DEFAULTS.forEach(function (b) {
+        if (defaultColors.indexOf(b.color) === -1) defaultColors.push(b.color);
+      });
+      const swatchRow = el('div', { style: { display: 'flex', gap: '8px', margin: '0 0 8px' } });
+      defaultColors.forEach(function (c) {
+        const swatch = el('div', {
+          style: {
+            flex: '1', height: '20px', borderRadius: '3px', maxWidth: '60px',
+            backgroundColor: c, cursor: 'pointer',
+            border: branch.color === c ? '2px solid #333' : '2px solid transparent',
+          },
+          title: c,
+          'on': {
+            'click': function () {
+              branch.color = c;
+              colorInput.value = c;
+              nameDisplay.style.color = c;
+              markDirty();
+              debouncedRenderPreview();
+              renderBranchList();
+            },
+          },
+        });
+        swatchRow.appendChild(swatch);
+      });
+      swatchGroup.appendChild(swatchRow);
+      branchDetails.appendChild(swatchGroup);
 
       const addressGroup = el('div', { 'class': 'form-group' });
       addressGroup.appendChild(el('label', { text: 'Address (use Enter for two lines)' }));
@@ -1609,6 +1726,15 @@ const FlyerApp = (function () {
       debouncedRenderPreview();
     });
 
+    const branchBordersToggle = document.getElementById('style-branch-borders');
+    branchBordersToggle.addEventListener('change', function () {
+      getCurrentPage().styles.branchBorders = branchBordersToggle.checked;
+      markDirty();
+      debouncedRenderPreview();
+    });
+
+
+
     // ── Font Family Dropdowns ─────────────────────────
     populateFontDropdowns();
 
@@ -1887,6 +2013,7 @@ const FlyerApp = (function () {
     document.getElementById('header-month-color').value = page.header.monthColor;
     document.getElementById('header-title-size').value = page.styles.headerTitleFontSize;
     document.getElementById('header-strip-filled').checked = !!page.styles.stripFilled;
+    document.getElementById('style-branch-borders').checked = page.styles.branchBorders !== false;
 
     // Typography size inputs
     document.getElementById('style-program-name-size').value = page.styles.programNameFontSize;
@@ -2116,6 +2243,13 @@ const FlyerApp = (function () {
   function exportPDF() {
     showNotification('Exporting PDF...', 'info');
 
+    // Reset zoom to 100% during export, restore after
+    const savedZoom = zoomLevel;
+    if (zoomLevel !== 1) {
+      zoomLevel = 1;
+      applyZoom();
+    }
+
     document.fonts.ready.then(function () {
       const pageDims = CONFIG.PAGE[meta.pageSize] || CONFIG.PAGE.letter;
       const pageWidth = pageDims.width;
@@ -2204,6 +2338,11 @@ const FlyerApp = (function () {
         showNotification('PDF exported successfully!', 'success');
       }).catch(function (err) {
         showNotification('PDF export failed: ' + err.message, 'error');
+      }).finally(function () {
+        if (savedZoom !== 1) {
+          zoomLevel = savedZoom;
+          applyZoom();
+        }
       });
     });
   }
@@ -2270,10 +2409,11 @@ const FlyerApp = (function () {
       container.style.height = preview.offsetHeight + 'px';
       container.style.marginBottom = (h - preview.offsetHeight) + 'px';
       // Center horizontally: use auto margins when content fits, explicit margin when it overflows
-      const wrapperWidth = wrapper.clientWidth;
+      const wrapperWidth = wrapper.clientWidth - 40; // subtract 20px padding each side
       if (w <= wrapperWidth) {
-        container.style.marginLeft = 'auto';
-        container.style.marginRight = 'auto';
+        const offset = (wrapperWidth - w) / 2;
+        container.style.marginLeft = offset + 'px';
+        container.style.marginRight = offset + 'px';
       } else {
         container.style.marginLeft = '0';
         container.style.marginRight = (w - preview.offsetWidth) + 'px';

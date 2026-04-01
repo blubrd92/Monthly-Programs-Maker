@@ -607,6 +607,8 @@ body {
 
 .checkbox-label input[type="checkbox"] {
   cursor: pointer;
+  margin: 0;
+  vertical-align: middle;
 }
 
 /* ─── Page List ─── */
@@ -827,7 +829,7 @@ body {
 /* ─── Program Entry ─── */
 .flyer-program {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: 1fr 32% 20%; /* also update inline style in app.js renderProgram() */
   align-items: center;
   padding: 1px 0;
 }
@@ -839,6 +841,7 @@ body {
 .flyer-program-name {
   text-align: left;
   padding-left: 8px;
+  min-width: 0;
 }
 
 .flyer-program-subtitle {
@@ -850,12 +853,14 @@ body {
   text-align: left;
   white-space: pre-line;
   padding: 0;
+  min-width: 0;
 }
 
 .flyer-program-time {
   text-align: right;
   white-space: pre-line;
   padding-right: 8px;
+  min-width: 0;
 }
 
 /* ─── Closure Row ─── */

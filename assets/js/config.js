@@ -94,6 +94,8 @@ const CONFIG = (function () {
       programDateBold: true,
       programTimeBold: false,
       programNameBold: true,
+      stripFilled: false,
+      branchBorders: true,
     },
 
     // ── Default Header ───────────────────────────────────
