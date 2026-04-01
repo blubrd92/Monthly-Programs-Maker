@@ -480,13 +480,34 @@ const FlyerApp = (function () {
 
     const dateEl = el('div', {
       'class': 'flyer-program-date',
-      text: program.dateText || '',
       style: {
         color: textColor,
         fontFamily: fontRoles.programDate,
         fontSize: dateSize + 'px',
         fontWeight: styles.programDateBold ? '700' : '400',
       },
+    });
+
+    const dateLines = (program.dateText || '').split('\n');
+    const dateNoteLines = (program.dateNote || '').split('\n');
+
+    dateLines.forEach(function (line, i) {
+      if (i > 0) dateEl.appendChild(document.createElement('br'));
+      const dateSpan = document.createTextNode(line);
+      dateEl.appendChild(dateSpan);
+      const note = dateNoteLines[i];
+      if (note) {
+        dateEl.appendChild(document.createTextNode(' '));
+        const noteSpan = el('span', {
+          text: note,
+          style: {
+            fontFamily: fontRoles.programSubtitle,
+            fontSize: dateSize + 'px',
+            fontWeight: '400',
+          },
+        });
+        dateEl.appendChild(noteSpan);
+      }
     });
 
     const timeEl = el('div', {
@@ -989,10 +1010,20 @@ const FlyerApp = (function () {
     });
     timeInput.value = program.timeText || '';
 
+    const dateNoteInput = el('textarea', {
+      'class': 'input-date-note',
+      'rows': '2',
+      'placeholder': 'e.g. (Repeats Weekly)',
+      style: { resize: 'none' },
+    });
+    dateNoteInput.value = program.dateNote || '';
+
     const dateTimeRow = el('div', { 'class': 'form-row' },
       el('div', { 'class': 'form-group' },
         el('label', { text: 'Date' }),
-        dateInput
+        dateInput,
+        el('label', { text: 'Date Note (appended)', style: { marginTop: '4px' } }),
+        dateNoteInput
       ),
       el('div', { 'class': 'form-group' },
         el('label', { text: 'Time' }),
@@ -1086,6 +1117,7 @@ const FlyerApp = (function () {
       program.subtitle = form.querySelector('.input-subtitle').value;
       program.subtitleInline = !!form.querySelector('.input-subtitle-inline').checked;
       program.dateText = form.querySelector('.input-date').value;
+      program.dateNote = form.querySelector('.input-date-note').value;
       program.timeText = form.querySelector('.input-time').value;
       program.isClosure = form.querySelector('.input-closure').checked;
     }
