@@ -751,6 +751,7 @@ const FlyerApp = (function () {
     const branchesContainer = el('div', {
       style: {
         flex: '1',
+        minHeight: '0',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
@@ -768,9 +769,8 @@ const FlyerApp = (function () {
 
     contentWrapper.appendChild(branchesContainer);
 
-    // Footer — pinned to bottom of content area
+    // Footer
     const footerEl = renderFooter(page.footer);
-    footerEl.style.marginTop = 'auto';
     contentWrapper.appendChild(footerEl);
 
     preview.appendChild(contentWrapper);
@@ -821,6 +821,7 @@ const FlyerApp = (function () {
     const branchesContainer = el('div', {
       style: {
         flex: '1',
+        minHeight: '0',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
@@ -839,7 +840,6 @@ const FlyerApp = (function () {
     contentWrapper.appendChild(branchesContainer);
 
     const footerEl = renderFooter(page.footer);
-    footerEl.style.marginTop = 'auto';
     contentWrapper.appendChild(footerEl);
 
     container.appendChild(contentWrapper);
