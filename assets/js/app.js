@@ -703,9 +703,17 @@ const FlyerApp = (function () {
     // Check if branches are severely overlapping (enough to obscure program text)
     const overlapThreshold = 20; // px — roughly one line of program text
     const branchesContainer = preview.querySelector('[data-branches-container]');
-    const isOverflow = branchesContainer
-      ? branchesContainer.scrollHeight > branchesContainer.clientHeight + overlapThreshold
-      : preview.scrollHeight > getPageDimensions().height;
+    let isOverflow = false;
+    if (branchesContainer) {
+      let totalChildHeight = 0;
+      const children = branchesContainer.children;
+      for (let i = 0; i < children.length; i++) {
+        totalChildHeight += children[i].offsetHeight;
+      }
+      isOverflow = totalChildHeight > branchesContainer.clientHeight + overlapThreshold;
+    } else {
+      isOverflow = preview.scrollHeight > getPageDimensions().height;
+    }
 
     if (isOverflow) {
       preview.classList.add('overflow');
