@@ -700,8 +700,11 @@ const FlyerApp = (function () {
     const warning = document.getElementById('overflow-warning');
     if (!preview || !warning) return;
 
-    const dims = getPageDimensions();
-    const isOverflow = preview.scrollHeight > dims.height;
+    // Check if branches are being squeezed (their natural height exceeds allocated space)
+    const branchesContainer = preview.querySelector('[data-branches-container]');
+    const isOverflow = branchesContainer
+      ? branchesContainer.scrollHeight > branchesContainer.clientHeight + 1
+      : preview.scrollHeight > getPageDimensions().height;
 
     if (isOverflow) {
       preview.classList.add('overflow');
@@ -751,6 +754,7 @@ const FlyerApp = (function () {
 
     // Branches container — flex-grow to fill available space, distribute gaps evenly
     const branchesContainer = el('div', {
+      'data-branches-container': 'true',
       style: {
         flex: '1',
         minHeight: '0',
