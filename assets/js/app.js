@@ -260,7 +260,10 @@ const FlyerApp = (function () {
       const fontFamily = cs.fontFamily;
       const fontWeight = cs.fontWeight;
       const color = cs.color;
-      const textContent = textEl.textContent || '';
+      const textTransform = cs.textTransform;
+      let textContent = textEl.textContent || '';
+      if (textTransform === 'uppercase') textContent = textContent.toUpperCase();
+      else if (textTransform === 'lowercase') textContent = textContent.toLowerCase();
       const lineHeight = parseFloat(cs.lineHeight) || fontSize * 1.05;
       const isWrapped = cs.whiteSpace !== 'nowrap';
 
