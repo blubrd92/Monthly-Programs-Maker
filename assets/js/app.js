@@ -553,6 +553,7 @@ const FlyerApp = (function () {
       'class': 'flyer-branch',
       style: {
         backgroundColor: filled ? color : 'transparent',
+        backgroundClip: 'padding-box',
         borderColor: 'transparent',
       },
     });
