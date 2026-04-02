@@ -381,6 +381,7 @@ const FlyerApp = (function () {
 
   // ── Render: Single Program ─────────────────────────────────────
   function renderProgram(program, branchColor, styles) {
+    const effectiveColor = program.colorOverride || branchColor;
     const nameSize = ptToPx(styles.programNameFontSize);
     const dateSize = ptToPx(styles.programDateFontSize);
     const timeSize = ptToPx(styles.programTimeFontSize);
@@ -390,8 +391,8 @@ const FlyerApp = (function () {
     if (program.freeTextOverride) {
       const ftSize = ptToPx(program.freeTextFontSize || 12);
       const ftClosure = program.isClosure;
-      const ftColor = ftClosure ? CONFIG.COLORS.closureText : branchColor;
-      const ftBg = ftClosure ? branchColor : 'transparent';
+      const ftColor = ftClosure ? CONFIG.COLORS.closureText : effectiveColor;
+      const ftBg = ftClosure ? effectiveColor : 'transparent';
       const classes = 'flyer-program flyer-program-freetext' + (ftClosure ? ' closure' : '');
       const freeDiv = el('div', {
         'class': classes,
@@ -412,8 +413,8 @@ const FlyerApp = (function () {
 
     // Closure row: branch-color background, white text
     const isClosure = program.isClosure;
-    const textColor = isClosure ? CONFIG.COLORS.closureText : branchColor;
-    const bgColor = isClosure ? branchColor : 'transparent';
+    const textColor = isClosure ? CONFIG.COLORS.closureText : effectiveColor;
+    const bgColor = isClosure ? effectiveColor : 'transparent';
 
     const nameText = program.name || '';
 
@@ -526,7 +527,7 @@ const FlyerApp = (function () {
       'class': 'flyer-program' + (isClosure ? ' closure' : ''),
       style: {
         backgroundColor: bgColor,
-        color: branchColor,
+        color: effectiveColor,
         gridTemplateColumns: '1fr 32% 20%',
       },
     }, nameCell, dateEl, timeEl);
@@ -967,6 +968,36 @@ const FlyerApp = (function () {
     ftBoldCheckbox.checked = !!program.freeTextBold;
     ftItalicCheckbox.checked = !!program.freeTextItalic;
     ftClosureCheckbox.checked = !!program.isClosure;
+
+    // Color override for free text
+    const ftColorOverrideCheck = el('input', { 'type': 'checkbox', 'class': 'input-color-override' });
+    ftColorOverrideCheck.checked = !!program.colorOverride;
+    const ftColorOverridePicker = el('input', {
+      'type': 'color',
+      'class': 'input-color-override-value',
+      'value': program.colorOverride || '#000000',
+      style: {
+        width: '50px',
+        height: '20px',
+        padding: '0',
+        border: '1px solid #ddd',
+        borderRadius: '3px',
+        cursor: 'pointer',
+        marginLeft: '6px',
+        display: program.colorOverride ? 'inline-block' : 'none',
+        verticalAlign: 'middle',
+      },
+    });
+    ftColorOverrideCheck.addEventListener('change', function () {
+      ftColorOverridePicker.style.display = ftColorOverrideCheck.checked ? 'inline-block' : 'none';
+    });
+    const ftColorOverrideLabel = el('label', { 'class': 'checkbox-label' },
+      ftColorOverrideCheck,
+      'Color override'
+    );
+    ftColorOverrideLabel.appendChild(ftColorOverridePicker);
+    ftStyleGroup.querySelector('.checkbox-group').appendChild(ftColorOverrideLabel);
+
     freeTextField.appendChild(ftStyleGroup);
 
     form.appendChild(freeTextField);
@@ -1061,6 +1092,35 @@ const FlyerApp = (function () {
     const closCheckbox = checkboxGroup.querySelector('.input-closure');
     closCheckbox.checked = !!program.isClosure;
 
+    // Color override checkbox + picker
+    const colorOverrideCheck = el('input', { 'type': 'checkbox', 'class': 'input-color-override' });
+    colorOverrideCheck.checked = !!program.colorOverride;
+    const colorOverridePicker = el('input', {
+      'type': 'color',
+      'class': 'input-color-override-value',
+      'value': program.colorOverride || '#000000',
+      style: {
+        width: '50px',
+        height: '20px',
+        padding: '0',
+        border: '1px solid #ddd',
+        borderRadius: '3px',
+        cursor: 'pointer',
+        marginLeft: '6px',
+        display: program.colorOverride ? 'inline-block' : 'none',
+        verticalAlign: 'middle',
+      },
+    });
+    colorOverrideCheck.addEventListener('change', function () {
+      colorOverridePicker.style.display = colorOverrideCheck.checked ? 'inline-block' : 'none';
+    });
+    const colorOverrideLabel = el('label', { 'class': 'checkbox-label' },
+      colorOverrideCheck,
+      'Color override'
+    );
+    colorOverrideLabel.appendChild(colorOverridePicker);
+    checkboxGroup.querySelector('.checkbox-group').appendChild(colorOverrideLabel);
+
     structuredFields.appendChild(checkboxGroup);
 
     form.appendChild(structuredFields);
@@ -1126,6 +1186,10 @@ const FlyerApp = (function () {
       program.freeTextBold = !!form.querySelector('.input-freetext-bold').checked;
       program.freeTextItalic = !!form.querySelector('.input-freetext-italic').checked;
       program.isClosure = !!form.querySelector('.input-freetext-closure').checked;
+      const ftColorOverride = form.querySelector('.input-color-override');
+      program.colorOverride = ftColorOverride && ftColorOverride.checked
+        ? form.querySelector('.input-color-override-value').value
+        : null;
     } else {
       program.freeTextOverride = null;
       program.name = form.querySelector('.input-name').value;
@@ -1135,6 +1199,10 @@ const FlyerApp = (function () {
       program.dateNote = form.querySelector('.input-date-note').value;
       program.timeText = form.querySelector('.input-time').value;
       program.isClosure = form.querySelector('.input-closure').checked;
+      const colorOverrideChecked = form.querySelector('.input-color-override').checked;
+      program.colorOverride = colorOverrideChecked
+        ? form.querySelector('.input-color-override-value').value
+        : null;
     }
 
     editingProgramId = null;
