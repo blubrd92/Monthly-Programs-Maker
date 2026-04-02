@@ -450,7 +450,7 @@ const FlyerApp = (function () {
         text: subtitleText,
         style: {
           fontFamily: fontRoles.programSubtitle,
-          fontSize: nameSize + 'px',
+          fontSize: subtitleSize + 'px',
           fontWeight: '400',
           fontStyle: program.subtitleItalic ? 'italic' : 'normal',
         },
