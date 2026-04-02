@@ -555,6 +555,8 @@ const FlyerApp = (function () {
         backgroundColor: filled ? color : 'transparent',
         backgroundClip: 'padding-box',
         borderColor: 'transparent',
+        borderTopWidth: '0',
+        borderBottomWidth: '0',
       },
     });
 
