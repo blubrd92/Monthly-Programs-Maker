@@ -549,14 +549,11 @@ const FlyerApp = (function () {
     // Container — enclosed box with colored border
     const isSingleClosure = branch.programs && branch.programs.length === 1 && branch.programs[0].isClosure;
     const showBorders = styles.branchBorders !== false || isSingleClosure;
-    const sideColor = filled ? color : 'transparent';
     const branchEl = el('div', {
       'class': 'flyer-branch',
       style: {
-        borderLeftColor: sideColor,
-        borderRightColor: sideColor,
-        borderTopColor: 'transparent',
-        borderBottomColor: 'transparent',
+        backgroundColor: filled ? color : 'transparent',
+        borderColor: 'transparent',
       },
     });
 
