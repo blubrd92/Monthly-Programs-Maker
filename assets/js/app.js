@@ -15,6 +15,7 @@ const FlyerApp = (function () {
   let editingBranchDetailsId = null;
   const collapsedBranches = new Set();
   let autosaveTimer = null;
+  let lastColorOverride = '#000000';
 
   // Shared state (not per-page)
   let meta = FlyerUtils.deepClone(CONFIG.DEFAULT_META);
@@ -975,7 +976,7 @@ const FlyerApp = (function () {
     const ftColorOverridePicker = el('input', {
       'type': 'color',
       'class': 'input-freetext-color-override-value',
-      'value': program.colorOverride || '#000000',
+      'value': program.colorOverride || lastColorOverride,
       style: {
         width: '50px',
         height: '20px',
@@ -1098,7 +1099,7 @@ const FlyerApp = (function () {
     const colorOverridePicker = el('input', {
       'type': 'color',
       'class': 'input-color-override-value',
-      'value': program.colorOverride || '#000000',
+      'value': program.colorOverride || lastColorOverride,
       style: {
         width: '50px',
         height: '20px',
@@ -1203,6 +1204,10 @@ const FlyerApp = (function () {
       program.colorOverride = colorOverrideChecked
         ? form.querySelector('.input-color-override-value').value
         : null;
+    }
+
+    if (program.colorOverride) {
+      lastColorOverride = program.colorOverride;
     }
 
     editingProgramId = null;
