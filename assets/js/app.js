@@ -15,6 +15,7 @@ const FlyerApp = (function () {
   let editingBranchDetailsId = null;
   const collapsedBranches = new Set();
   let autosaveTimer = null;
+  let lastColorOverride = '#000000';
 
   // Shared state (not per-page)
   let meta = FlyerUtils.deepClone(CONFIG.DEFAULT_META);
@@ -259,7 +260,10 @@ const FlyerApp = (function () {
       const fontFamily = cs.fontFamily;
       const fontWeight = cs.fontWeight;
       const color = cs.color;
-      const textContent = textEl.textContent || '';
+      const textTransform = cs.textTransform;
+      let textContent = textEl.textContent || '';
+      if (textTransform === 'uppercase') textContent = textContent.toUpperCase();
+      else if (textTransform === 'lowercase') textContent = textContent.toLowerCase();
       const lineHeight = parseFloat(cs.lineHeight) || fontSize * 1.05;
       const isWrapped = cs.whiteSpace !== 'nowrap';
 
@@ -381,6 +385,7 @@ const FlyerApp = (function () {
 
   // ── Render: Single Program ─────────────────────────────────────
   function renderProgram(program, branchColor, styles) {
+    const effectiveColor = program.colorOverride || branchColor;
     const nameSize = ptToPx(styles.programNameFontSize);
     const dateSize = ptToPx(styles.programDateFontSize);
     const timeSize = ptToPx(styles.programTimeFontSize);
@@ -390,8 +395,8 @@ const FlyerApp = (function () {
     if (program.freeTextOverride) {
       const ftSize = ptToPx(program.freeTextFontSize || 12);
       const ftClosure = program.isClosure;
-      const ftColor = ftClosure ? CONFIG.COLORS.closureText : branchColor;
-      const ftBg = ftClosure ? branchColor : 'transparent';
+      const ftColor = ftClosure ? CONFIG.COLORS.closureText : effectiveColor;
+      const ftBg = ftClosure ? effectiveColor : 'transparent';
       const classes = 'flyer-program flyer-program-freetext' + (ftClosure ? ' closure' : '');
       const freeDiv = el('div', {
         'class': classes,
@@ -412,8 +417,8 @@ const FlyerApp = (function () {
 
     // Closure row: branch-color background, white text
     const isClosure = program.isClosure;
-    const textColor = isClosure ? CONFIG.COLORS.closureText : branchColor;
-    const bgColor = isClosure ? branchColor : 'transparent';
+    const textColor = isClosure ? CONFIG.COLORS.closureText : effectiveColor;
+    const bgColor = isClosure ? effectiveColor : 'transparent';
 
     const nameText = program.name || '';
 
@@ -445,7 +450,8 @@ const FlyerApp = (function () {
         text: subtitleText,
         style: {
           fontFamily: fontRoles.programSubtitle,
-          fontSize: nameSize + 'px',
+          fontSize: subtitleSize + 'px',
+          fontWeight: '400',
           fontStyle: program.subtitleItalic ? 'italic' : 'normal',
         },
       });
@@ -526,7 +532,7 @@ const FlyerApp = (function () {
       'class': 'flyer-program' + (isClosure ? ' closure' : ''),
       style: {
         backgroundColor: bgColor,
-        color: branchColor,
+        color: effectiveColor,
         gridTemplateColumns: '1fr 32% 20%',
       },
     }, nameCell, dateEl, timeEl);
@@ -549,14 +555,14 @@ const FlyerApp = (function () {
     // Container — enclosed box with colored border
     const isSingleClosure = branch.programs && branch.programs.length === 1 && branch.programs[0].isClosure;
     const showBorders = styles.branchBorders !== false || isSingleClosure;
-    const sideColor = filled ? color : 'transparent';
     const branchEl = el('div', {
       'class': 'flyer-branch',
       style: {
-        borderLeftColor: sideColor,
-        borderRightColor: sideColor,
-        borderTopColor: 'transparent',
-        borderBottomColor: 'transparent',
+        backgroundColor: filled ? color : 'transparent',
+        backgroundClip: 'padding-box',
+        borderColor: 'transparent',
+        borderTopWidth: '0',
+        borderBottomWidth: '0',
       },
     });
 
@@ -585,7 +591,7 @@ const FlyerApp = (function () {
     branchEl.appendChild(leftStrip);
 
     // Content area (programs)
-    const contentBorderColor = showBorders ? color : 'transparent';
+    const contentBorderColor = showBorders ? color : (filled ? '#ffffff' : 'transparent');
     const contentEl = el('div', {
       'class': 'flyer-branch-content',
       style: {
@@ -700,8 +706,20 @@ const FlyerApp = (function () {
     const warning = document.getElementById('overflow-warning');
     if (!preview || !warning) return;
 
-    const dims = getPageDimensions();
-    const isOverflow = preview.scrollHeight > dims.height;
+    // Check if branches are severely overlapping (enough to obscure program text)
+    const overlapThreshold = 20; // px — roughly one line of program text
+    const branchesContainer = preview.querySelector('[data-branches-container]');
+    let isOverflow = false;
+    if (branchesContainer) {
+      let totalChildHeight = 0;
+      const children = branchesContainer.children;
+      for (let i = 0; i < children.length; i++) {
+        totalChildHeight += children[i].scrollHeight;
+      }
+      isOverflow = totalChildHeight > branchesContainer.clientHeight + overlapThreshold;
+    } else {
+      isOverflow = preview.scrollHeight > getPageDimensions().height;
+    }
 
     if (isOverflow) {
       preview.classList.add('overflow');
@@ -751,8 +769,10 @@ const FlyerApp = (function () {
 
     // Branches container — flex-grow to fill available space, distribute gaps evenly
     const branchesContainer = el('div', {
+      'data-branches-container': 'true',
       style: {
         flex: '1',
+        minHeight: '0',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
@@ -822,6 +842,7 @@ const FlyerApp = (function () {
     const branchesContainer = el('div', {
       style: {
         flex: '1',
+        minHeight: '0',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
@@ -952,6 +973,36 @@ const FlyerApp = (function () {
     ftBoldCheckbox.checked = !!program.freeTextBold;
     ftItalicCheckbox.checked = !!program.freeTextItalic;
     ftClosureCheckbox.checked = !!program.isClosure;
+
+    // Color override for free text
+    const ftColorOverrideCheck = el('input', { 'type': 'checkbox', 'class': 'input-freetext-color-override' });
+    ftColorOverrideCheck.checked = !!program.colorOverride;
+    const ftColorOverridePicker = el('input', {
+      'type': 'color',
+      'class': 'input-freetext-color-override-value',
+      'value': program.colorOverride || lastColorOverride,
+      style: {
+        width: '50px',
+        height: '20px',
+        padding: '0',
+        border: '1px solid #ddd',
+        borderRadius: '3px',
+        cursor: 'pointer',
+        marginLeft: '6px',
+        display: program.colorOverride ? 'inline-block' : 'none',
+        verticalAlign: 'middle',
+      },
+    });
+    ftColorOverrideCheck.addEventListener('change', function () {
+      ftColorOverridePicker.style.display = ftColorOverrideCheck.checked ? 'inline-block' : 'none';
+    });
+    const ftColorOverrideLabel = el('label', { 'class': 'checkbox-label' },
+      ftColorOverrideCheck,
+      'Color override'
+    );
+    ftColorOverrideLabel.appendChild(ftColorOverridePicker);
+    ftStyleGroup.querySelector('.checkbox-group').appendChild(ftColorOverrideLabel);
+
     freeTextField.appendChild(ftStyleGroup);
 
     form.appendChild(freeTextField);
@@ -1046,6 +1097,35 @@ const FlyerApp = (function () {
     const closCheckbox = checkboxGroup.querySelector('.input-closure');
     closCheckbox.checked = !!program.isClosure;
 
+    // Color override checkbox + picker
+    const colorOverrideCheck = el('input', { 'type': 'checkbox', 'class': 'input-color-override' });
+    colorOverrideCheck.checked = !!program.colorOverride;
+    const colorOverridePicker = el('input', {
+      'type': 'color',
+      'class': 'input-color-override-value',
+      'value': program.colorOverride || lastColorOverride,
+      style: {
+        width: '50px',
+        height: '20px',
+        padding: '0',
+        border: '1px solid #ddd',
+        borderRadius: '3px',
+        cursor: 'pointer',
+        marginLeft: '6px',
+        display: program.colorOverride ? 'inline-block' : 'none',
+        verticalAlign: 'middle',
+      },
+    });
+    colorOverrideCheck.addEventListener('change', function () {
+      colorOverridePicker.style.display = colorOverrideCheck.checked ? 'inline-block' : 'none';
+    });
+    const colorOverrideLabel = el('label', { 'class': 'checkbox-label' },
+      colorOverrideCheck,
+      'Color override'
+    );
+    colorOverrideLabel.appendChild(colorOverridePicker);
+    checkboxGroup.querySelector('.checkbox-group').appendChild(colorOverrideLabel);
+
     structuredFields.appendChild(checkboxGroup);
 
     form.appendChild(structuredFields);
@@ -1111,6 +1191,10 @@ const FlyerApp = (function () {
       program.freeTextBold = !!form.querySelector('.input-freetext-bold').checked;
       program.freeTextItalic = !!form.querySelector('.input-freetext-italic').checked;
       program.isClosure = !!form.querySelector('.input-freetext-closure').checked;
+      const ftColorOverride = form.querySelector('.input-freetext-color-override');
+      program.colorOverride = ftColorOverride && ftColorOverride.checked
+        ? form.querySelector('.input-freetext-color-override-value').value
+        : null;
     } else {
       program.freeTextOverride = null;
       program.name = form.querySelector('.input-name').value;
@@ -1120,6 +1204,14 @@ const FlyerApp = (function () {
       program.dateNote = form.querySelector('.input-date-note').value;
       program.timeText = form.querySelector('.input-time').value;
       program.isClosure = form.querySelector('.input-closure').checked;
+      const colorOverrideChecked = form.querySelector('.input-color-override').checked;
+      program.colorOverride = colorOverrideChecked
+        ? form.querySelector('.input-color-override-value').value
+        : null;
+    }
+
+    if (program.colorOverride) {
+      lastColorOverride = program.colorOverride;
     }
 
     editingProgramId = null;

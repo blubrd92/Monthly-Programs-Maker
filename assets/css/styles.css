@@ -885,6 +885,10 @@ body {
   font-weight: 700;
 }
 
+.flyer-program.closure .flyer-program-subtitle {
+  font-weight: 400;
+}
+
 /* ─── Free Text ─── */
 .flyer-program-freetext {
   display: block;
@@ -943,8 +947,9 @@ body {
 
 .flyer-footer-asterisk {
   font-size: 7px;
-  padding: 2px 0;
+  padding: 0;
   line-height: 1.2;
+  white-space: pre-line;
 }
 
 /* ═══════════ NOTIFICATIONS ═══════════ */
