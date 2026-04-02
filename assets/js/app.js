@@ -708,7 +708,7 @@ const FlyerApp = (function () {
       let totalChildHeight = 0;
       const children = branchesContainer.children;
       for (let i = 0; i < children.length; i++) {
-        totalChildHeight += children[i].offsetHeight;
+        totalChildHeight += children[i].scrollHeight;
       }
       isOverflow = totalChildHeight > branchesContainer.clientHeight + overlapThreshold;
     } else {
