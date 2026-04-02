@@ -753,7 +753,7 @@ const FlyerApp = (function () {
         flex: '1',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'flex-start',
+        justifyContent: 'space-between',
       },
     });
 
@@ -823,7 +823,7 @@ const FlyerApp = (function () {
         flex: '1',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'flex-start',
+        justifyContent: 'space-between',
       },
     });
 
