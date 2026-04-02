@@ -970,11 +970,11 @@ const FlyerApp = (function () {
     ftClosureCheckbox.checked = !!program.isClosure;
 
     // Color override for free text
-    const ftColorOverrideCheck = el('input', { 'type': 'checkbox', 'class': 'input-color-override' });
+    const ftColorOverrideCheck = el('input', { 'type': 'checkbox', 'class': 'input-freetext-color-override' });
     ftColorOverrideCheck.checked = !!program.colorOverride;
     const ftColorOverridePicker = el('input', {
       'type': 'color',
-      'class': 'input-color-override-value',
+      'class': 'input-freetext-color-override-value',
       'value': program.colorOverride || '#000000',
       style: {
         width: '50px',
@@ -1186,9 +1186,9 @@ const FlyerApp = (function () {
       program.freeTextBold = !!form.querySelector('.input-freetext-bold').checked;
       program.freeTextItalic = !!form.querySelector('.input-freetext-italic').checked;
       program.isClosure = !!form.querySelector('.input-freetext-closure').checked;
-      const ftColorOverride = form.querySelector('.input-color-override');
+      const ftColorOverride = form.querySelector('.input-freetext-color-override');
       program.colorOverride = ftColorOverride && ftColorOverride.checked
-        ? form.querySelector('.input-color-override-value').value
+        ? form.querySelector('.input-freetext-color-override-value').value
         : null;
     } else {
       program.freeTextOverride = null;
