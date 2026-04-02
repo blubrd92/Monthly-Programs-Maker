@@ -527,13 +527,15 @@ const FlyerApp = (function () {
       },
     });
 
-    // Percentage-based columns: name 60%, date 20%, time gets the rest (20%)
+    // Column widths from styles (name gets 1fr, date fills remainder, time is fixed %)
+    const colTime = (styles.columnTimeWidth || 20) + '%';
+    const colDate = (100 - (styles.columnNameWidth || 48) - (styles.columnTimeWidth || 20)) + '%';
     const programEl = el('div', {
       'class': 'flyer-program' + (isClosure ? ' closure' : ''),
       style: {
         backgroundColor: bgColor,
         color: effectiveColor,
-        gridTemplateColumns: '1fr 32% 20%',
+        gridTemplateColumns: '1fr ' + colDate + ' ' + colTime,
       },
     }, nameCell, dateEl, timeEl);
 
@@ -1827,6 +1829,34 @@ const FlyerApp = (function () {
 
 
 
+    // ── Column Width Controls ─────────────────────────
+    const columnNameSlider = document.getElementById('style-column-name-width');
+    const columnTimeInput = document.getElementById('style-column-time-width');
+    const columnNameDisplay = document.getElementById('column-name-display');
+    const columnDateDisplay = document.getElementById('column-date-display');
+
+    function updateColumnDisplays() {
+      const nameW = parseInt(columnNameSlider.value, 10);
+      const timeW = parseInt(columnTimeInput.value, 10);
+      const dateW = 100 - nameW - timeW;
+      columnNameDisplay.textContent = nameW + '%';
+      columnDateDisplay.textContent = dateW + '%';
+    }
+
+    columnNameSlider.addEventListener('input', function () {
+      getCurrentPage().styles.columnNameWidth = parseInt(columnNameSlider.value, 10);
+      updateColumnDisplays();
+      markDirty();
+      debouncedRenderPreview();
+    });
+
+    columnTimeInput.addEventListener('input', function () {
+      getCurrentPage().styles.columnTimeWidth = parseInt(columnTimeInput.value, 10);
+      updateColumnDisplays();
+      markDirty();
+      debouncedRenderPreview();
+    });
+
     // ── Font Family Dropdowns ─────────────────────────
     populateFontDropdowns();
 
@@ -2117,6 +2147,14 @@ const FlyerApp = (function () {
     document.getElementById('style-program-name-bold').checked = page.styles.programNameBold;
     document.getElementById('style-program-date-bold').checked = page.styles.programDateBold;
     document.getElementById('style-program-time-bold').checked = page.styles.programTimeBold;
+
+    // Column widths
+    const nameW = page.styles.columnNameWidth || 48;
+    const timeW = page.styles.columnTimeWidth || 20;
+    document.getElementById('style-column-name-width').value = nameW;
+    document.getElementById('style-column-time-width').value = timeW;
+    document.getElementById('column-name-display').textContent = nameW + '%';
+    document.getElementById('column-date-display').textContent = (100 - nameW - timeW) + '%';
 
     // Footer
     const footerSourceBtns = document.querySelectorAll('[data-footer-source]');
