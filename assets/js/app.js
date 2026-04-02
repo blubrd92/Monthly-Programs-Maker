@@ -700,10 +700,11 @@ const FlyerApp = (function () {
     const warning = document.getElementById('overflow-warning');
     if (!preview || !warning) return;
 
-    // Check if branches are being squeezed (their natural height exceeds allocated space)
+    // Check if branches are severely overlapping (enough to obscure program text)
+    const overlapThreshold = 20; // px — roughly one line of program text
     const branchesContainer = preview.querySelector('[data-branches-container]');
     const isOverflow = branchesContainer
-      ? branchesContainer.scrollHeight > branchesContainer.clientHeight + 1
+      ? branchesContainer.scrollHeight > branchesContainer.clientHeight + overlapThreshold
       : preview.scrollHeight > getPageDimensions().height;
 
     if (isOverflow) {
