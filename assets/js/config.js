@@ -157,6 +157,7 @@ const CONFIG = (function () {
         cardBorderWidth: 3,
         cardBorderRadius: 12,
         cardGap: 4,
+        cardImageWidth: 80,
       },
       announcement: { text: '', visible: false },
     },

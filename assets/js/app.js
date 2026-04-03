@@ -17,6 +17,9 @@ const FlyerApp = (function () {
   let autosaveTimer = null;
   let lastColorOverride = '#000000';
 
+  // In-memory cache for images loaded from IndexedDB (id → dataUrl)
+  const imageCache = {};
+
   // Shared state (not per-page)
   let meta = FlyerUtils.deepClone(CONFIG.DEFAULT_META);
   let fontRoles = FlyerUtils.deepClone(CONFIG.FONT_ROLES);
@@ -714,6 +717,7 @@ const FlyerApp = (function () {
     const subtitleSize = ptToPx(styles.programSubtitleFontSize);
     const borderWidth = (styles.cardBorderWidth || 3) + 'px';
     const borderRadius = (styles.cardBorderRadius || 12) + 'px';
+    const imageWidth = (styles.cardImageWidth || 80) + 'px';
 
     // Free-text override
     if (card.freeTextOverride) {
@@ -743,33 +747,50 @@ const FlyerApp = (function () {
     const textColor = isClosure ? CONFIG.COLORS.closureText : effectiveColor;
     const bgColor = isClosure ? effectiveColor : '#ffffff';
 
-    // Image placeholder (future feature)
-    const imageZone = el('div', {
-      'class': 'flyer-kid-card-image',
-      style: {
-        color: effectiveColor,
-        borderRight: '1px dashed ' + effectiveColor,
-        opacity: '0.15',
-      },
-    }, el('i', { 'class': 'fas fa-image', style: { fontSize: '16px' } }));
+    // Image zone (left side)
+    const imageDataUrl = card.imageId ? imageCache[card.imageId] : null;
+    let imageZone;
+    if (imageDataUrl) {
+      imageZone = el('div', {
+        'class': 'flyer-kid-card-image',
+        style: { width: imageWidth },
+      }, el('img', { src: imageDataUrl, alt: '' }));
+    } else {
+      imageZone = el('div', {
+        'class': 'flyer-kid-card-image empty',
+        style: {
+          width: imageWidth,
+          color: effectiveColor,
+          borderRight: '1px dashed ' + effectiveColor,
+        },
+      }, el('i', { 'class': 'fas fa-image', style: { fontSize: '16px' } }));
+    }
 
-    // Center: name + subtitle
+    // Center: name (or name image) + subtitle
     const centerZone = el('div', { 'class': 'flyer-kid-card-center' });
 
-    const nameEl = el('div', {
-      'class': 'flyer-kid-card-name',
-      text: card.name || '',
-      style: {
-        fontFamily: fontRoles.programName,
-        fontSize: nameSize + 'px',
-        fontWeight: styles.programNameBold ? '700' : '400',
-        color: textColor,
-      },
-    });
-    centerZone.appendChild(nameEl);
+    const nameImageDataUrl = card.nameImageId ? imageCache[card.nameImageId] : null;
+    if (nameImageDataUrl) {
+      centerZone.appendChild(el('img', {
+        'class': 'flyer-kid-card-name-image',
+        src: nameImageDataUrl,
+        alt: card.name || '',
+      }));
+    } else {
+      centerZone.appendChild(el('div', {
+        'class': 'flyer-kid-card-name',
+        text: card.name || '',
+        style: {
+          fontFamily: fontRoles.programName,
+          fontSize: nameSize + 'px',
+          fontWeight: styles.programNameBold ? '700' : '400',
+          color: textColor,
+        },
+      }));
+    }
 
     if (card.subtitle) {
-      const subtitleEl = el('div', {
+      centerZone.appendChild(el('div', {
         'class': 'flyer-kid-card-subtitle',
         text: card.subtitle,
         style: {
@@ -777,61 +798,105 @@ const FlyerApp = (function () {
           fontSize: subtitleSize + 'px',
           color: textColor,
         },
+      }));
+    }
+
+    // Right zone: single location or multi-location
+    let rightZone;
+    const hasMultiLocation = card.locations && card.locations.length > 0;
+
+    if (hasMultiLocation) {
+      rightZone = el('div', { 'class': 'flyer-kid-card-locations' });
+      card.locations.forEach(function (loc) {
+        const locColor = isClosure ? CONFIG.COLORS.closureText : (loc.branchColor || effectiveColor);
+        const col = el('div', { 'class': 'location-col' });
+        if (loc.dayText) {
+          col.appendChild(el('div', {
+            text: loc.dayText,
+            style: {
+              fontFamily: fontRoles.programDate,
+              fontSize: dateSize + 'px',
+              fontWeight: styles.programDateBold ? '700' : '400',
+              color: locColor,
+            },
+          }));
+        }
+        if (loc.branchName) {
+          col.appendChild(el('div', {
+            'class': 'flyer-kid-card-branch',
+            text: loc.branchName,
+            style: {
+              fontFamily: fontRoles.branchName,
+              fontSize: (dateSize * 0.75) + 'px',
+              color: locColor,
+            },
+          }));
+        }
+        if (loc.branchAddress) {
+          col.appendChild(el('div', {
+            'class': 'flyer-kid-card-address',
+            text: loc.branchAddress,
+            style: {
+              fontFamily: fontRoles.branchAddress,
+              fontSize: (dateSize * 0.65) + 'px',
+              color: locColor,
+            },
+          }));
+        }
+        rightZone.appendChild(col);
       });
-      centerZone.appendChild(subtitleEl);
-    }
+    } else {
+      rightZone = el('div', { 'class': 'flyer-kid-card-location' });
 
-    // Right: date, time, branch, address
-    const locationZone = el('div', { 'class': 'flyer-kid-card-location' });
+      if (card.dateText) {
+        rightZone.appendChild(el('div', {
+          'class': 'flyer-kid-card-date',
+          text: card.dateText,
+          style: {
+            fontFamily: fontRoles.programDate,
+            fontSize: dateSize + 'px',
+            fontWeight: styles.programDateBold ? '700' : '400',
+            color: textColor,
+          },
+        }));
+      }
 
-    if (card.dateText) {
-      locationZone.appendChild(el('div', {
-        'class': 'flyer-kid-card-date',
-        text: card.dateText,
-        style: {
-          fontFamily: fontRoles.programDate,
-          fontSize: dateSize + 'px',
-          fontWeight: styles.programDateBold ? '700' : '400',
-          color: textColor,
-        },
-      }));
-    }
+      if (card.timeText) {
+        rightZone.appendChild(el('div', {
+          'class': 'flyer-kid-card-time',
+          text: card.timeText,
+          style: {
+            fontFamily: fontRoles.programTime,
+            fontSize: timeSize + 'px',
+            fontWeight: styles.programTimeBold ? '700' : '400',
+            color: textColor,
+          },
+        }));
+      }
 
-    if (card.timeText) {
-      locationZone.appendChild(el('div', {
-        'class': 'flyer-kid-card-time',
-        text: card.timeText,
-        style: {
-          fontFamily: fontRoles.programTime,
-          fontSize: timeSize + 'px',
-          fontWeight: styles.programTimeBold ? '700' : '400',
-          color: textColor,
-        },
-      }));
-    }
+      if (card.branchName) {
+        rightZone.appendChild(el('div', {
+          'class': 'flyer-kid-card-branch',
+          text: card.branchName,
+          style: {
+            fontFamily: fontRoles.branchName,
+            fontSize: (dateSize * 0.75) + 'px',
+            color: textColor,
+          },
+        }));
+      }
 
-    if (card.branchName) {
-      locationZone.appendChild(el('div', {
-        'class': 'flyer-kid-card-branch',
-        text: card.branchName,
-        style: {
-          fontFamily: fontRoles.branchName,
-          fontSize: (dateSize * 0.75) + 'px',
-          color: textColor,
-        },
-      }));
-    }
-
-    if (card.branchAddress) {
-      locationZone.appendChild(el('div', {
-        'class': 'flyer-kid-card-address',
-        text: card.branchAddress,
-        style: {
-          fontFamily: fontRoles.branchAddress,
-          fontSize: (dateSize * 0.65) + 'px',
-          color: textColor,
-        },
-      }));
+      if (card.branchAddress) {
+        rightZone.appendChild(el('div', {
+          'class': 'flyer-kid-card-address',
+          text: card.branchAddress,
+          style: {
+            fontFamily: fontRoles.branchAddress,
+            fontSize: (dateSize * 0.65) + 'px',
+            color: textColor,
+          },
+        }));
+      }
     }
 
     const cardEl = el('div', {
@@ -841,7 +906,7 @@ const FlyerApp = (function () {
         borderRadius: borderRadius,
         backgroundColor: bgColor,
       },
-    }, imageZone, centerZone, locationZone);
+    }, imageZone, centerZone, rightZone);
 
     return cardEl;
   }
@@ -858,6 +923,29 @@ const FlyerApp = (function () {
         color: '#333333',
       },
     });
+  }
+
+  /**
+   * Load all images referenced by current kid-mode cards into the in-memory cache.
+   * Returns a Promise that resolves when all images are cached.
+   */
+  function loadImageCache() {
+    const page = getActivePage();
+    if (!page || !page.cards) return Promise.resolve();
+
+    const idsToLoad = [];
+    page.cards.forEach(function (card) {
+      if (card.imageId && !imageCache[card.imageId]) idsToLoad.push(card.imageId);
+      if (card.nameImageId && !imageCache[card.nameImageId]) idsToLoad.push(card.nameImageId);
+    });
+
+    if (idsToLoad.length === 0) return Promise.resolve();
+
+    return Promise.all(idsToLoad.map(function (id) {
+      return ImageStore.getImage(id).then(function (dataUrl) {
+        if (dataUrl) imageCache[id] = dataUrl;
+      });
+    }));
   }
 
   function renderKidPreview() {
@@ -1035,7 +1123,9 @@ const FlyerApp = (function () {
   // ── Render: Main Preview ───────────────────────────────────────
   function renderPreview() {
     if (meta.mode === 'kid') {
-      renderKidPreview();
+      loadImageCache().then(function () {
+        renderKidPreview();
+      });
       return;
     }
 
@@ -2221,11 +2311,63 @@ const FlyerApp = (function () {
     branchGroup.appendChild(branchSelect);
     structuredFields.appendChild(branchGroup);
 
+    // Card image upload
+    const cardImageGroup = el('div', { 'class': 'form-group' });
+    cardImageGroup.appendChild(el('label', { text: 'Card Image (left zone)' }));
+    const cardImageUpload = el('div', { 'class': 'image-upload-group' });
+    const cardImagePreview = el('div', { 'class': 'image-preview' });
+    if (card.imageId && imageCache[card.imageId]) {
+      cardImagePreview.appendChild(el('img', { src: imageCache[card.imageId], alt: '' }));
+    } else {
+      cardImagePreview.appendChild(el('i', { 'class': 'fas fa-image placeholder-icon' }));
+    }
+    cardImageUpload.appendChild(cardImagePreview);
+    cardImageUpload.appendChild(el('button', {
+      'class': 'btn btn-sm btn-outline',
+      html: '<i class="fas fa-upload"></i> Upload',
+      on: { click: function () { triggerImageUpload(card.id, 'image'); } },
+    }));
+    if (card.imageId) {
+      cardImageUpload.appendChild(el('button', {
+        'class': 'btn btn-sm btn-outline btn-delete',
+        html: '<i class="fas fa-trash"></i>',
+        on: { click: function () { removeCardImage(card.id, 'image'); } },
+      }));
+    }
+    cardImageGroup.appendChild(cardImageUpload);
+    structuredFields.appendChild(cardImageGroup);
+
     // Name
     structuredFields.appendChild(el('div', { 'class': 'form-group' },
       el('label', { text: 'Program Name' }),
       el('input', { type: 'text', 'class': 'input-name', value: card.name || '' })
     ));
+
+    // Name image upload (replaces text name)
+    const nameImageGroup = el('div', { 'class': 'form-group' });
+    nameImageGroup.appendChild(el('label', { text: 'Name Image (replaces text name)' }));
+    const nameImageUpload = el('div', { 'class': 'image-upload-group' });
+    const nameImagePreview = el('div', { 'class': 'image-preview' });
+    if (card.nameImageId && imageCache[card.nameImageId]) {
+      nameImagePreview.appendChild(el('img', { src: imageCache[card.nameImageId], alt: '' }));
+    } else {
+      nameImagePreview.appendChild(el('i', { 'class': 'fas fa-heading placeholder-icon' }));
+    }
+    nameImageUpload.appendChild(nameImagePreview);
+    nameImageUpload.appendChild(el('button', {
+      'class': 'btn btn-sm btn-outline',
+      html: '<i class="fas fa-upload"></i> Upload',
+      on: { click: function () { triggerImageUpload(card.id, 'nameImage'); } },
+    }));
+    if (card.nameImageId) {
+      nameImageUpload.appendChild(el('button', {
+        'class': 'btn btn-sm btn-outline btn-delete',
+        html: '<i class="fas fa-trash"></i>',
+        on: { click: function () { removeCardImage(card.id, 'nameImage'); } },
+      }));
+    }
+    nameImageGroup.appendChild(nameImageUpload);
+    structuredFields.appendChild(nameImageGroup);
 
     // Subtitle
     structuredFields.appendChild(el('div', { 'class': 'form-group' },
@@ -2242,6 +2384,75 @@ const FlyerApp = (function () {
       el('div', { 'class': 'form-group' }, el('label', { text: 'Date' }), dateInput),
       el('div', { 'class': 'form-group' }, el('label', { text: 'Time' }), timeInput)
     ));
+
+    // Multi-location toggle
+    const hasLocations = card.locations && card.locations.length > 0;
+    const multiLocToggle = el('div', { 'class': 'form-group' },
+      el('label', { 'class': 'checkbox-label' },
+        el('input', { type: 'checkbox', 'class': 'input-multi-location' }),
+        'Multiple locations'
+      )
+    );
+    const multiLocCheck = multiLocToggle.querySelector('.input-multi-location');
+    multiLocCheck.checked = hasLocations;
+    structuredFields.appendChild(multiLocToggle);
+
+    // Multi-location entries container
+    const locationsContainer = el('div', {
+      'class': 'locations-container',
+      style: { display: hasLocations ? 'block' : 'none' },
+    });
+
+    function addLocationEntry(loc) {
+      const entry = el('div', { 'class': 'location-entry' });
+      const locSelect = el('select', { 'class': 'location-branch-select' });
+      CONFIG.BRANCH_DEFAULTS.forEach(function (b) {
+        const opt = el('option', {
+          value: b.name,
+          text: b.name,
+          'data-address': b.address || '',
+          'data-color': b.color,
+        });
+        if (loc && b.name === loc.branchName) opt.selected = true;
+        locSelect.appendChild(opt);
+      });
+      entry.appendChild(locSelect);
+      entry.appendChild(el('input', {
+        type: 'text',
+        'class': 'location-day-input',
+        placeholder: 'Day (e.g. Wednesdays)',
+        value: (loc && loc.dayText) || '',
+      }));
+      entry.appendChild(el('button', {
+        'class': 'btn-remove-location',
+        html: '<i class="fas fa-times"></i>',
+        on: { click: function () { entry.remove(); } },
+      }));
+      locationsContainer.appendChild(entry);
+    }
+
+    if (hasLocations) {
+      card.locations.forEach(function (loc) {
+        addLocationEntry(loc);
+      });
+    }
+
+    const addLocBtn = el('button', {
+      'class': 'btn btn-sm btn-outline',
+      html: '<i class="fas fa-plus"></i> Add Location',
+      style: { marginTop: '4px' },
+      on: { click: function () { addLocationEntry(null); } },
+    });
+    locationsContainer.appendChild(addLocBtn);
+    structuredFields.appendChild(locationsContainer);
+
+    multiLocCheck.addEventListener('change', function () {
+      locationsContainer.style.display = multiLocCheck.checked ? 'block' : 'none';
+      if (multiLocCheck.checked && locationsContainer.querySelectorAll('.location-entry').length === 0) {
+        addLocationEntry(null);
+        addLocationEntry(null);
+      }
+    });
 
     // Options: Closure + Color override
     const checkboxGroup = el('div', { 'class': 'form-group' },
@@ -2289,6 +2500,74 @@ const FlyerApp = (function () {
     return form;
   }
 
+  // Track which card/field is waiting for an image upload
+  let pendingImageUpload = { cardId: null, field: null };
+
+  function triggerImageUpload(cardId, field) {
+    pendingImageUpload = { cardId: cardId, field: field };
+    const inputId = field === 'nameImage' ? 'card-name-image-upload' : 'card-image-upload';
+    document.getElementById(inputId).click();
+  }
+
+  function handleCardImageUpload(event, field) {
+    const file = event.target.files[0];
+    if (!file || !pendingImageUpload.cardId) return;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const dataUrl = e.target.result;
+      const imageId = FlyerUtils.generateId();
+      const cardId = pendingImageUpload.cardId;
+
+      ImageStore.saveImage(imageId, dataUrl).then(function () {
+        imageCache[imageId] = dataUrl;
+
+        // Find the card and set the image
+        const page = getActivePage();
+        if (page && page.cards) {
+          for (let i = 0; i < page.cards.length; i++) {
+            if (page.cards[i].id === cardId) {
+              if (field === 'nameImage') {
+                page.cards[i].nameImageId = imageId;
+              } else {
+                page.cards[i].imageId = imageId;
+              }
+              break;
+            }
+          }
+        }
+
+        markDirty();
+        renderCardList();
+        debouncedRenderPreview();
+      });
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
+  }
+
+  function removeCardImage(cardId, field) {
+    const page = getActivePage();
+    if (!page || !page.cards) return;
+
+    for (let i = 0; i < page.cards.length; i++) {
+      if (page.cards[i].id === cardId) {
+        const key = field === 'nameImage' ? 'nameImageId' : 'imageId';
+        const oldId = page.cards[i][key];
+        if (oldId) {
+          ImageStore.deleteImage(oldId);
+          delete imageCache[oldId];
+        }
+        page.cards[i][key] = null;
+        break;
+      }
+    }
+
+    markDirty();
+    renderCardList();
+    debouncedRenderPreview();
+  }
+
   function saveCardForm(form, cardId) {
     const page = getActivePage();
     if (!page || !page.cards) return;
@@ -2334,6 +2613,28 @@ const FlyerApp = (function () {
       const colorOverrideChecked = form.querySelector('.input-color-override').checked;
       card.colorOverride = colorOverrideChecked
         ? form.querySelector('.input-color-override-value').value : null;
+
+      // Multi-location
+      const multiLocChecked = form.querySelector('.input-multi-location');
+      if (multiLocChecked && multiLocChecked.checked) {
+        const locEntries = form.querySelectorAll('.location-entry');
+        card.locations = [];
+        locEntries.forEach(function (entry) {
+          const locSelect = entry.querySelector('.location-branch-select');
+          const dayInput = entry.querySelector('.location-day-input');
+          if (locSelect) {
+            const selOpt = locSelect.options[locSelect.selectedIndex];
+            card.locations.push({
+              branchName: locSelect.value,
+              branchAddress: selOpt.getAttribute('data-address') || '',
+              branchColor: selOpt.getAttribute('data-color') || '#0474bf',
+              dayText: dayInput ? dayInput.value : '',
+            });
+          }
+        });
+      } else {
+        card.locations = [];
+      }
     }
 
     if (card.colorOverride) {
@@ -2618,6 +2919,14 @@ const FlyerApp = (function () {
     if (cardGapInput) {
       cardGapInput.addEventListener('input', function () {
         getCurrentPage().styles.cardGap = parseInt(cardGapInput.value, 10) || 4;
+        markDirty();
+        debouncedRenderPreview();
+      });
+    }
+    const cardImageWidthInput = document.getElementById('style-card-image-width');
+    if (cardImageWidthInput) {
+      cardImageWidthInput.addEventListener('input', function () {
+        getCurrentPage().styles.cardImageWidth = parseInt(cardImageWidthInput.value, 10) || 80;
         markDirty();
         debouncedRenderPreview();
       });
@@ -3010,9 +3319,11 @@ const FlyerApp = (function () {
       const cardBWInput = document.getElementById('style-card-border-width');
       const cardBRInput = document.getElementById('style-card-border-radius');
       const cardGInput = document.getElementById('style-card-gap');
+      const cardIWInput = document.getElementById('style-card-image-width');
       if (cardBWInput) cardBWInput.value = page.styles.cardBorderWidth || 3;
       if (cardBRInput) cardBRInput.value = page.styles.cardBorderRadius || 12;
       if (cardGInput) cardGInput.value = page.styles.cardGap || 4;
+      if (cardIWInput) cardIWInput.value = page.styles.cardImageWidth || 80;
     }
 
     // Announcement settings
@@ -3052,20 +3363,47 @@ const FlyerApp = (function () {
   }
 
   function saveFile() {
-    const json = serializeAll();
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const firstPage = pages[0];
-    const baseName = (firstPage.header.titleText + ' - ' + firstPage.header.monthText).trim() || 'flyer';
-    a.download = baseName + '.flyer';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    isDirty = false;
-    showNotification('File saved successfully.', 'success');
+    // Collect image IDs used by kid mode cards
+    const usedIds = meta.mode === 'kid' ? ImageStore.collectUsedImageIds(pages) : [];
+
+    const saveWithImages = usedIds.length > 0
+      ? (function () {
+        // Gather only the images actually used
+        return Promise.all(usedIds.map(function (id) {
+          return ImageStore.getImage(id).then(function (dataUrl) {
+            return { id: id, dataUrl: dataUrl };
+          });
+        })).then(function (results) {
+          const imageMap = {};
+          results.forEach(function (r) {
+            if (r.dataUrl) imageMap[r.id] = r.dataUrl;
+          });
+          return imageMap;
+        });
+      })()
+      : Promise.resolve({});
+
+    saveWithImages.then(function (imageMap) {
+      const data = JSON.parse(serializeAll());
+      // Embed images in the file for portability
+      if (Object.keys(imageMap).length > 0) {
+        data.images = imageMap;
+      }
+      const json = JSON.stringify(data, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const firstPage = pages[0];
+      const baseName = (firstPage.header.titleText + ' - ' + firstPage.header.monthText).trim() || 'flyer';
+      a.download = baseName + '.flyer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      isDirty = false;
+      showNotification('File saved successfully.', 'success');
+    });
   }
 
   function loadFile() {
@@ -3169,15 +3507,26 @@ const FlyerApp = (function () {
     activePage = 0;
     isDirty = false;
 
-    // Update all settings inputs to reflect loaded state
-    applyModeUI();
-    populateFontDropdowns();
-    syncSettingsFromPage();
-    renderPageList();
-    renderBranchList();
-    renderPreview();
+    // Import embedded images into IndexedDB and cache
+    const imageImportPromise = data.images && typeof data.images === 'object'
+      ? ImageStore.importImages(data.images).then(function () {
+        Object.keys(data.images).forEach(function (id) {
+          imageCache[id] = data.images[id];
+        });
+      })
+      : Promise.resolve();
 
-    showNotification('File loaded successfully.', 'success');
+    imageImportPromise.then(function () {
+      // Update all settings inputs to reflect loaded state
+      applyModeUI();
+      populateFontDropdowns();
+      syncSettingsFromPage();
+      renderPageList();
+      renderBranchList();
+      renderPreview();
+
+      showNotification('File loaded successfully.', 'success');
+    });
   }
 
   function checkDraft() {
@@ -3267,6 +3616,28 @@ const FlyerApp = (function () {
       const previewWidthPx = pageWidth * CONFIG.SCREEN_DPI;
       const previewHeightPx = pageHeight * CONFIG.SCREEN_DPI;
 
+      // Pre-load all kid mode images into cache before rendering PDF pages
+      const preloadPromise = meta.mode === 'kid'
+        ? (function () {
+          const ids = [];
+          pages.forEach(function (p) {
+            if (p.cards) {
+              p.cards.forEach(function (c) {
+                if (c.imageId && !imageCache[c.imageId]) ids.push(c.imageId);
+                if (c.nameImageId && !imageCache[c.nameImageId]) ids.push(c.nameImageId);
+              });
+            }
+          });
+          return ids.length > 0
+            ? Promise.all(ids.map(function (id) {
+              return ImageStore.getImage(id).then(function (dataUrl) {
+                if (dataUrl) imageCache[id] = dataUrl;
+              });
+            }))
+            : Promise.resolve();
+        })()
+        : Promise.resolve();
+
       const pagePromises = [];
 
       pages.forEach(function (page, index) {
@@ -3324,8 +3695,8 @@ const FlyerApp = (function () {
         });
       });
 
-      // Execute page renders sequentially
-      let chain = Promise.resolve();
+      // Execute page renders sequentially (after image preload)
+      let chain = preloadPromise;
       pagePromises.forEach(function (fn) {
         chain = chain.then(fn);
       });
@@ -3540,6 +3911,17 @@ const FlyerApp = (function () {
     document.getElementById('btn-add-card').addEventListener('click', function () {
       addKidCard();
     });
+
+    // Card image upload handlers
+    document.getElementById('card-image-upload').addEventListener('change', function (e) {
+      handleCardImageUpload(e, 'image');
+    });
+    document.getElementById('card-name-image-upload').addEventListener('change', function (e) {
+      handleCardImageUpload(e, 'nameImage');
+    });
+
+    // Initialize ImageStore
+    ImageStore.init();
 
     // Apply initial mode UI
     applyModeUI();

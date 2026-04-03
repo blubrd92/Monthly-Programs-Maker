@@ -17,6 +17,7 @@ assets/
   css/styles.css                    All UI styles, CSS variables, responsive layout
   js/
     config.js                       Constants, defaults, colors, fonts, timing
+    image-store.js                  IndexedDB wrapper for high-res image storage
     flyer-utils.js                  Pure/utility functions (testable, no DOM)
     app.js                          Core app logic: rendering, UI, state, PDF export
   img/
@@ -34,8 +35,9 @@ README.md                          Project overview and usage guide
 In `index.html`, scripts load in this order:
 1. CDN libraries (Sortable.js, jsPDF, html2canvas, Font Awesome, Google Fonts)
 2. `config.js` → exposes `CONFIG` globally
-3. `flyer-utils.js` → exposes `FlyerUtils` globally (depends on CONFIG)
-4. `app.js` → exposes `FlyerApp` globally, calls `init()` on DOMContentLoaded
+3. `image-store.js` → exposes `ImageStore` globally (IndexedDB, no dependencies)
+4. `flyer-utils.js` → exposes `FlyerUtils` globally (depends on CONFIG)
+5. `app.js` → exposes `FlyerApp` globally, calls `init()` on DOMContentLoaded
 
 Changing load order will break the app. Each file depends on the previous ones.
 
@@ -102,6 +104,7 @@ Programs support:
 | When changing...    | Also check...                                    |
 |---------------------|--------------------------------------------------|
 | `config.js`         | `flyer-utils.js` (uses CONFIG), `app.js`, tests  |
+| `image-store.js`    | `app.js` (calls ImageStore for kid mode images)   |
 | `flyer-utils.js`    | `app.js` (calls FlyerUtils), tests               |
 | `app.js`            | `index.html` (DOM IDs), `styles.css` (classes)    |
 | `styles.css`        | `app.js` (class names, inline styles), `index.html` |
@@ -129,5 +132,12 @@ Programs support:
 - Column widths: configurable per page (default: Name 48%, Date 32%, Time 20%)
 - `lastColorOverride` remembers the most recent color override for convenience
 
-## Planned Features
-- **Kid Mode**: A variant flyer format tailored for children's programs, with adjusted layout and styling appropriate for youth-focused library programming.
+## Kid Mode
+A variant flyer format for children's programs. Each program is its own rounded-rectangle card (no branch grouping). Features:
+- **Card layout**: Colored border (branch color), image zone (left), name+subtitle (center), date/time/branch (right)
+- **Image support**: Per-card image upload and name image upload (replaces text name), stored in IndexedDB via `ImageStore`
+- **Multi-location**: Cards can show multiple branch locations in a side-by-side layout
+- **Announcement area**: Free-text zone between header and cards
+- **Auto-reflow**: Cards distribute vertically to fill the page
+- **Data model**: `cards[]` + `announcement` instead of `branches[]`; images embedded in .flyer files for portability
+- **Letter size only**: Page size locked to letter when Kid Mode is active
