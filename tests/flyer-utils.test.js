@@ -233,3 +233,105 @@ describe('FlyerUtils.getCurrentMonthYear', () => {
     expect(year).toBeGreaterThanOrEqual(2024);
   });
 });
+
+// ═══════════════════════════════════════════════════
+// KID MODE TESTS
+// ═══════════════════════════════════════════════════
+
+describe('FlyerUtils.createBlankCard', () => {
+  it('returns a card with all required fields', () => {
+    const card = FlyerUtils.createBlankCard();
+    expect(card.id).toBeTruthy();
+    expect(card.name).toBe('');
+    expect(card.subtitle).toBe('');
+    expect(card.dateText).toBe('');
+    expect(card.timeText).toBe('');
+    expect(card.branchName).toBe('Downtown');
+    expect(card.branchColor).toBe('#0474bf');
+    expect(card.isClosure).toBe(false);
+    expect(card.freeTextOverride).toBeNull();
+    expect(card.colorOverride).toBeNull();
+  });
+
+  it('generates unique IDs for each card', () => {
+    const a = FlyerUtils.createBlankCard();
+    const b = FlyerUtils.createBlankCard();
+    expect(a.id).not.toBe(b.id);
+  });
+
+  it('accepts custom values', () => {
+    const card = FlyerUtils.createBlankCard({
+      name: 'Storytime',
+      branchName: 'Northgate',
+      branchColor: '#e87c09',
+    });
+    expect(card.name).toBe('Storytime');
+    expect(card.branchName).toBe('Northgate');
+    expect(card.branchColor).toBe('#e87c09');
+  });
+});
+
+describe('FlyerUtils.createDefaultKidPage', () => {
+  it('creates a kid page with correct structure', () => {
+    const page = FlyerUtils.createDefaultKidPage();
+    expect(page.header).toBeDefined();
+    expect(page.header.titleText).toBe('Library Programs');
+    expect(page.announcement).toBeDefined();
+    expect(page.announcement.visible).toBe(false);
+    expect(page.announcement.text).toBe('');
+    expect(Array.isArray(page.cards)).toBe(true);
+    expect(page.cards).toHaveLength(1);
+    expect(page.cards[0].name).toBe('Program Name');
+    expect(page.footer).toBeDefined();
+    expect(page.styles).toBeDefined();
+    expect(page.styles.cardBorderWidth).toBe(3);
+    expect(page.styles.cardBorderRadius).toBe(12);
+    expect(page.styles.cardGap).toBe(4);
+  });
+});
+
+describe('FlyerUtils.duplicatePage (kid mode)', () => {
+  it('creates a deep copy of a kid page with new card IDs', () => {
+    const page = FlyerUtils.createDefaultKidPage();
+    page.cards.push(FlyerUtils.createBlankCard({ name: 'Test Card' }));
+    const originalCardId = page.cards[0].id;
+
+    const dup = FlyerUtils.duplicatePage(page);
+    expect(dup.cards).toHaveLength(2);
+    expect(dup.cards[0].id).not.toBe(originalCardId);
+    expect(dup.cards[0].name).toBe('Program Name');
+    expect(dup.cards[1].name).toBe('Test Card');
+  });
+
+  it('is independent from the original kid page', () => {
+    const page = FlyerUtils.createDefaultKidPage();
+    const dup = FlyerUtils.duplicatePage(page);
+    dup.header.titleText = 'CHANGED';
+    dup.cards[0].name = 'CHANGED';
+    expect(page.header.titleText).toBe('Library Programs');
+    expect(page.cards[0].name).toBe('Program Name');
+  });
+});
+
+describe('FlyerUtils.validateFlyerData (kid mode)', () => {
+  it('returns true for kid mode data with cards array', () => {
+    expect(FlyerUtils.validateFlyerData({
+      schema: 'library-flyer-v1',
+      meta: {},
+      header: {},
+      cards: [],
+      footer: {},
+      styles: {},
+    })).toBe(true);
+  });
+
+  it('returns false when neither branches nor cards exist', () => {
+    expect(FlyerUtils.validateFlyerData({
+      schema: 'library-flyer-v1',
+      meta: {},
+      header: {},
+      footer: {},
+      styles: {},
+    })).toBe(false);
+  });
+});

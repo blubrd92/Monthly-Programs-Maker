@@ -77,12 +77,24 @@
 
       <!-- ─── Programs Tab ─── -->
       <div id="tab-programs" class="tab-content active">
-        <div id="branch-list">
-          <!-- Branches rendered by app.js -->
+        <!-- Standard mode: branch list -->
+        <div id="standard-programs-container">
+          <div id="branch-list">
+            <!-- Branches rendered by app.js -->
+          </div>
+          <button id="btn-add-branch" class="btn btn-outline btn-full">
+            <i class="fas fa-plus"></i> Add Branch
+          </button>
         </div>
-        <button id="btn-add-branch" class="btn btn-outline btn-full">
-          <i class="fas fa-plus"></i> Add Branch
-        </button>
+        <!-- Kid mode: flat card list -->
+        <div id="kid-programs-container" style="display:none;">
+          <div id="kid-card-list">
+            <!-- Kid cards rendered by app.js -->
+          </div>
+          <button id="btn-add-card" class="btn btn-outline btn-full">
+            <i class="fas fa-plus"></i> Add Program Card
+          </button>
+        </div>
       </div>
 
       <!-- ─── Settings Tab ─── -->
@@ -110,6 +122,13 @@
           </h3>
           <div id="section-page" class="settings-body">
             <div class="form-group">
+              <label>Mode</label>
+              <div class="toggle-group">
+                <button class="toggle-btn active" data-flyer-mode="standard">Standard</button>
+                <button class="toggle-btn" data-flyer-mode="kid">Kid Mode</button>
+              </div>
+            </div>
+            <div class="form-group" id="page-size-group">
               <label>Page Size</label>
               <div class="toggle-group">
                 <button class="toggle-btn active" data-page-size="letter">Letter (8.5×11)</button>
@@ -195,8 +214,8 @@
                 </label>
               </div>
             </div>
-            <h4 class="settings-subheading">Column Widths</h4>
-            <div class="form-group">
+            <h4 class="settings-subheading standard-mode-only">Column Widths</h4>
+            <div class="form-group standard-mode-only">
               <label for="style-column-name-width">Program Name Width: <span id="column-name-display">48%</span></label>
               <input type="range" id="style-column-name-width" min="30" max="70" value="48">
               <div class="column-width-info">
@@ -208,7 +227,7 @@
                 </div>
               </div>
             </div>
-            <div class="form-group">
+            <div class="form-group standard-mode-only">
               <label>Branch Strips</label>
               <div class="checkbox-group">
                 <label class="checkbox-label">
@@ -216,13 +235,47 @@
                 </label>
               </div>
             </div>
-            <div class="form-group">
+            <div class="form-group standard-mode-only">
               <label>Branch Borders</label>
               <div class="checkbox-group">
                 <label class="checkbox-label">
                   <input type="checkbox" id="style-branch-borders" checked> Show border lines between branches
                 </label>
               </div>
+            </div>
+            <div class="kid-mode-only">
+              <h4 class="settings-subheading">Card Styling</h4>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="style-card-border-width">Border Width (px)</label>
+                  <input type="number" id="style-card-border-width" value="3" min="1" max="10">
+                </div>
+                <div class="form-group">
+                  <label for="style-card-border-radius">Corner Radius (px)</label>
+                  <input type="number" id="style-card-border-radius" value="12" min="0" max="30">
+                </div>
+                <div class="form-group">
+                  <label for="style-card-gap">Card Gap (px)</label>
+                  <input type="number" id="style-card-gap" value="4" min="0" max="20">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Announcement (Kid Mode only) -->
+        <div class="settings-section kid-mode-only">
+          <h3 class="settings-heading" data-toggle="section-announcement">
+            <i class="fas fa-chevron-down"></i> Announcement
+          </h3>
+          <div id="section-announcement" class="settings-body">
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="announcement-visible"> Show announcement area
+              </label>
+            </div>
+            <div class="form-group">
+              <label for="announcement-text">Announcement Text</label>
+              <textarea id="announcement-text" rows="3" placeholder="e.g. Library renovation notice..."></textarea>
             </div>
           </div>
         </div>

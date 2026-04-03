@@ -112,6 +112,8 @@ const CONFIG = (function () {
     HEADER_TITLE_BY_LANGUAGE: {
       'default-english': { text: 'Library Programs', fontSize: 34 },
       'default-spanish': { text: 'Programas de la Biblioteca', fontSize: 34 },
+      'kid-english':     { text: "San Rafael Public Library\nChildren's Programs", fontSize: 30 },
+      'kid-spanish':     { text: 'Programas de la Biblioteca\nde San Rafael Para Niños', fontSize: 30 },
     },
 
     // ── Default Footer ───────────────────────────────────
@@ -127,6 +129,7 @@ const CONFIG = (function () {
       year: 2026,
       pageSize: 'letter',
       listName: 'Programs_February_2026',
+      mode: 'standard',
     },
 
     // ── Timing (ms) ──────────────────────────────────────
@@ -138,6 +141,25 @@ const CONFIG = (function () {
 
     // ── Sidebar ──────────────────────────────────────────
     SIDEBAR_WIDTH: 340,
+
+    // ── Kid Mode Defaults ──────────────────────────────────
+    KID_MODE_DEFAULTS: {
+      styles: {
+        programNameFontSize: 18,
+        programDateFontSize: 14,
+        programTimeFontSize: 13,
+        programSubtitleFontSize: 12,
+        headerTitleFontSize: 30,
+        headerMonthFontSize: 30,
+        programNameBold: true,
+        programDateBold: true,
+        programTimeBold: false,
+        cardBorderWidth: 3,
+        cardBorderRadius: 12,
+        cardGap: 4,
+      },
+      announcement: { text: '', visible: false },
+    },
 
     // ── Rendering ────────────────────────────────────────
     SIDEBAR_STRIP_WIDTH: 22,  // px in preview, wide enough for vertical branch name

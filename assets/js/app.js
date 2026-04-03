@@ -702,6 +702,306 @@ const FlyerApp = (function () {
     return footerEl;
   }
 
+  // ══════════════════════════════════════════════════════════════
+  //  KID MODE RENDERING
+  // ══════════════════════════════════════════════════════════════
+
+  function renderKidCard(card, styles) {
+    const effectiveColor = card.colorOverride || card.branchColor || '#0474bf';
+    const nameSize = ptToPx(styles.programNameFontSize);
+    const dateSize = ptToPx(styles.programDateFontSize);
+    const timeSize = ptToPx(styles.programTimeFontSize);
+    const subtitleSize = ptToPx(styles.programSubtitleFontSize);
+    const borderWidth = (styles.cardBorderWidth || 3) + 'px';
+    const borderRadius = (styles.cardBorderRadius || 12) + 'px';
+
+    // Free-text override
+    if (card.freeTextOverride) {
+      const ftSize = ptToPx(card.freeTextFontSize || 12);
+      const ftClosure = card.isClosure;
+      const ftColor = ftClosure ? CONFIG.COLORS.closureText : effectiveColor;
+      const ftBg = ftClosure ? effectiveColor : '#ffffff';
+      return el('div', {
+        'class': 'flyer-kid-card' + (ftClosure ? ' closure' : ''),
+        text: card.freeTextOverride,
+        style: {
+          border: borderWidth + ' solid ' + effectiveColor,
+          borderRadius: borderRadius,
+          color: ftColor,
+          backgroundColor: ftBg,
+          fontFamily: fontRoles.programName,
+          fontSize: ftSize + 'px',
+          textAlign: card.freeTextAlign || 'left',
+          fontWeight: card.freeTextBold ? '700' : '400',
+          fontStyle: card.freeTextItalic ? 'italic' : 'normal',
+          padding: '4px 8px',
+        },
+      });
+    }
+
+    const isClosure = card.isClosure;
+    const textColor = isClosure ? CONFIG.COLORS.closureText : effectiveColor;
+    const bgColor = isClosure ? effectiveColor : '#ffffff';
+
+    // Image placeholder (future feature)
+    const imageZone = el('div', {
+      'class': 'flyer-kid-card-image',
+      style: {
+        color: effectiveColor,
+        borderRight: '1px dashed ' + effectiveColor,
+        opacity: '0.15',
+      },
+    }, el('i', { 'class': 'fas fa-image', style: { fontSize: '16px' } }));
+
+    // Center: name + subtitle
+    const centerZone = el('div', { 'class': 'flyer-kid-card-center' });
+
+    const nameEl = el('div', {
+      'class': 'flyer-kid-card-name',
+      text: card.name || '',
+      style: {
+        fontFamily: fontRoles.programName,
+        fontSize: nameSize + 'px',
+        fontWeight: styles.programNameBold ? '700' : '400',
+        color: textColor,
+      },
+    });
+    centerZone.appendChild(nameEl);
+
+    if (card.subtitle) {
+      const subtitleEl = el('div', {
+        'class': 'flyer-kid-card-subtitle',
+        text: card.subtitle,
+        style: {
+          fontFamily: fontRoles.programSubtitle,
+          fontSize: subtitleSize + 'px',
+          color: textColor,
+        },
+      });
+      centerZone.appendChild(subtitleEl);
+    }
+
+    // Right: date, time, branch, address
+    const locationZone = el('div', { 'class': 'flyer-kid-card-location' });
+
+    if (card.dateText) {
+      locationZone.appendChild(el('div', {
+        'class': 'flyer-kid-card-date',
+        text: card.dateText,
+        style: {
+          fontFamily: fontRoles.programDate,
+          fontSize: dateSize + 'px',
+          fontWeight: styles.programDateBold ? '700' : '400',
+          color: textColor,
+        },
+      }));
+    }
+
+    if (card.timeText) {
+      locationZone.appendChild(el('div', {
+        'class': 'flyer-kid-card-time',
+        text: card.timeText,
+        style: {
+          fontFamily: fontRoles.programTime,
+          fontSize: timeSize + 'px',
+          fontWeight: styles.programTimeBold ? '700' : '400',
+          color: textColor,
+        },
+      }));
+    }
+
+    if (card.branchName) {
+      locationZone.appendChild(el('div', {
+        'class': 'flyer-kid-card-branch',
+        text: card.branchName,
+        style: {
+          fontFamily: fontRoles.branchName,
+          fontSize: (dateSize * 0.75) + 'px',
+          color: textColor,
+        },
+      }));
+    }
+
+    if (card.branchAddress) {
+      locationZone.appendChild(el('div', {
+        'class': 'flyer-kid-card-address',
+        text: card.branchAddress,
+        style: {
+          fontFamily: fontRoles.branchAddress,
+          fontSize: (dateSize * 0.65) + 'px',
+          color: textColor,
+        },
+      }));
+    }
+
+    const cardEl = el('div', {
+      'class': 'flyer-kid-card' + (isClosure ? ' closure' : ''),
+      style: {
+        border: borderWidth + ' solid ' + effectiveColor,
+        borderRadius: borderRadius,
+        backgroundColor: bgColor,
+      },
+    }, imageZone, centerZone, locationZone);
+
+    return cardEl;
+  }
+
+  function renderKidAnnouncement(announcement, styles) {
+    if (!announcement || !announcement.visible || !announcement.text) return null;
+    const fontSize = ptToPx(styles.programSubtitleFontSize || 12);
+    return el('div', {
+      'class': 'flyer-kid-announcement',
+      text: announcement.text,
+      style: {
+        fontFamily: fontRoles.programName,
+        fontSize: fontSize + 'px',
+        color: '#333333',
+      },
+    });
+  }
+
+  function renderKidPreview() {
+    const page = getActivePage();
+    if (!page) return;
+
+    const preview = document.getElementById('flyer-preview');
+    if (!preview) return;
+
+    const dims = getPageDimensions();
+    const margin = getMarginPx();
+
+    preview.style.width = dims.width + 'px';
+    preview.style.height = dims.height + 'px';
+    preview.style.position = 'relative';
+    preview.style.overflow = 'hidden';
+    preview.innerHTML = '';
+
+    const contentWrapper = el('div', {
+      style: {
+        position: 'absolute',
+        top: margin + 'px',
+        left: margin + 'px',
+        right: margin + 'px',
+        bottom: margin + 'px',
+        display: 'flex',
+        flexDirection: 'column',
+      },
+    });
+
+    // Header (reuse same header renderer)
+    const headerEl = renderFlyerHeader(page.header, page.styles);
+    contentWrapper.appendChild(headerEl);
+
+    // Announcement
+    const announcementEl = renderKidAnnouncement(page.announcement, page.styles);
+    if (announcementEl) {
+      contentWrapper.appendChild(announcementEl);
+    }
+
+    // Cards container — flex-grow to fill available space
+    const gap = (page.styles.cardGap || 4) + 'px';
+    const cardsContainer = el('div', {
+      'data-branches-container': 'true',
+      style: {
+        flex: '1',
+        minHeight: '0',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        gap: gap,
+      },
+    });
+
+    if (page.cards && page.cards.length > 0) {
+      page.cards.forEach(function (card) {
+        const cardEl = renderKidCard(card, page.styles);
+        if (cardEl) {
+          cardsContainer.appendChild(cardEl);
+        }
+      });
+    }
+
+    contentWrapper.appendChild(cardsContainer);
+
+    // Footer (reuse same footer renderer)
+    const footerEl = renderFooter(page.footer);
+    contentWrapper.appendChild(footerEl);
+
+    preview.appendChild(contentWrapper);
+
+    // Apply zoom
+    const container = document.getElementById('preview-container');
+    if (container) {
+      container.style.transform = 'scale(' + zoomLevel + ')';
+    }
+
+    // Check overflow after layout settles
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        checkOverflow();
+      });
+    });
+  }
+
+  function renderKidPreviewInto(container, page) {
+    const dims = getPageDimensions();
+    const margin = getMarginPx();
+
+    container.style.width = dims.width + 'px';
+    container.style.height = dims.height + 'px';
+    container.style.position = 'relative';
+    container.style.overflow = 'hidden';
+    container.innerHTML = '';
+
+    const contentWrapper = el('div', {
+      style: {
+        position: 'absolute',
+        top: margin + 'px',
+        left: margin + 'px',
+        right: margin + 'px',
+        bottom: margin + 'px',
+        display: 'flex',
+        flexDirection: 'column',
+      },
+    });
+
+    const headerEl = renderFlyerHeader(page.header, page.styles);
+    contentWrapper.appendChild(headerEl);
+
+    const announcementEl = renderKidAnnouncement(page.announcement, page.styles);
+    if (announcementEl) {
+      contentWrapper.appendChild(announcementEl);
+    }
+
+    const gap = (page.styles.cardGap || 4) + 'px';
+    const cardsContainer = el('div', {
+      style: {
+        flex: '1',
+        minHeight: '0',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        gap: gap,
+      },
+    });
+
+    if (page.cards && page.cards.length > 0) {
+      page.cards.forEach(function (card) {
+        const cardEl = renderKidCard(card, page.styles);
+        if (cardEl) {
+          cardsContainer.appendChild(cardEl);
+        }
+      });
+    }
+
+    contentWrapper.appendChild(cardsContainer);
+
+    const footerEl = renderFooter(page.footer);
+    contentWrapper.appendChild(footerEl);
+
+    container.appendChild(contentWrapper);
+  }
+
   // ── Check Overflow ─────────────────────────────────────────────
   function checkOverflow() {
     const preview = document.getElementById('flyer-preview');
@@ -734,6 +1034,11 @@ const FlyerApp = (function () {
 
   // ── Render: Main Preview ───────────────────────────────────────
   function renderPreview() {
+    if (meta.mode === 'kid') {
+      renderKidPreview();
+      return;
+    }
+
     const page = getActivePage();
     if (!page) return;
 
@@ -817,6 +1122,11 @@ const FlyerApp = (function () {
 
   // ── Render into arbitrary container (for PDF export) ─────────
   function renderPreviewInto(container, page) {
+    if (meta.mode === 'kid') {
+      renderKidPreviewInto(container, page);
+      return;
+    }
+
     const dims = getPageDimensions();
     const margin = getMarginPx();
 
@@ -1244,20 +1554,31 @@ const FlyerApp = (function () {
   // ── Build Full State Object ────────────────────────────────────
   function buildFullState() {
     const page = getActivePage();
-    return {
+    const state = {
       schema: CONFIG.SCHEMA_VERSION,
       savedAt: null,
       meta: FlyerUtils.deepClone(meta),
       fontRoles: FlyerUtils.deepClone(fontRoles),
       header: page ? FlyerUtils.deepClone(page.header) : FlyerUtils.deepClone(CONFIG.DEFAULT_HEADER),
-      branches: page ? FlyerUtils.deepClone(page.branches) : [],
       footer: page ? FlyerUtils.deepClone(page.footer) : FlyerUtils.deepClone(CONFIG.DEFAULT_FOOTER),
       styles: page ? FlyerUtils.deepClone(page.styles) : FlyerUtils.deepClone(CONFIG.DEFAULT_STYLES),
     };
+    if (meta.mode === 'kid') {
+      state.cards = page ? FlyerUtils.deepClone(page.cards) : [];
+      state.announcement = page ? FlyerUtils.deepClone(page.announcement) : FlyerUtils.deepClone(CONFIG.KID_MODE_DEFAULTS.announcement);
+    } else {
+      state.branches = page ? FlyerUtils.deepClone(page.branches) : [];
+    }
+    return state;
   }
 
   // ── Render: Branch List (Sidebar Programs Tab) ─────────────────
   function renderBranchList() {
+    if (meta.mode === 'kid') {
+      renderCardList();
+      return;
+    }
+
     const container = document.getElementById('branch-list');
     if (!container) return;
 
@@ -1675,6 +1996,381 @@ const FlyerApp = (function () {
 
 
   // ══════════════════════════════════════════════════════════════
+  //  KID MODE SIDEBAR
+  // ══════════════════════════════════════════════════════════════
+
+  let kidCardSortableInstance = null;
+  let editingCardId = null;
+
+  function renderCardList() {
+    const container = document.getElementById('kid-card-list');
+    if (!container) return;
+
+    const page = getActivePage();
+    if (!page || !page.cards) {
+      container.innerHTML = '<p style="color:#999;text-align:center;padding:20px;">No page loaded.</p>';
+      return;
+    }
+
+    // Clean up old sortable
+    if (kidCardSortableInstance) {
+      kidCardSortableInstance.destroy();
+      kidCardSortableInstance = null;
+    }
+
+    container.innerHTML = '';
+
+    page.cards.forEach(function (card) {
+      if (editingCardId === card.id) {
+        const formEl = renderCardEditForm(card);
+        container.appendChild(formEl);
+      } else {
+        const item = renderKidSidebarCard(card);
+        container.appendChild(item);
+      }
+    });
+
+    // Initialize sortable
+    if (typeof Sortable !== 'undefined') {
+      kidCardSortableInstance = Sortable.create(container, {
+        handle: '.program-drag-handle',
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        onEnd: function (evt) {
+          const pg = getActivePage();
+          if (!pg || !pg.cards) return;
+          const oldIndex = evt.oldIndex;
+          const newIndex = evt.newIndex;
+          if (oldIndex === newIndex) return;
+          const moved = pg.cards.splice(oldIndex, 1)[0];
+          pg.cards.splice(newIndex, 0, moved);
+          isDirty = true;
+          debouncedRenderPreview();
+          scheduleAutosave();
+        },
+      });
+    }
+  }
+
+  function renderKidSidebarCard(card) {
+    const color = card.colorOverride || card.branchColor || '#0474bf';
+    let displayName = card.freeTextOverride
+      ? card.freeTextOverride.substring(0, 40) + (card.freeTextOverride.length > 40 ? '...' : '')
+      : (card.name || '(untitled)');
+    if (card.isClosure) displayName = '[CLOSURE] ' + displayName;
+
+    const detailParts = [];
+    if (card.branchName) detailParts.push(card.branchName);
+    if (card.dateText) detailParts.push(card.dateText);
+
+    const item = el('div', {
+      'class': 'kid-card-item',
+      'data-card-id': card.id,
+    });
+
+    const dragHandle = el('span', {
+      'class': 'program-drag-handle',
+      html: '<i class="fas fa-grip-vertical"></i>',
+    });
+    item.appendChild(dragHandle);
+
+    const dot = el('span', {
+      'class': 'branch-color-dot',
+      style: { backgroundColor: color },
+    });
+    item.appendChild(dot);
+
+    const info = el('div', { 'class': 'kid-card-info' });
+    info.appendChild(el('div', { 'class': 'kid-card-info-name', text: displayName }));
+    if (detailParts.length > 0) {
+      info.appendChild(el('div', { 'class': 'kid-card-info-detail', text: detailParts.join(' | ') }));
+    }
+    item.appendChild(info);
+
+    const actions = el('div', { 'class': 'kid-card-actions' });
+    actions.appendChild(el('button', {
+      title: 'Edit card',
+      html: '<i class="fas fa-pen"></i>',
+      on: { click: function () { editingCardId = card.id; renderCardList(); } },
+    }));
+    actions.appendChild(el('button', {
+      'class': 'btn-delete',
+      title: 'Delete card',
+      html: '<i class="fas fa-trash"></i>',
+      on: { click: function () { deleteKidCard(card.id); } },
+    }));
+    item.appendChild(actions);
+
+    return item;
+  }
+
+  function renderCardEditForm(card) {
+    const form = el('div', { 'class': 'program-edit-form', 'data-card-id': card.id });
+
+    const isFreeText = !!card.freeTextOverride;
+
+    // Toggle: structured vs free-text
+    const freeTextToggle = el('div', { 'class': 'form-group' },
+      el('label', { 'class': 'checkbox-label' },
+        el('input', {
+          type: 'checkbox',
+          on: {
+            change: function (e) {
+              const structuredFields = form.querySelector('.structured-fields');
+              const freeTextField = form.querySelector('.freetext-field');
+              if (e.target.checked) {
+                structuredFields.style.display = 'none';
+                freeTextField.style.display = 'block';
+              } else {
+                structuredFields.style.display = 'block';
+                freeTextField.style.display = 'none';
+              }
+            },
+          },
+        }),
+        'Free-text override'
+      )
+    );
+    freeTextToggle.querySelector('input[type="checkbox"]').checked = isFreeText;
+    form.appendChild(freeTextToggle);
+
+    // Free-text fields
+    const freeTextField = el('div', {
+      'class': 'freetext-field',
+      style: { display: isFreeText ? 'block' : 'none' },
+    });
+    freeTextField.appendChild(el('div', { 'class': 'form-group' },
+      el('label', { text: 'Free Text' }),
+      el('textarea', { 'class': 'input-freetext', rows: '3', text: card.freeTextOverride || '' })
+    ));
+    const ftOptionsRow = el('div', { 'class': 'form-row' });
+    const ftSizeGroup = el('div', { 'class': 'form-group' });
+    ftSizeGroup.appendChild(el('label', { text: 'Font Size (pt)' }));
+    ftSizeGroup.appendChild(el('input', {
+      type: 'number', 'class': 'input-freetext-size',
+      value: String(card.freeTextFontSize || 12), min: '6', max: '36',
+    }));
+    ftOptionsRow.appendChild(ftSizeGroup);
+    const ftAlignGroup = el('div', { 'class': 'form-group' });
+    ftAlignGroup.appendChild(el('label', { text: 'Alignment' }));
+    const ftAlignSelect = el('select', { 'class': 'input-freetext-align' });
+    ['left', 'center', 'right'].forEach(function (val) {
+      const opt = el('option', { value: val, text: val.charAt(0).toUpperCase() + val.slice(1) });
+      if (val === (card.freeTextAlign || 'left')) opt.selected = true;
+      ftAlignSelect.appendChild(opt);
+    });
+    ftAlignGroup.appendChild(ftAlignSelect);
+    ftOptionsRow.appendChild(ftAlignGroup);
+    freeTextField.appendChild(ftOptionsRow);
+
+    const ftStyleGroup = el('div', { 'class': 'form-group' },
+      el('label', { text: 'Style' }),
+      el('div', { 'class': 'checkbox-group' },
+        el('label', { 'class': 'checkbox-label' },
+          el('input', { type: 'checkbox', 'class': 'input-freetext-bold' }), 'Bold'),
+        el('label', { 'class': 'checkbox-label' },
+          el('input', { type: 'checkbox', 'class': 'input-freetext-italic' }), 'Italic'),
+        el('label', { 'class': 'checkbox-label' },
+          el('input', { type: 'checkbox', 'class': 'input-freetext-closure' }), 'Closure (colored row)')
+      )
+    );
+    ftStyleGroup.querySelector('.input-freetext-bold').checked = !!card.freeTextBold;
+    ftStyleGroup.querySelector('.input-freetext-italic').checked = !!card.freeTextItalic;
+    ftStyleGroup.querySelector('.input-freetext-closure').checked = !!card.isClosure;
+
+    // Color override for free text
+    const ftColorOverrideCheck = el('input', { type: 'checkbox', 'class': 'input-freetext-color-override' });
+    ftColorOverrideCheck.checked = !!card.colorOverride;
+    const ftColorOverridePicker = el('input', {
+      type: 'color', 'class': 'input-freetext-color-override-value',
+      value: card.colorOverride || lastColorOverride,
+      style: { width: '50px', height: '20px', padding: '0', border: '1px solid #ddd',
+        borderRadius: '3px', cursor: 'pointer', marginLeft: '6px',
+        display: card.colorOverride ? 'inline-block' : 'none', verticalAlign: 'middle' },
+    });
+    ftColorOverrideCheck.addEventListener('change', function () {
+      ftColorOverridePicker.style.display = ftColorOverrideCheck.checked ? 'inline-block' : 'none';
+    });
+    const ftColorLabel = el('label', { 'class': 'checkbox-label' }, ftColorOverrideCheck, 'Color override');
+    ftColorLabel.appendChild(ftColorOverridePicker);
+    ftStyleGroup.querySelector('.checkbox-group').appendChild(ftColorLabel);
+    freeTextField.appendChild(ftStyleGroup);
+    form.appendChild(freeTextField);
+
+    // Structured fields
+    const structuredFields = el('div', {
+      'class': 'structured-fields',
+      style: { display: isFreeText ? 'none' : 'block' },
+    });
+
+    // Branch dropdown
+    const branchGroup = el('div', { 'class': 'form-group' });
+    branchGroup.appendChild(el('label', { text: 'Branch / Location' }));
+    const branchSelect = el('select', { 'class': 'input-branch-select' });
+    CONFIG.BRANCH_DEFAULTS.forEach(function (b) {
+      const opt = el('option', {
+        value: b.name,
+        text: b.name + (b.address ? ' — ' + b.address : ''),
+        'data-address': b.address || '',
+        'data-color': b.color,
+      });
+      if (b.name === card.branchName) opt.selected = true;
+      branchSelect.appendChild(opt);
+    });
+    branchGroup.appendChild(branchSelect);
+    structuredFields.appendChild(branchGroup);
+
+    // Name
+    structuredFields.appendChild(el('div', { 'class': 'form-group' },
+      el('label', { text: 'Program Name' }),
+      el('input', { type: 'text', 'class': 'input-name', value: card.name || '' })
+    ));
+
+    // Subtitle
+    structuredFields.appendChild(el('div', { 'class': 'form-group' },
+      el('label', { text: 'Subtitle' }),
+      el('input', { type: 'text', 'class': 'input-subtitle', value: card.subtitle || '' })
+    ));
+
+    // Date + Time
+    const dateInput = el('textarea', { 'class': 'input-date', rows: '2', style: { resize: 'none' } });
+    dateInput.value = card.dateText || '';
+    const timeInput = el('textarea', { 'class': 'input-time', rows: '2', style: { resize: 'none' } });
+    timeInput.value = card.timeText || '';
+    structuredFields.appendChild(el('div', { 'class': 'form-row' },
+      el('div', { 'class': 'form-group' }, el('label', { text: 'Date' }), dateInput),
+      el('div', { 'class': 'form-group' }, el('label', { text: 'Time' }), timeInput)
+    ));
+
+    // Options: Closure + Color override
+    const checkboxGroup = el('div', { 'class': 'form-group' },
+      el('label', { text: 'Options' }),
+      el('div', { 'class': 'checkbox-group' },
+        el('label', { 'class': 'checkbox-label' },
+          el('input', { type: 'checkbox', 'class': 'input-closure' }), 'Closure (colored row)')
+      )
+    );
+    checkboxGroup.querySelector('.input-closure').checked = !!card.isClosure;
+
+    const colorOverrideCheck = el('input', { type: 'checkbox', 'class': 'input-color-override' });
+    colorOverrideCheck.checked = !!card.colorOverride;
+    const colorOverridePicker = el('input', {
+      type: 'color', 'class': 'input-color-override-value',
+      value: card.colorOverride || lastColorOverride,
+      style: { width: '50px', height: '20px', padding: '0', border: '1px solid #ddd',
+        borderRadius: '3px', cursor: 'pointer', marginLeft: '6px',
+        display: card.colorOverride ? 'inline-block' : 'none', verticalAlign: 'middle' },
+    });
+    colorOverrideCheck.addEventListener('change', function () {
+      colorOverridePicker.style.display = colorOverrideCheck.checked ? 'inline-block' : 'none';
+    });
+    const colorLabel = el('label', { 'class': 'checkbox-label' }, colorOverrideCheck, 'Color override');
+    colorLabel.appendChild(colorOverridePicker);
+    checkboxGroup.querySelector('.checkbox-group').appendChild(colorLabel);
+    structuredFields.appendChild(checkboxGroup);
+
+    form.appendChild(structuredFields);
+
+    // Action buttons
+    form.appendChild(el('div', { 'class': 'form-actions' },
+      el('button', {
+        'class': 'btn btn-sm btn-outline',
+        html: '<i class="fas fa-times"></i> Cancel',
+        on: { click: function () { editingCardId = null; renderCardList(); } },
+      }),
+      el('button', {
+        'class': 'btn btn-sm btn-success',
+        html: '<i class="fas fa-check"></i> Save',
+        on: { click: function () { saveCardForm(form, card.id); } },
+      })
+    ));
+
+    return form;
+  }
+
+  function saveCardForm(form, cardId) {
+    const page = getActivePage();
+    if (!page || !page.cards) return;
+
+    let card = null;
+    for (let i = 0; i < page.cards.length; i++) {
+      if (page.cards[i].id === cardId) { card = page.cards[i]; break; }
+    }
+    if (!card) return;
+
+    const freeTextChecked = form.querySelector('.freetext-field').style.display !== 'none';
+
+    if (freeTextChecked) {
+      card.freeTextOverride = form.querySelector('.input-freetext').value || null;
+      const ftSize = form.querySelector('.input-freetext-size');
+      card.freeTextFontSize = ftSize && ftSize.value ? parseInt(ftSize.value, 10) : 12;
+      const ftAlign = form.querySelector('.input-freetext-align');
+      card.freeTextAlign = ftAlign ? ftAlign.value : 'left';
+      card.freeTextBold = !!form.querySelector('.input-freetext-bold').checked;
+      card.freeTextItalic = !!form.querySelector('.input-freetext-italic').checked;
+      card.isClosure = !!form.querySelector('.input-freetext-closure').checked;
+      const ftColorOverride = form.querySelector('.input-freetext-color-override');
+      card.colorOverride = ftColorOverride && ftColorOverride.checked
+        ? form.querySelector('.input-freetext-color-override-value').value : null;
+    } else {
+      card.freeTextOverride = null;
+      card.name = form.querySelector('.input-name').value;
+      card.subtitle = form.querySelector('.input-subtitle').value;
+      card.dateText = form.querySelector('.input-date').value;
+      card.timeText = form.querySelector('.input-time').value;
+      card.isClosure = form.querySelector('.input-closure').checked;
+
+      // Branch selection
+      const branchSelect = form.querySelector('.input-branch-select');
+      if (branchSelect) {
+        const selectedOpt = branchSelect.options[branchSelect.selectedIndex];
+        card.branchName = branchSelect.value;
+        card.branchAddress = selectedOpt.getAttribute('data-address') || '';
+        card.branchColor = selectedOpt.getAttribute('data-color') || '#0474bf';
+        card.branchId = branchSelect.value;
+      }
+
+      const colorOverrideChecked = form.querySelector('.input-color-override').checked;
+      card.colorOverride = colorOverrideChecked
+        ? form.querySelector('.input-color-override-value').value : null;
+    }
+
+    if (card.colorOverride) {
+      lastColorOverride = card.colorOverride;
+    }
+
+    editingCardId = null;
+    isDirty = true;
+    renderCardList();
+    debouncedRenderPreview();
+    scheduleAutosave();
+  }
+
+  function addKidCard() {
+    const page = getActivePage();
+    if (!page || !page.cards) return;
+    const newCard = FlyerUtils.createBlankCard();
+    page.cards.push(newCard);
+    editingCardId = newCard.id;
+    isDirty = true;
+    renderCardList();
+    debouncedRenderPreview();
+    scheduleAutosave();
+  }
+
+  function deleteKidCard(cardId) {
+    const page = getActivePage();
+    if (!page || !page.cards) return;
+    page.cards = page.cards.filter(function (c) { return c.id !== cardId; });
+    if (editingCardId === cardId) editingCardId = null;
+    isDirty = true;
+    renderCardList();
+    debouncedRenderPreview();
+    scheduleAutosave();
+  }
+
+  // ══════════════════════════════════════════════════════════════
   //  SORTABLE.JS INTEGRATION
   // ══════════════════════════════════════════════════════════════
 
@@ -1768,7 +2464,80 @@ const FlyerApp = (function () {
   // SETTINGS TAB BINDING
   // ═══════════════════════════════════════════════════
 
+  function applyModeUI() {
+    const isKid = meta.mode === 'kid';
+    document.body.classList.toggle('mode-kid', isKid);
+
+    // Toggle sidebar program containers
+    const standardContainer = document.getElementById('standard-programs-container');
+    const kidContainer = document.getElementById('kid-programs-container');
+    if (standardContainer) standardContainer.style.display = isKid ? 'none' : '';
+    if (kidContainer) kidContainer.style.display = isKid ? '' : 'none';
+
+    // Lock page size to letter in kid mode
+    const pageSizeGroup = document.getElementById('page-size-group');
+    if (pageSizeGroup) pageSizeGroup.style.display = isKid ? 'none' : '';
+    if (isKid) meta.pageSize = 'letter';
+
+    // Mode toggle buttons
+    const modeBtns = document.querySelectorAll('[data-flyer-mode]');
+    modeBtns.forEach(function (btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-flyer-mode') === meta.mode);
+    });
+  }
+
   function bindSettings() {
+    // ── Mode Toggle ──────────────────────────────────
+    const modeBtns = document.querySelectorAll('[data-flyer-mode]');
+    modeBtns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const newMode = btn.getAttribute('data-flyer-mode');
+        if (newMode === meta.mode) return;
+
+        meta.mode = newMode;
+
+        // Re-initialize pages for the new mode
+        if (newMode === 'kid') {
+          const kidPage = FlyerUtils.createDefaultKidPage();
+          // Carry over footer language from current page
+          const currentPage = getCurrentPage();
+          if (currentPage) {
+            kidPage.footer = FlyerUtils.deepClone(currentPage.footer);
+            kidPage.header.monthText = currentPage.header.monthText;
+            kidPage.header.titleColor = currentPage.header.titleColor;
+            kidPage.header.monthColor = currentPage.header.monthColor;
+          }
+          // Set kid header title based on footer language
+          const footerSource = kidPage.footer.source;
+          const kidLangKey = footerSource === 'default-spanish' ? 'kid-spanish' : 'kid-english';
+          const kidTitle = CONFIG.HEADER_TITLE_BY_LANGUAGE[kidLangKey];
+          if (kidTitle) {
+            kidPage.header.titleText = kidTitle.text;
+            kidPage.styles.headerTitleFontSize = kidTitle.fontSize;
+            kidPage.styles.headerMonthFontSize = kidTitle.fontSize;
+          }
+          pages = [kidPage];
+          activePage = 0;
+        } else {
+          const defaultFlyer = FlyerUtils.createDefaultFlyer();
+          pages = [{
+            header: defaultFlyer.header,
+            branches: defaultFlyer.branches,
+            footer: defaultFlyer.footer,
+            styles: defaultFlyer.styles,
+          }];
+          activePage = 0;
+        }
+
+        applyModeUI();
+        markDirty();
+        syncSettingsFromPage();
+        renderPageList();
+        renderBranchList();
+        renderPreview();
+      });
+    });
+
     // ── Page Size Toggle ──────────────────────────────
     const pageSizeBtns = document.querySelectorAll('[data-page-size]');
     pageSizeBtns.forEach(function (btn) {
@@ -1827,7 +2596,57 @@ const FlyerApp = (function () {
       debouncedRenderPreview();
     });
 
+    // ── Kid Mode: Card Styling Controls ──────────────
+    const cardBorderWidthInput = document.getElementById('style-card-border-width');
+    const cardBorderRadiusInput = document.getElementById('style-card-border-radius');
+    const cardGapInput = document.getElementById('style-card-gap');
 
+    if (cardBorderWidthInput) {
+      cardBorderWidthInput.addEventListener('input', function () {
+        getCurrentPage().styles.cardBorderWidth = parseInt(cardBorderWidthInput.value, 10) || 3;
+        markDirty();
+        debouncedRenderPreview();
+      });
+    }
+    if (cardBorderRadiusInput) {
+      cardBorderRadiusInput.addEventListener('input', function () {
+        getCurrentPage().styles.cardBorderRadius = parseInt(cardBorderRadiusInput.value, 10) || 12;
+        markDirty();
+        debouncedRenderPreview();
+      });
+    }
+    if (cardGapInput) {
+      cardGapInput.addEventListener('input', function () {
+        getCurrentPage().styles.cardGap = parseInt(cardGapInput.value, 10) || 4;
+        markDirty();
+        debouncedRenderPreview();
+      });
+    }
+
+    // ── Kid Mode: Announcement Controls ──────────────
+    const announcementVisibleToggle = document.getElementById('announcement-visible');
+    const announcementTextInput = document.getElementById('announcement-text');
+
+    if (announcementVisibleToggle) {
+      announcementVisibleToggle.addEventListener('change', function () {
+        const page = getCurrentPage();
+        if (page && page.announcement) {
+          page.announcement.visible = announcementVisibleToggle.checked;
+          markDirty();
+          debouncedRenderPreview();
+        }
+      });
+    }
+    if (announcementTextInput) {
+      announcementTextInput.addEventListener('input', function () {
+        const page = getCurrentPage();
+        if (page && page.announcement) {
+          page.announcement.text = announcementTextInput.value;
+          markDirty();
+          debouncedRenderPreview();
+        }
+      });
+    }
 
     // ── Column Width Controls ─────────────────────────
     const columnNameSlider = document.getElementById('style-column-name-width');
@@ -1928,8 +2747,12 @@ const FlyerApp = (function () {
         const source = btn.getAttribute('data-footer-source');
         const page = getCurrentPage();
         page.footer.source = source;
-        // Auto-set title text and font size based on language
-        const langTitle = CONFIG.HEADER_TITLE_BY_LANGUAGE[source];
+        // Auto-set title text and font size based on language and mode
+        let langKey = source;
+        if (meta.mode === 'kid') {
+          langKey = source === 'default-spanish' ? 'kid-spanish' : 'kid-english';
+        }
+        const langTitle = CONFIG.HEADER_TITLE_BY_LANGUAGE[langKey];
         if (langTitle) {
           page.header.titleText = langTitle.text;
           page.styles.headerTitleFontSize = langTitle.fontSize;
@@ -2178,6 +3001,27 @@ const FlyerApp = (function () {
     const fontDisplay = document.getElementById('font-display');
     if (fontCondensed) fontCondensed.value = fontRoles.headerTitle;
     if (fontDisplay) fontDisplay.value = fontRoles.branchName;
+
+    // Mode UI
+    applyModeUI();
+
+    // Kid mode-specific settings
+    if (meta.mode === 'kid' && page.styles) {
+      const cardBWInput = document.getElementById('style-card-border-width');
+      const cardBRInput = document.getElementById('style-card-border-radius');
+      const cardGInput = document.getElementById('style-card-gap');
+      if (cardBWInput) cardBWInput.value = page.styles.cardBorderWidth || 3;
+      if (cardBRInput) cardBRInput.value = page.styles.cardBorderRadius || 12;
+      if (cardGInput) cardGInput.value = page.styles.cardGap || 4;
+    }
+
+    // Announcement settings
+    if (meta.mode === 'kid' && page.announcement) {
+      const annVisInput = document.getElementById('announcement-visible');
+      const annTextInput = document.getElementById('announcement-text');
+      if (annVisInput) annVisInput.checked = !!page.announcement.visible;
+      if (annTextInput) annTextInput.value = page.announcement.text || '';
+    }
   }
 
   // ═══════════════════════════════════════════════════
@@ -2191,12 +3035,18 @@ const FlyerApp = (function () {
       meta: FlyerUtils.deepClone(meta),
       fontRoles: FlyerUtils.deepClone(fontRoles),
       pages: pages.map(function (page) {
-        return {
+        const serialized = {
           header: FlyerUtils.deepClone(page.header),
-          branches: FlyerUtils.deepClone(page.branches),
           footer: FlyerUtils.deepClone(page.footer),
           styles: FlyerUtils.deepClone(page.styles),
         };
+        if (meta.mode === 'kid') {
+          serialized.cards = FlyerUtils.deepClone(page.cards || []);
+          serialized.announcement = FlyerUtils.deepClone(page.announcement || { text: '', visible: false });
+        } else {
+          serialized.branches = FlyerUtils.deepClone(page.branches || []);
+        }
+        return serialized;
       }),
     }, null, 2);
   }
@@ -2238,6 +3088,7 @@ const FlyerApp = (function () {
               meta: data.meta,
               header: page.header,
               branches: page.branches,
+              cards: page.cards,
               footer: page.footer,
               styles: page.styles,
             });
@@ -2279,6 +3130,7 @@ const FlyerApp = (function () {
       meta.year = data.meta.year || CONFIG.DEFAULT_META.year;
       meta.pageSize = data.meta.pageSize || CONFIG.DEFAULT_META.pageSize;
       meta.listName = data.meta.listName || CONFIG.DEFAULT_META.listName;
+      meta.mode = data.meta.mode || 'standard';
     }
 
     // Restore font roles
@@ -2288,15 +3140,21 @@ const FlyerApp = (function () {
       fontRoles = FlyerUtils.deepClone(CONFIG.FONT_ROLES);
     }
 
-    // Restore pages (supports both multi-page and legacy single-page format)
+    // Restore pages (supports both multi-page, kid mode, and legacy single-page format)
     if (data.pages && data.pages.length > 0) {
       pages = data.pages.map(function (p) {
-        return {
+        const page = {
           header: FlyerUtils.deepClone(p.header || CONFIG.DEFAULT_HEADER),
-          branches: FlyerUtils.deepClone(p.branches || []),
           footer: FlyerUtils.deepClone(p.footer || CONFIG.DEFAULT_FOOTER),
           styles: FlyerUtils.deepClone(p.styles || CONFIG.DEFAULT_STYLES),
         };
+        if (meta.mode === 'kid') {
+          page.cards = FlyerUtils.deepClone(p.cards || []);
+          page.announcement = FlyerUtils.deepClone(p.announcement || CONFIG.KID_MODE_DEFAULTS.announcement);
+        } else {
+          page.branches = FlyerUtils.deepClone(p.branches || []);
+        }
+        return page;
       });
     } else if (data.header || data.branches) {
       // Legacy single-page format
@@ -2312,6 +3170,7 @@ const FlyerApp = (function () {
     isDirty = false;
 
     // Update all settings inputs to reflect loaded state
+    applyModeUI();
     populateFontDropdowns();
     syncSettingsFromPage();
     renderPageList();
@@ -2344,19 +3203,26 @@ const FlyerApp = (function () {
 
   function resetToDefaults() {
     if (!confirm('Reset everything to defaults? All unsaved changes will be lost.')) return;
-    const defaultFlyer = FlyerUtils.createDefaultFlyer();
-    pages = [{
-      header: defaultFlyer.header,
-      branches: defaultFlyer.branches,
-      footer: defaultFlyer.footer,
-      styles: defaultFlyer.styles,
-    }];
+    if (meta.mode === 'kid') {
+      pages = [FlyerUtils.createDefaultKidPage()];
+    } else {
+      const defaultFlyer = FlyerUtils.createDefaultFlyer();
+      pages = [{
+        header: defaultFlyer.header,
+        branches: defaultFlyer.branches,
+        footer: defaultFlyer.footer,
+        styles: defaultFlyer.styles,
+      }];
+    }
     activePage = 0;
+    const savedMode = meta.mode;
     meta = FlyerUtils.deepClone(CONFIG.DEFAULT_META);
+    meta.mode = savedMode;
     fontRoles = FlyerUtils.deepClone(CONFIG.FONT_ROLES);
     isDirty = false;
     localStorage.removeItem(CONFIG.STORAGE_KEY);
 
+    applyModeUI();
     populateFontDropdowns();
     syncSettingsFromPage();
     renderPageList();
@@ -2423,8 +3289,11 @@ const FlyerApp = (function () {
             // Wait for layout to settle, then auto-size text, rasterize, then capture
             requestAnimationFrame(function () {
               requestAnimationFrame(function () {
-                autoSizeVerticalText(tempDiv);
-                rasterizeVerticalText(tempDiv, scaleRatio);
+                // Kid mode has no vertical text, skip rasterization
+                if (meta.mode !== 'kid') {
+                  autoSizeVerticalText(tempDiv);
+                  rasterizeVerticalText(tempDiv, scaleRatio);
+                }
 
                 html2canvas(tempDiv, {
                   scale: scaleRatio,
@@ -2658,7 +3527,7 @@ const FlyerApp = (function () {
     bindSidebarToggle();
     bindTabSwitching();
 
-    // Add Branch button
+    // Add Branch button (standard mode)
     document.getElementById('btn-add-branch').addEventListener('click', function () {
       const newBranch = FlyerUtils.createBlankBranch();
       getCurrentPage().branches.push(newBranch);
@@ -2666,6 +3535,14 @@ const FlyerApp = (function () {
       renderBranchList();
       debouncedRenderPreview();
     });
+
+    // Add Card button (kid mode)
+    document.getElementById('btn-add-card').addEventListener('click', function () {
+      addKidCard();
+    });
+
+    // Apply initial mode UI
+    applyModeUI();
 
     // Beforeunload warning
     bindBeforeUnload();
