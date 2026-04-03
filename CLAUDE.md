@@ -27,6 +27,7 @@ tests/
 eslint.config.js                   ESLint config (ES2022, script sourceType, browser globals)
 vitest.config.js                   Vitest config (jsdom environment)
 CLAUDE.md                          This file
+README.md                          Project overview and usage guide
 ```
 
 ## Script Load Order (critical)
@@ -54,23 +55,48 @@ npm run test:watch   # Vitest (watch mode)
 Both lint and test must pass before committing.
 
 ## Data Model
-The app state is a single JSON-serializable object containing:
+The app state is a multi-page JSON-serializable structure:
 - `schema` — version string for forward compatibility
-- `meta` — month, year, page size, list name
-- `header` — title/month text and colors
-- `branches[]` — array of branch objects, each with programs[]
-- `footer` — image source, custom image data, asterisk note
-- `styles` — all font sizes, spacing, bold toggles
+- `meta` — month, year, page size, list name (shared across pages)
+- `fontRoles` — font family assignments per role (shared across pages)
+- `pages[]` — array of page objects, each containing:
+  - `header` — title/month text, colors
+  - `branches[]` — array of branch objects, each with programs[]
+  - `footer` — image source, custom image data, asterisk note (supports multi-line)
+  - `styles` — font sizes, bold toggles, column widths, strip/border settings
 
-Programs support structured fields (name, subtitle, date, time, age group) or a free-text override for non-standard entries.
+Programs support:
+- **Structured fields**: name, subtitle (with optional inline append), date (with date note), time
+- **Free-text override**: single text block with custom font size, alignment, bold/italic
+- **Closure mode**: branch-color background with white text (structured or free-text)
+- **Color override**: per-program color that overrides the branch color
 
 ## Key Functional Areas
 1. **Rendering Engine** (app.js) — Builds flyer preview as DOM, auto-reflows on change
-2. **Program Editor** (app.js) — Sidebar with inline edit forms, drag-and-drop
+2. **Program Editor** (app.js) — Sidebar with inline edit forms, drag-and-drop (cross-branch)
 3. **Save/Load** (app.js) — JSON .flyer files, localStorage autosave, draft recovery
-4. **PDF Export** (app.js) — 600 DPI via html2canvas + jsPDF
-5. **Page System** (app.js) — Multi-page support with duplication
-6. **Settings** (app.js) — Typography, colors, page size, footer management
+4. **PDF Export** (app.js) — 600 DPI via html2canvas + jsPDF, with vertical text rasterization
+5. **Page System** (app.js) — Multi-page support with duplication and per-page settings
+6. **Settings** (app.js) — Typography, column widths, colors, page size, footer management
+
+## Layout Architecture
+- **Content wrapper**: Flex column filling page margins (0.25" on all sides)
+- **Header**: Title + month text, configurable colors and font size
+- **Branches container**: `flex: 1` with `minHeight: 0` and `justify-content: space-between`
+  - Branches auto-distribute vertically to fill available space
+  - Container can shrink below content height to keep footer pinned
+  - Overlap detection warns when branches are squeezed by 20px+
+- **Footer**: Pinned at bottom, contains optional asterisk note + footer image
+- **Branch rectangles**: Left strip (name) + content area + right strip (address)
+  - Strips use `writing-mode: vertical-rl` with auto-sizing
+  - Filled mode: container `backgroundColor` fills gaps (with `backgroundClip: padding-box`)
+  - Unfilled mode: colored border lines between strips and content
+
+## PDF Export Notes
+- Vertical text (`writing-mode: vertical-rl`) is not supported by html2canvas
+- `rasterizeVerticalText()` pre-renders vertical text onto canvas elements
+- CSS `text-transform` must be applied manually to canvas-drawn text
+- Export resets zoom to 100%, renders each page into off-screen containers sequentially
 
 ## Cross-File Dependencies
 | When changing...    | Also check...                                    |
@@ -78,7 +104,7 @@ Programs support structured fields (name, subtitle, date, time, age group) or a 
 | `config.js`         | `flyer-utils.js` (uses CONFIG), `app.js`, tests  |
 | `flyer-utils.js`    | `app.js` (calls FlyerUtils), tests               |
 | `app.js`            | `index.html` (DOM IDs), `styles.css` (classes)    |
-| `styles.css`        | `app.js` (class names), `index.html`              |
+| `styles.css`        | `app.js` (class names, inline styles), `index.html` |
 | `index.html`        | `app.js` (querySelector targets)                  |
 
 ## Rules for Modifying the Codebase
@@ -88,11 +114,20 @@ Programs support structured fields (name, subtitle, date, time, age group) or a 
 - **All JS files** use the IIFE pattern exposing a single global object.
 - **No ES6 imports** in browser code (intentional: no build step).
 - **Debounce** preview updates (~300ms) and autosave (~400ms).
+- **Default layout baseline**: Filled Strips off + Branch Borders on. Changes must not alter dimensions relative to this baseline.
 
 ## Conventions
 - UUIDs for all branch and program IDs
 - Branch colors used for: sidebar strips, branch name, address, program text, closure rows
-- Closure rows: branch-color background, white text
+- Per-program color override takes precedence over branch color
+- Closure rows: branch-color (or override color) background, white text
+- Subtitles: always normal weight (400), never inherit bold from closure
 - Footer images: 4800x600px (8"x1" at 600 DPI)
+- Asterisk note: supports multi-line via `white-space: pre-line`
 - PDF export: 600 DPI, JPEG 0.92 quality
-- Save files use `.flyer` extension (JSON format)
+- Save files use `.flyer` extension (JSON format, supports legacy single-page)
+- Column widths: configurable per page (default: Name 48%, Date 32%, Time 20%)
+- `lastColorOverride` remembers the most recent color override for convenience
+
+## Planned Features
+- **Kid Mode**: A variant flyer format tailored for children's programs, with adjusted layout and styling appropriate for youth-focused library programming.

@@ -195,6 +195,19 @@
                 </label>
               </div>
             </div>
+            <h4 class="settings-subheading">Column Widths</h4>
+            <div class="form-group">
+              <label for="style-column-name-width">Program Name Width: <span id="column-name-display">48%</span></label>
+              <input type="range" id="style-column-name-width" min="30" max="70" value="48">
+              <div class="column-width-info">
+                <span>Date: <span id="column-date-display">32%</span></span>
+                <div class="form-group" style="flex-direction:row;align-items:center;gap:6px;margin:0;">
+                  <label for="style-column-time-width" style="margin:0;white-space:nowrap;">Time:</label>
+                  <input type="number" id="style-column-time-width" value="20" min="10" max="35" style="width:55px;">
+                  <span>%</span>
+                </div>
+              </div>
+            </div>
             <div class="form-group">
               <label>Branch Strips</label>
               <div class="checkbox-group">

@@ -96,6 +96,8 @@ const CONFIG = (function () {
       programNameBold: true,
       stripFilled: false,
       branchBorders: true,
+      columnNameWidth: 48,
+      columnTimeWidth: 20,
     },
 
     // ── Default Header ───────────────────────────────────
