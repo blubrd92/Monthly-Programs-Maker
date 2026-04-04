@@ -716,8 +716,8 @@ const FlyerApp = (function () {
     const timeSize = ptToPx(styles.programTimeFontSize);
     const subtitleSize = ptToPx(styles.programSubtitleFontSize);
     const borderWidth = (styles.cardBorderWidth || 3) + 'px';
-    const borderRadius = (styles.cardBorderRadius || 12) + 'px';
-    const imageWidth = (styles.cardImageWidth || 80) + 'px';
+    const borderRadius = (styles.cardBorderRadius || 30) + 'px';
+    const imageWidth = (styles.cardImageWidth || 150) + 'px';
 
     // Free-text override
     if (card.freeTextOverride) {
@@ -828,7 +828,7 @@ const FlyerApp = (function () {
             text: loc.branchName,
             style: {
               fontFamily: fontRoles.branchName,
-              fontSize: dateSize + 'px',
+              fontSize: (dateSize * 0.9) + 'px',
               color: locColor,
             },
           }));
@@ -839,7 +839,7 @@ const FlyerApp = (function () {
             text: loc.branchAddress,
             style: {
               fontFamily: fontRoles.branchAddress,
-              fontSize: dateSize + 'px',
+              fontSize: (dateSize * 0.9) + 'px',
               color: locColor,
             },
           }));
@@ -881,7 +881,7 @@ const FlyerApp = (function () {
           text: card.branchName,
           style: {
             fontFamily: fontRoles.branchName,
-            fontSize: dateSize + 'px',
+            fontSize: (dateSize * 0.9) + 'px',
             color: textColor,
           },
         }));
@@ -893,7 +893,7 @@ const FlyerApp = (function () {
           text: card.branchAddress,
           style: {
             fontFamily: fontRoles.branchAddress,
-            fontSize: dateSize + 'px',
+            fontSize: (dateSize * 0.9) + 'px',
             color: textColor,
           },
         }));
@@ -3371,9 +3371,9 @@ const FlyerApp = (function () {
       const cardGInput = document.getElementById('style-card-gap');
       const cardIWInput = document.getElementById('style-card-image-width');
       if (cardBWInput) cardBWInput.value = page.styles.cardBorderWidth || 3;
-      if (cardBRInput) cardBRInput.value = page.styles.cardBorderRadius || 12;
+      if (cardBRInput) cardBRInput.value = page.styles.cardBorderRadius || 30;
       if (cardGInput) cardGInput.value = page.styles.cardGap || 4;
-      if (cardIWInput) cardIWInput.value = page.styles.cardImageWidth || 80;
+      if (cardIWInput) cardIWInput.value = page.styles.cardImageWidth || 150;
     }
 
   }

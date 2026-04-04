@@ -1056,6 +1056,7 @@ body.mode-kid .kid-mode-only .form-row { display: flex !important; }
   display: flex;
   overflow: hidden;
   background: #ffffff;
+  padding-left: 6px;
 }
 
 .flyer-kid-card.closure {
