@@ -113,7 +113,7 @@ const CONFIG = (function () {
       'default-english': { text: 'Library Programs', fontSize: 34 },
       'default-spanish': { text: 'Programas de la Biblioteca', fontSize: 34 },
       'kid-english':     { text: "San Rafael Public Library\nChildren's Programs", fontSize: 30 },
-      'kid-spanish':     { text: 'Programas de la Biblioteca\nde San Rafael Para Niños', fontSize: 30 },
+      'kid-spanish':     { text: 'Biblioteca Pública de San Rafael\nProgramas Para Niños', fontSize: 30 },
     },
 
     // ── Default Footer ───────────────────────────────────
