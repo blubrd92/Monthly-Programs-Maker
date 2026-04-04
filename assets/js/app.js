@@ -770,7 +770,7 @@ const FlyerApp = (function () {
   //  KID MODE RENDERING
   // ══════════════════════════════════════════════════════════════
 
-  function renderKidCard(card, styles) {
+  function renderKidCard(card, styles, page) {
     const effectiveColor = card.colorOverride || card.branchColor || '#0474bf';
     const nameSize = ptToPx(styles.programNameFontSize);
     const dateSize = ptToPx(styles.programDateFontSize);
@@ -779,6 +779,7 @@ const FlyerApp = (function () {
     const borderWidth = (styles.cardBorderWidth || 3) + 'px';
     const borderRadius = (styles.cardBorderRadius || 30) + 'px';
     const imageWidth = (styles.cardImageWidth || 180) + 'px';
+    const isSpanish = page && page.footer && page.footer.source === 'default-spanish';
 
     // Free-text override
     if (card.freeTextOverride) {
@@ -888,29 +889,33 @@ const FlyerApp = (function () {
       const mlBranchSize = Math.round(dateSize * 0.9 * scaleFactor);
 
       // Render shared fields above columns (full width, centered)
-      if (sharedDay) {
-        rightZone.appendChild(el('div', {
-          text: sharedDay,
-          style: {
-            fontFamily: fontRoles.programDate,
-            fontSize: dateSize + 'px',
-            fontWeight: styles.programDateBold ? '700' : '400',
-            color: textColor,
-            textAlign: 'center',
-          },
-        }));
-      }
-      if (sharedTime) {
-        rightZone.appendChild(el('div', {
-          text: sharedTime,
-          style: {
-            fontFamily: fontRoles.programTime,
-            fontSize: timeSize + 'px',
-            fontWeight: styles.programTimeBold ? '700' : '400',
-            color: textColor,
-            textAlign: 'center',
-          },
-        }));
+      const sharedDayEl = sharedDay ? el('div', {
+        text: sharedDay,
+        style: {
+          fontFamily: fontRoles.programDate,
+          fontSize: dateSize + 'px',
+          fontWeight: styles.programDateBold ? '700' : '400',
+          color: textColor,
+          textAlign: 'center',
+        },
+      }) : null;
+      const sharedTimeEl = sharedTime ? el('div', {
+        text: sharedTime,
+        style: {
+          fontFamily: fontRoles.programTime,
+          fontSize: timeSize + 'px',
+          fontWeight: styles.programTimeBold ? '700' : '400',
+          color: textColor,
+          textAlign: 'center',
+        },
+      }) : null;
+
+      if (isSpanish) {
+        if (sharedTimeEl) rightZone.appendChild(sharedTimeEl);
+        if (sharedDayEl) rightZone.appendChild(sharedDayEl);
+      } else {
+        if (sharedDayEl) rightZone.appendChild(sharedDayEl);
+        if (sharedTimeEl) rightZone.appendChild(sharedTimeEl);
       }
 
       // Columns row
@@ -919,27 +924,30 @@ const FlyerApp = (function () {
       // Helper to build a location column (skip shared fields)
       function buildLocCol(dayText, locTimeText, branchName, branchAddress, color) {
         const col = el('div', { 'class': 'location-col' });
-        if (dayText && !sharedDay) {
-          col.appendChild(el('div', {
-            text: dayText,
-            style: {
-              fontFamily: fontRoles.programDate,
-              fontSize: mlDateSize + 'px',
-              fontWeight: styles.programDateBold ? '700' : '400',
-              color: color,
-            },
-          }));
-        }
-        if (locTimeText && !sharedTime) {
-          col.appendChild(el('div', {
-            text: locTimeText,
-            style: {
-              fontFamily: fontRoles.programTime,
-              fontSize: mlTimeSize + 'px',
-              fontWeight: styles.programTimeBold ? '700' : '400',
-              color: color,
-            },
-          }));
+        const colDayEl = (dayText && !sharedDay) ? el('div', {
+          text: dayText,
+          style: {
+            fontFamily: fontRoles.programDate,
+            fontSize: mlDateSize + 'px',
+            fontWeight: styles.programDateBold ? '700' : '400',
+            color: color,
+          },
+        }) : null;
+        const colTimeEl = (locTimeText && !sharedTime) ? el('div', {
+          text: locTimeText,
+          style: {
+            fontFamily: fontRoles.programTime,
+            fontSize: mlTimeSize + 'px',
+            fontWeight: styles.programTimeBold ? '700' : '400',
+            color: color,
+          },
+        }) : null;
+        if (isSpanish) {
+          if (colTimeEl) col.appendChild(colTimeEl);
+          if (colDayEl) col.appendChild(colDayEl);
+        } else {
+          if (colDayEl) col.appendChild(colDayEl);
+          if (colTimeEl) col.appendChild(colTimeEl);
         }
         if (branchName) {
           col.appendChild(el('div', {
@@ -983,30 +991,34 @@ const FlyerApp = (function () {
     } else {
       rightZone = el('div', { 'class': 'flyer-kid-card-location', style: { width: imageWidth } });
 
-      if (card.dateText) {
-        rightZone.appendChild(el('div', {
-          'class': 'flyer-kid-card-date',
-          text: card.dateText,
-          style: {
-            fontFamily: fontRoles.programDate,
-            fontSize: dateSize + 'px',
-            fontWeight: styles.programDateBold ? '700' : '400',
-            color: textColor,
-          },
-        }));
-      }
+      const dateEl = card.dateText ? el('div', {
+        'class': 'flyer-kid-card-date',
+        text: card.dateText,
+        style: {
+          fontFamily: fontRoles.programDate,
+          fontSize: dateSize + 'px',
+          fontWeight: styles.programDateBold ? '700' : '400',
+          color: textColor,
+        },
+      }) : null;
 
-      if (card.timeText) {
-        rightZone.appendChild(el('div', {
-          'class': 'flyer-kid-card-time',
-          text: card.timeText,
-          style: {
-            fontFamily: fontRoles.programTime,
-            fontSize: timeSize + 'px',
-            fontWeight: styles.programTimeBold ? '700' : '400',
-            color: textColor,
-          },
-        }));
+      const timeEl = card.timeText ? el('div', {
+        'class': 'flyer-kid-card-time',
+        text: card.timeText,
+        style: {
+          fontFamily: fontRoles.programTime,
+          fontSize: timeSize + 'px',
+          fontWeight: styles.programTimeBold ? '700' : '400',
+          color: textColor,
+        },
+      }) : null;
+
+      if (isSpanish) {
+        if (timeEl) rightZone.appendChild(timeEl);
+        if (dateEl) rightZone.appendChild(dateEl);
+      } else {
+        if (dateEl) rightZone.appendChild(dateEl);
+        if (timeEl) rightZone.appendChild(timeEl);
       }
 
       if (card.branchName) {
@@ -1117,7 +1129,7 @@ const FlyerApp = (function () {
 
     if (page.cards && page.cards.length > 0) {
       page.cards.forEach(function (card) {
-        const cardEl = renderKidCard(card, page.styles);
+        const cardEl = renderKidCard(card, page.styles, page);
         if (cardEl) {
           cardsContainer.appendChild(cardEl);
         }
@@ -1185,7 +1197,7 @@ const FlyerApp = (function () {
 
     if (page.cards && page.cards.length > 0) {
       page.cards.forEach(function (card) {
-        const cardEl = renderKidCard(card, page.styles);
+        const cardEl = renderKidCard(card, page.styles, page);
         if (cardEl) {
           cardsContainer.appendChild(cardEl);
         }
