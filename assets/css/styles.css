@@ -1135,7 +1135,6 @@ body.mode-kid .kid-mode-only .form-row { display: flex !important; }
   gap: 0;
   text-align: right;
   align-items: center;
-  flex: 1;
   min-height: 0;
 }
 
