@@ -3155,6 +3155,17 @@ const FlyerApp = (function () {
         const newMode = btn.getAttribute('data-flyer-mode');
         if (newMode === meta.mode) return;
 
+        // Warn user that mode switch uses a separate set of pages
+        const currentModeName = meta.mode === 'kid' ? 'Kid' : 'Standard';
+        const newModeName = newMode === 'kid' ? 'Kid' : 'Standard';
+        const hasCache = newMode === 'kid' ? cachedKidPages : cachedStandardPages;
+        const cacheMsg = hasCache
+          ? 'Your ' + currentModeName + ' mode work will be saved and you\'ll return to your previous ' + newModeName + ' mode pages.'
+          : 'Your ' + currentModeName + ' mode work will be saved. A new ' + newModeName + ' mode flyer will be created.';
+        if (!confirm('Switch to ' + newModeName + ' Mode?\n\n' + cacheMsg + '\n\nYou can switch back anytime without losing your work.')) {
+          return;
+        }
+
         // Cache current mode's pages before switching
         if (meta.mode === 'kid') {
           cachedKidPages = FlyerUtils.deepClone(pages);
