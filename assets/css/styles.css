@@ -1258,21 +1258,24 @@ body.mode-kid .kid-mode-only .form-row { display: flex !important; }
 
 /* Multi-location editor rows */
 .location-entry {
+  padding: 8px;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+
+.location-entry-row {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px;
-  border: 1px solid #eee;
-  border-radius: 4px;
-  margin-bottom: 4px;
 }
 
-.location-entry select {
+.location-entry-row select {
   flex: 1;
   min-width: 0;
 }
 
-.location-entry .location-day-input {
+.location-entry-row .location-day-input {
   width: 100px;
 }
 
@@ -1286,4 +1289,9 @@ body.mode-kid .kid-mode-only .form-row { display: flex !important; }
 
 .location-entry .btn-remove-location:hover {
   color: var(--danger);
+}
+
+.location-custom-fields input[type="text"] {
+  width: 100%;
+  box-sizing: border-box;
 }

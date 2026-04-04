@@ -828,7 +828,7 @@ const FlyerApp = (function () {
             text: loc.branchName,
             style: {
               fontFamily: fontRoles.branchName,
-              fontSize: (dateSize * 0.75) + 'px',
+              fontSize: dateSize + 'px',
               color: locColor,
             },
           }));
@@ -839,7 +839,7 @@ const FlyerApp = (function () {
             text: loc.branchAddress,
             style: {
               fontFamily: fontRoles.branchAddress,
-              fontSize: (dateSize * 0.65) + 'px',
+              fontSize: dateSize + 'px',
               color: locColor,
             },
           }));
@@ -881,7 +881,7 @@ const FlyerApp = (function () {
           text: card.branchName,
           style: {
             fontFamily: fontRoles.branchName,
-            fontSize: (dateSize * 0.75) + 'px',
+            fontSize: dateSize + 'px',
             color: textColor,
           },
         }));
@@ -893,7 +893,7 @@ const FlyerApp = (function () {
           text: card.branchAddress,
           style: {
             fontFamily: fontRoles.branchAddress,
-            fontSize: (dateSize * 0.65) + 'px',
+            fontSize: dateSize + 'px',
             color: textColor,
           },
         }));
@@ -2425,6 +2425,9 @@ const FlyerApp = (function () {
       const isLocCustom = loc && !CONFIG.BRANCH_DEFAULTS.some(function (b) {
         return b.name !== 'Online' && b.name === loc.branchName;
       });
+
+      // Top row: branch select + day input + remove button
+      const topRow = el('div', { 'class': 'location-entry-row' });
       const locSelect = el('select', { 'class': 'location-branch-select' });
       CONFIG.BRANCH_DEFAULTS.forEach(function (b) {
         if (b.name === 'Online') return; // skip Online in kid mode
@@ -2440,12 +2443,24 @@ const FlyerApp = (function () {
       const locCustomOpt = el('option', { value: '__custom__', text: 'Custom...' });
       if (isLocCustom) locCustomOpt.selected = true;
       locSelect.appendChild(locCustomOpt);
-      entry.appendChild(locSelect);
+      topRow.appendChild(locSelect);
+      topRow.appendChild(el('input', {
+        type: 'text',
+        'class': 'location-day-input',
+        placeholder: 'Day (e.g. Wednesdays)',
+        value: (loc && loc.dayText) || '',
+      }));
+      topRow.appendChild(el('button', {
+        'class': 'btn-remove-location',
+        html: '<i class="fas fa-times"></i>',
+        on: { click: function () { entry.remove(); } },
+      }));
+      entry.appendChild(topRow);
 
-      // Custom location fields
+      // Custom location fields (below the top row)
       const locCustomFields = el('div', {
         'class': 'location-custom-fields',
-        style: { display: isLocCustom ? 'block' : 'none', marginTop: '4px' },
+        style: { display: isLocCustom ? 'block' : 'none', marginTop: '6px' },
       });
       locCustomFields.appendChild(el('input', {
         type: 'text', 'class': 'location-custom-name', placeholder: 'Location name',
@@ -2470,17 +2485,6 @@ const FlyerApp = (function () {
         locCustomFields.style.display = locSelect.value === '__custom__' ? 'block' : 'none';
       });
 
-      entry.appendChild(el('input', {
-        type: 'text',
-        'class': 'location-day-input',
-        placeholder: 'Day (e.g. Wednesdays)',
-        value: (loc && loc.dayText) || '',
-      }));
-      entry.appendChild(el('button', {
-        'class': 'btn-remove-location',
-        html: '<i class="fas fa-times"></i>',
-        on: { click: function () { entry.remove(); } },
-      }));
       locationsContainer.appendChild(entry);
     }
 
