@@ -797,6 +797,7 @@ const FlyerApp = (function () {
           fontFamily: fontRoles.programSubtitle,
           fontSize: subtitleSize + 'px',
           color: textColor,
+          whiteSpace: 'pre-line',
         },
       }));
     }
@@ -911,20 +912,6 @@ const FlyerApp = (function () {
     return cardEl;
   }
 
-  function renderKidAnnouncement(announcement, styles) {
-    if (!announcement || !announcement.visible || !announcement.text) return null;
-    const fontSize = ptToPx(styles.programSubtitleFontSize || 12);
-    return el('div', {
-      'class': 'flyer-kid-announcement',
-      text: announcement.text,
-      style: {
-        fontFamily: fontRoles.programName,
-        fontSize: fontSize + 'px',
-        color: '#333333',
-      },
-    });
-  }
-
   /**
    * Load all images referenced by current kid-mode cards into the in-memory cache.
    * Returns a Promise that resolves when all images are cached.
@@ -979,12 +966,6 @@ const FlyerApp = (function () {
     // Header (reuse same header renderer)
     const headerEl = renderFlyerHeader(page.header, page.styles);
     contentWrapper.appendChild(headerEl);
-
-    // Announcement
-    const announcementEl = renderKidAnnouncement(page.announcement, page.styles);
-    if (announcementEl) {
-      contentWrapper.appendChild(announcementEl);
-    }
 
     // Cards container — flex-grow to fill available space
     const gap = (page.styles.cardGap || 4) + 'px';
@@ -1055,11 +1036,6 @@ const FlyerApp = (function () {
 
     const headerEl = renderFlyerHeader(page.header, page.styles);
     contentWrapper.appendChild(headerEl);
-
-    const announcementEl = renderKidAnnouncement(page.announcement, page.styles);
-    if (announcementEl) {
-      contentWrapper.appendChild(announcementEl);
-    }
 
     const gap = (page.styles.cardGap || 4) + 'px';
     const cardsContainer = el('div', {
@@ -1655,7 +1631,6 @@ const FlyerApp = (function () {
     };
     if (meta.mode === 'kid') {
       state.cards = page ? FlyerUtils.deepClone(page.cards) : [];
-      state.announcement = page ? FlyerUtils.deepClone(page.announcement) : FlyerUtils.deepClone(CONFIG.KID_MODE_DEFAULTS.announcement);
     } else {
       state.branches = page ? FlyerUtils.deepClone(page.branches) : [];
     }
@@ -2294,21 +2269,57 @@ const FlyerApp = (function () {
       style: { display: isFreeText ? 'none' : 'block' },
     });
 
-    // Branch dropdown
+    // Branch dropdown (exclude Online, add Custom option)
     const branchGroup = el('div', { 'class': 'form-group' });
     branchGroup.appendChild(el('label', { text: 'Branch / Location' }));
     const branchSelect = el('select', { 'class': 'input-branch-select' });
+    const isCustomBranch = !CONFIG.BRANCH_DEFAULTS.some(function (b) {
+      return b.name !== 'Online' && b.name === card.branchName;
+    });
     CONFIG.BRANCH_DEFAULTS.forEach(function (b) {
+      if (b.name === 'Online') return; // skip Online in kid mode
       const opt = el('option', {
         value: b.name,
         text: b.name + (b.address ? ' — ' + b.address : ''),
         'data-address': b.address || '',
         'data-color': b.color,
       });
-      if (b.name === card.branchName) opt.selected = true;
+      if (!isCustomBranch && b.name === card.branchName) opt.selected = true;
       branchSelect.appendChild(opt);
     });
+    const customOpt = el('option', { value: '__custom__', text: 'Custom...' });
+    if (isCustomBranch) customOpt.selected = true;
+    branchSelect.appendChild(customOpt);
     branchGroup.appendChild(branchSelect);
+
+    // Custom branch fields (shown when "Custom..." is selected)
+    const customBranchFields = el('div', {
+      'class': 'custom-branch-fields',
+      style: { display: isCustomBranch ? 'block' : 'none', marginTop: '6px' },
+    });
+    customBranchFields.appendChild(el('input', {
+      type: 'text', 'class': 'input-custom-branch-name', placeholder: 'Location name',
+      value: isCustomBranch ? (card.branchName || '') : '',
+    }));
+    customBranchFields.appendChild(el('input', {
+      type: 'text', 'class': 'input-custom-branch-address', placeholder: 'Address',
+      value: isCustomBranch ? (card.branchAddress || '') : '',
+      style: { marginTop: '4px' },
+    }));
+    const customColorRow = el('div', { style: { display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' } });
+    customColorRow.appendChild(el('label', { text: 'Color:', style: { fontSize: '0.85em', margin: '0' } }));
+    customColorRow.appendChild(el('input', {
+      type: 'color', 'class': 'input-custom-branch-color',
+      value: isCustomBranch ? (card.branchColor || '#666666') : '#666666',
+      style: { width: '40px', height: '24px', padding: '0', border: '1px solid #ddd', borderRadius: '3px', cursor: 'pointer' },
+    }));
+    customBranchFields.appendChild(customColorRow);
+    branchGroup.appendChild(customBranchFields);
+
+    branchSelect.addEventListener('change', function () {
+      customBranchFields.style.display = branchSelect.value === '__custom__' ? 'block' : 'none';
+    });
+
     structuredFields.appendChild(branchGroup);
 
     // Card image upload
@@ -2369,10 +2380,16 @@ const FlyerApp = (function () {
     nameImageGroup.appendChild(nameImageUpload);
     structuredFields.appendChild(nameImageGroup);
 
-    // Subtitle
+    // Subtitle (textarea for multi-line)
+    const subtitleTextarea = el('textarea', {
+      'class': 'input-subtitle',
+      rows: '2',
+      style: { resize: 'vertical' },
+    });
+    subtitleTextarea.value = card.subtitle || '';
     structuredFields.appendChild(el('div', { 'class': 'form-group' },
       el('label', { text: 'Subtitle' }),
-      el('input', { type: 'text', 'class': 'input-subtitle', value: card.subtitle || '' })
+      subtitleTextarea
     ));
 
     // Date + Time
@@ -2405,18 +2422,54 @@ const FlyerApp = (function () {
 
     function addLocationEntry(loc) {
       const entry = el('div', { 'class': 'location-entry' });
+      const isLocCustom = loc && !CONFIG.BRANCH_DEFAULTS.some(function (b) {
+        return b.name !== 'Online' && b.name === loc.branchName;
+      });
       const locSelect = el('select', { 'class': 'location-branch-select' });
       CONFIG.BRANCH_DEFAULTS.forEach(function (b) {
+        if (b.name === 'Online') return; // skip Online in kid mode
         const opt = el('option', {
           value: b.name,
           text: b.name,
           'data-address': b.address || '',
           'data-color': b.color,
         });
-        if (loc && b.name === loc.branchName) opt.selected = true;
+        if (!isLocCustom && loc && b.name === loc.branchName) opt.selected = true;
         locSelect.appendChild(opt);
       });
+      const locCustomOpt = el('option', { value: '__custom__', text: 'Custom...' });
+      if (isLocCustom) locCustomOpt.selected = true;
+      locSelect.appendChild(locCustomOpt);
       entry.appendChild(locSelect);
+
+      // Custom location fields
+      const locCustomFields = el('div', {
+        'class': 'location-custom-fields',
+        style: { display: isLocCustom ? 'block' : 'none', marginTop: '4px' },
+      });
+      locCustomFields.appendChild(el('input', {
+        type: 'text', 'class': 'location-custom-name', placeholder: 'Location name',
+        value: isLocCustom ? (loc.branchName || '') : '',
+      }));
+      locCustomFields.appendChild(el('input', {
+        type: 'text', 'class': 'location-custom-address', placeholder: 'Address',
+        value: isLocCustom ? (loc.branchAddress || '') : '',
+        style: { marginTop: '3px' },
+      }));
+      const locCustomColorRow = el('div', { style: { display: 'flex', alignItems: 'center', gap: '4px', marginTop: '3px' } });
+      locCustomColorRow.appendChild(el('label', { text: 'Color:', style: { fontSize: '0.85em', margin: '0' } }));
+      locCustomColorRow.appendChild(el('input', {
+        type: 'color', 'class': 'location-custom-color',
+        value: isLocCustom ? (loc.branchColor || '#666666') : '#666666',
+        style: { width: '36px', height: '22px', padding: '0', border: '1px solid #ddd', borderRadius: '3px', cursor: 'pointer' },
+      }));
+      locCustomFields.appendChild(locCustomColorRow);
+      entry.appendChild(locCustomFields);
+
+      locSelect.addEventListener('change', function () {
+        locCustomFields.style.display = locSelect.value === '__custom__' ? 'block' : 'none';
+      });
+
       entry.appendChild(el('input', {
         type: 'text',
         'class': 'location-day-input',
@@ -2603,11 +2656,18 @@ const FlyerApp = (function () {
       // Branch selection
       const branchSelect = form.querySelector('.input-branch-select');
       if (branchSelect) {
-        const selectedOpt = branchSelect.options[branchSelect.selectedIndex];
-        card.branchName = branchSelect.value;
-        card.branchAddress = selectedOpt.getAttribute('data-address') || '';
-        card.branchColor = selectedOpt.getAttribute('data-color') || '#0474bf';
-        card.branchId = branchSelect.value;
+        if (branchSelect.value === '__custom__') {
+          card.branchName = form.querySelector('.input-custom-branch-name').value || 'Custom';
+          card.branchAddress = form.querySelector('.input-custom-branch-address').value || '';
+          card.branchColor = form.querySelector('.input-custom-branch-color').value || '#666666';
+          card.branchId = card.branchName;
+        } else {
+          const selectedOpt = branchSelect.options[branchSelect.selectedIndex];
+          card.branchName = branchSelect.value;
+          card.branchAddress = selectedOpt.getAttribute('data-address') || '';
+          card.branchColor = selectedOpt.getAttribute('data-color') || '#0474bf';
+          card.branchId = branchSelect.value;
+        }
       }
 
       const colorOverrideChecked = form.querySelector('.input-color-override').checked;
@@ -2623,13 +2683,24 @@ const FlyerApp = (function () {
           const locSelect = entry.querySelector('.location-branch-select');
           const dayInput = entry.querySelector('.location-day-input');
           if (locSelect) {
-            const selOpt = locSelect.options[locSelect.selectedIndex];
-            card.locations.push({
-              branchName: locSelect.value,
-              branchAddress: selOpt.getAttribute('data-address') || '',
-              branchColor: selOpt.getAttribute('data-color') || '#0474bf',
-              dayText: dayInput ? dayInput.value : '',
-            });
+            let locData;
+            if (locSelect.value === '__custom__') {
+              locData = {
+                branchName: entry.querySelector('.location-custom-name').value || 'Custom',
+                branchAddress: entry.querySelector('.location-custom-address').value || '',
+                branchColor: entry.querySelector('.location-custom-color').value || '#666666',
+                dayText: dayInput ? dayInput.value : '',
+              };
+            } else {
+              const selOpt = locSelect.options[locSelect.selectedIndex];
+              locData = {
+                branchName: locSelect.value,
+                branchAddress: selOpt.getAttribute('data-address') || '',
+                branchColor: selOpt.getAttribute('data-color') || '#0474bf',
+                dayText: dayInput ? dayInput.value : '',
+              };
+            }
+            card.locations.push(locData);
           }
         });
       } else {
@@ -2929,31 +3000,6 @@ const FlyerApp = (function () {
         getCurrentPage().styles.cardImageWidth = parseInt(cardImageWidthInput.value, 10) || 80;
         markDirty();
         debouncedRenderPreview();
-      });
-    }
-
-    // ── Kid Mode: Announcement Controls ──────────────
-    const announcementVisibleToggle = document.getElementById('announcement-visible');
-    const announcementTextInput = document.getElementById('announcement-text');
-
-    if (announcementVisibleToggle) {
-      announcementVisibleToggle.addEventListener('change', function () {
-        const page = getCurrentPage();
-        if (page && page.announcement) {
-          page.announcement.visible = announcementVisibleToggle.checked;
-          markDirty();
-          debouncedRenderPreview();
-        }
-      });
-    }
-    if (announcementTextInput) {
-      announcementTextInput.addEventListener('input', function () {
-        const page = getCurrentPage();
-        if (page && page.announcement) {
-          page.announcement.text = announcementTextInput.value;
-          markDirty();
-          debouncedRenderPreview();
-        }
       });
     }
 
@@ -3326,13 +3372,6 @@ const FlyerApp = (function () {
       if (cardIWInput) cardIWInput.value = page.styles.cardImageWidth || 80;
     }
 
-    // Announcement settings
-    if (meta.mode === 'kid' && page.announcement) {
-      const annVisInput = document.getElementById('announcement-visible');
-      const annTextInput = document.getElementById('announcement-text');
-      if (annVisInput) annVisInput.checked = !!page.announcement.visible;
-      if (annTextInput) annTextInput.value = page.announcement.text || '';
-    }
   }
 
   // ═══════════════════════════════════════════════════
@@ -3353,7 +3392,6 @@ const FlyerApp = (function () {
         };
         if (meta.mode === 'kid') {
           serialized.cards = FlyerUtils.deepClone(page.cards || []);
-          serialized.announcement = FlyerUtils.deepClone(page.announcement || { text: '', visible: false });
         } else {
           serialized.branches = FlyerUtils.deepClone(page.branches || []);
         }
@@ -3488,7 +3526,6 @@ const FlyerApp = (function () {
         };
         if (meta.mode === 'kid') {
           page.cards = FlyerUtils.deepClone(p.cards || []);
-          page.announcement = FlyerUtils.deepClone(p.announcement || CONFIG.KID_MODE_DEFAULTS.announcement);
         } else {
           page.branches = FlyerUtils.deepClone(p.branches || []);
         }

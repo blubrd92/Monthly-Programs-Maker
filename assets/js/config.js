@@ -155,11 +155,10 @@ const CONFIG = (function () {
         programDateBold: true,
         programTimeBold: false,
         cardBorderWidth: 3,
-        cardBorderRadius: 12,
+        cardBorderRadius: 30,
         cardGap: 4,
-        cardImageWidth: 80,
+        cardImageWidth: 150,
       },
-      announcement: { text: '', visible: false },
     },
 
     // ── Rendering ────────────────────────────────────────

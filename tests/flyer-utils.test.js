@@ -276,16 +276,13 @@ describe('FlyerUtils.createDefaultKidPage', () => {
     const page = FlyerUtils.createDefaultKidPage();
     expect(page.header).toBeDefined();
     expect(page.header.titleText).toBe('Library Programs');
-    expect(page.announcement).toBeDefined();
-    expect(page.announcement.visible).toBe(false);
-    expect(page.announcement.text).toBe('');
     expect(Array.isArray(page.cards)).toBe(true);
     expect(page.cards).toHaveLength(1);
     expect(page.cards[0].name).toBe('Program Name');
     expect(page.footer).toBeDefined();
     expect(page.styles).toBeDefined();
     expect(page.styles.cardBorderWidth).toBe(3);
-    expect(page.styles.cardBorderRadius).toBe(12);
+    expect(page.styles.cardBorderRadius).toBe(30);
     expect(page.styles.cardGap).toBe(4);
   });
 });

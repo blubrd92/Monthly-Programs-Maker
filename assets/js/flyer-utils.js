@@ -218,7 +218,6 @@ const FlyerUtils = (function () {
     const kidDefaults = CONFIG.KID_MODE_DEFAULTS;
     return {
       header: deepClone(CONFIG.DEFAULT_HEADER),
-      announcement: deepClone(kidDefaults.announcement),
       cards: [
         createBlankCard({
           name: 'Program Name',
