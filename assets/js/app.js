@@ -778,7 +778,7 @@ const FlyerApp = (function () {
     const subtitleSize = ptToPx(styles.programSubtitleFontSize);
     const borderWidth = (styles.cardBorderWidth || 3) + 'px';
     const borderRadius = (styles.cardBorderRadius || 30) + 'px';
-    const imageWidth = (styles.cardImageWidth || 150) + 'px';
+    const imageWidth = (styles.cardImageWidth || 160) + 'px';
 
     // Free-text override
     if (card.freeTextOverride) {
@@ -3478,7 +3478,7 @@ const FlyerApp = (function () {
       if (cardBWInput) cardBWInput.value = page.styles.cardBorderWidth || 3;
       if (cardBRInput) cardBRInput.value = page.styles.cardBorderRadius || 30;
       if (cardGInput) cardGInput.value = page.styles.cardGap || 4;
-      if (cardIWInput) cardIWInput.value = page.styles.cardImageWidth || 150;
+      if (cardIWInput) cardIWInput.value = page.styles.cardImageWidth || 160;
     }
 
   }

@@ -1147,6 +1147,7 @@ body.mode-kid .kid-mode-only .form-row { display: flex !important; }
 
 .flyer-kid-card-locations .location-col + .location-col {
   border-left: 1px solid currentColor;
+  text-align: left;
 }
 
 .flyer-kid-card-branch {
