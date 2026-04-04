@@ -991,17 +991,16 @@ const FlyerApp = (function () {
       }
 
       // First column: card's main location
-      // Date/time uses textColor (includes color override); branch name/address uses branch's own color
+      // In-column date/time uses branch's own color; only hoisted shared fields use color override
       colsRow.appendChild(buildLocCol(
-        card.dateText, card.timeText, card.branchName, card.branchAddress, textColor, branchTextColor
+        card.dateText, card.timeText, card.branchName, card.branchAddress, branchTextColor, branchTextColor
       ));
 
       // Additional columns from locations[]
       card.locations.forEach(function (loc) {
-        const locDateTimeColor = isClosure ? CONFIG.COLORS.closureText : effectiveColor;
         const locBranchColor = isClosure ? CONFIG.COLORS.closureText : (loc.branchColor || '#0474bf');
         colsRow.appendChild(buildLocCol(
-          loc.dayText, loc.timeText, loc.branchName, loc.branchAddress, locDateTimeColor, locBranchColor
+          loc.dayText, loc.timeText, loc.branchName, loc.branchAddress, locBranchColor, locBranchColor
         ));
       });
 
