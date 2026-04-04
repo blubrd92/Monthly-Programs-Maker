@@ -336,6 +336,67 @@ const FlyerApp = (function () {
     const titleSize = ptToPx(styles.headerTitleFontSize || CONFIG.DEFAULT_STYLES.headerTitleFontSize);
     const monthSize = ptToPx(styles.headerMonthFontSize || CONFIG.DEFAULT_STYLES.headerMonthFontSize);
 
+    // Kid mode: centered, stacked lines, month appended to title
+    if (meta.mode === 'kid') {
+      const titleText = header.titleText || '';
+      const monthText = header.monthText || '';
+      const lines = titleText.split('\n');
+      // Append month to the last line
+      if (monthText) {
+        lines[lines.length - 1] = lines[lines.length - 1] + ' ' + monthText;
+      }
+
+      const headerDiv = el('div', {
+        'class': 'flyer-header flyer-header-kid',
+        style: {
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '0',
+        },
+      });
+
+      lines.forEach(function (line, i) {
+        // Last line contains month text — render it with mixed colors
+        if (monthText && i === lines.length - 1) {
+          const titlePart = lines[lines.length - 1].replace(' ' + monthText, '');
+          const lineEl = el('div', {
+            style: {
+              fontFamily: fontRoles.headerTitle,
+              fontSize: titleSize + 'px',
+              fontWeight: '700',
+              textTransform: 'uppercase',
+              lineHeight: '1.1',
+            },
+          });
+          lineEl.appendChild(el('span', {
+            text: titlePart + ' ',
+            style: { color: header.titleColor || CONFIG.COLORS.headerTitle },
+          }));
+          lineEl.appendChild(el('span', {
+            text: monthText,
+            style: { color: header.monthColor || CONFIG.COLORS.headerMonth },
+          }));
+          headerDiv.appendChild(lineEl);
+        } else {
+          headerDiv.appendChild(el('div', {
+            text: line,
+            style: {
+              color: header.titleColor || CONFIG.COLORS.headerTitle,
+              fontFamily: fontRoles.headerTitle,
+              fontSize: titleSize + 'px',
+              fontWeight: '700',
+              textTransform: 'uppercase',
+              lineHeight: '1.1',
+            },
+          }));
+        }
+      });
+
+      return headerDiv;
+    }
+
+    // Standard mode: side-by-side title + month
     // Check if title contains a "de la" pattern for stacked rendering
     const delaMatch = (header.titleText || '').match(/^(.+?)\s+(de)\s+(la)\s+(.+)$/i);
 
