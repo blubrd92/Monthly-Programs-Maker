@@ -893,13 +893,18 @@ const FlyerApp = (function () {
       });
 
       // Check for shared date/time across all locations
-      const allDays = [card.dateText || ''].concat(card.locations.map(function (l) { return l.dayText || ''; }));
-      const allTimes = [card.timeText || ''].concat(card.locations.map(function (l) { return l.timeText || ''; }));
+      const isMultiLocMode = card.branchName === '__multi_locations__';
+      const allDays = isMultiLocMode
+        ? card.locations.map(function (l) { return l.dayText || ''; })
+        : [card.dateText || ''].concat(card.locations.map(function (l) { return l.dayText || ''; }));
+      const allTimes = isMultiLocMode
+        ? card.locations.map(function (l) { return l.timeText || ''; })
+        : [card.timeText || ''].concat(card.locations.map(function (l) { return l.timeText || ''; }));
       const sharedDay = allDays.every(function (d) { return d === allDays[0]; }) && allDays[0] ? allDays[0] : null;
       const sharedTime = allTimes.every(function (t) { return t === allTimes[0]; }) && allTimes[0] ? allTimes[0] : null;
 
       // Scale font sizes to fit available space
-      const totalCols = 1 + card.locations.length;
+      const totalCols = (isMultiLocMode ? 0 : 1) + card.locations.length;
       const scaleFactor = Math.max(0.5, 1 / (1 + 0.35 * (totalCols - 1)));
       const mlDateSize = Math.round(dateSize * scaleFactor);
       const mlTimeSize = Math.round(timeSize * scaleFactor);
@@ -996,11 +1001,13 @@ const FlyerApp = (function () {
         return col;
       }
 
-      // First column: card's main location
-      // In-column date/time uses branch's own color; only hoisted shared fields use color override
-      colsRow.appendChild(buildLocCol(
-        card.dateText, card.timeText, card.branchName, card.branchAddress, branchTextColor, branchTextColor
-      ));
+      // First column: card's main location (skip when "Multiple Locations" branch is selected)
+      if (!isMultiLocMode) {
+        // In-column date/time uses branch's own color; only hoisted shared fields use color override
+        colsRow.appendChild(buildLocCol(
+          card.dateText, card.timeText, card.branchName, card.branchAddress, branchTextColor, branchTextColor
+        ));
+      }
 
       // Additional columns from locations[]
       card.locations.forEach(function (loc) {
@@ -2445,6 +2452,7 @@ const FlyerApp = (function () {
     const isCustomBranch = !CONFIG.BRANCH_DEFAULTS.some(function (b) {
       return b.name !== 'Online' && b.name !== 'City Hall' && b.name === card.branchName;
     });
+    const isMultiLocBranch = card.branchName === '__multi_locations__';
     CONFIG.BRANCH_DEFAULTS.forEach(function (b) {
       if (b.name === 'Online' || b.name === 'City Hall') return; // skip in kid mode
       const opt = el('option', {
@@ -2453,11 +2461,15 @@ const FlyerApp = (function () {
         'data-address': b.address || '',
         'data-color': b.color,
       });
-      if (!isCustomBranch && b.name === card.branchName) opt.selected = true;
+      if (!isCustomBranch && !isMultiLocBranch && b.name === card.branchName) opt.selected = true;
       branchSelect.appendChild(opt);
     });
+    // "Multiple Locations" option — switches to multi-location mode directly
+    const multiLocBranchOpt = el('option', { value: '__multi_locations__', text: 'Multiple Locations' });
+    if (isMultiLocBranch) multiLocBranchOpt.selected = true;
+    branchSelect.appendChild(multiLocBranchOpt);
     const customOpt = el('option', { value: '__custom__', text: 'Custom...' });
-    if (isCustomBranch) customOpt.selected = true;
+    if (isCustomBranch && !isMultiLocBranch) customOpt.selected = true;
     branchSelect.appendChild(customOpt);
     branchGroup.appendChild(branchSelect);
 
@@ -2486,7 +2498,24 @@ const FlyerApp = (function () {
     branchGroup.appendChild(customBranchFields);
 
     branchSelect.addEventListener('change', function () {
+      const isMulti = branchSelect.value === '__multi_locations__';
       customBranchFields.style.display = branchSelect.value === '__custom__' ? 'block' : 'none';
+      dateTimeRow.style.display = isMulti ? 'none' : '';
+      multiLocToggle.style.display = isMulti ? 'none' : '';
+      if (isMulti) {
+        // Activate multi-location mode and pre-populate if empty
+        multiLocCheck.checked = true;
+        locationsContainer.style.display = 'block';
+        if (locationsContainer.querySelectorAll('.location-entry').length === 0) {
+          const kidBranches = CONFIG.BRANCH_DEFAULTS.filter(function (b) {
+            return b.name !== 'Online' && b.name !== 'City Hall';
+          });
+          const firstBranch = kidBranches[0] || {};
+          const secondBranch = kidBranches.length > 1 ? kidBranches[1] : kidBranches[0] || {};
+          addLocationEntry({ branchName: firstBranch.name, branchAddress: firstBranch.address, branchColor: firstBranch.color, dayText: '', timeText: '' });
+          addLocationEntry({ branchName: secondBranch.name, branchAddress: secondBranch.address, branchColor: secondBranch.color, dayText: '', timeText: '' });
+        }
+      }
     });
 
     structuredFields.appendChild(branchGroup);
@@ -2586,14 +2615,17 @@ const FlyerApp = (function () {
     dateInput.value = card.dateText || '';
     const timeInput = el('textarea', { 'class': 'input-time', rows: '2', style: { resize: 'none' } });
     timeInput.value = card.timeText || '';
-    structuredFields.appendChild(el('div', { 'class': 'form-row' },
+    const dateTimeRow = el('div', { 'class': 'form-row date-time-row' },
       el('div', { 'class': 'form-group' }, el('label', { text: 'Date' }), dateInput),
       el('div', { 'class': 'form-group' }, el('label', { text: 'Time' }), timeInput)
-    ));
+    );
+    // Hide date/time when "Multiple Locations" branch is selected
+    if (isMultiLocBranch) dateTimeRow.style.display = 'none';
+    structuredFields.appendChild(dateTimeRow);
 
     // Multi-location toggle
-    const hasLocations = card.locations && card.locations.length > 0;
-    const multiLocToggle = el('div', { 'class': 'form-group' },
+    const hasLocations = (card.locations && card.locations.length > 0) || isMultiLocBranch;
+    const multiLocToggle = el('div', { 'class': 'form-group multi-loc-toggle' },
       el('label', { 'class': 'checkbox-label' },
         el('input', { type: 'checkbox', 'class': 'input-multi-location' }),
         'Multiple locations'
@@ -2601,6 +2633,8 @@ const FlyerApp = (function () {
     );
     const multiLocCheck = multiLocToggle.querySelector('.input-multi-location');
     multiLocCheck.checked = hasLocations;
+    // Hide toggle when "Multiple Locations" branch is selected (implied)
+    if (isMultiLocBranch) multiLocToggle.style.display = 'none';
     structuredFields.appendChild(multiLocToggle);
 
     // Multi-location entries container
@@ -2687,10 +2721,19 @@ const FlyerApp = (function () {
       locationsContainer.appendChild(entry);
     }
 
-    if (hasLocations) {
+    if (hasLocations && card.locations && card.locations.length > 0) {
       card.locations.forEach(function (loc) {
         addLocationEntry(loc);
       });
+    } else if (isMultiLocBranch) {
+      // Pre-populate with 2 default entries: Downtown + next available branch
+      const kidBranches = CONFIG.BRANCH_DEFAULTS.filter(function (b) {
+        return b.name !== 'Online' && b.name !== 'City Hall';
+      });
+      const firstBranch = kidBranches[0] || {};
+      const secondBranch = kidBranches.length > 1 ? kidBranches[1] : kidBranches[0] || {};
+      addLocationEntry({ branchName: firstBranch.name, branchAddress: firstBranch.address, branchColor: firstBranch.color, dayText: '', timeText: '' });
+      addLocationEntry({ branchName: secondBranch.name, branchAddress: secondBranch.address, branchColor: secondBranch.color, dayText: '', timeText: '' });
     }
 
     const addLocBtn = el('button', {
@@ -2867,7 +2910,12 @@ const FlyerApp = (function () {
       // Branch selection
       const branchSelect = form.querySelector('.input-branch-select');
       if (branchSelect) {
-        if (branchSelect.value === '__custom__') {
+        if (branchSelect.value === '__multi_locations__') {
+          card.branchName = '__multi_locations__';
+          card.branchAddress = '';
+          card.branchColor = '#cc007e';
+          card.branchId = '__multi_locations__';
+        } else if (branchSelect.value === '__custom__') {
           card.branchName = form.querySelector('.input-custom-branch-name').value || 'Custom';
           card.branchAddress = form.querySelector('.input-custom-branch-address').value || '';
           card.branchColor = form.querySelector('.input-custom-branch-color').value || '#666666';
@@ -2886,8 +2934,9 @@ const FlyerApp = (function () {
         ? form.querySelector('.input-color-override-value').value : null;
 
       // Multi-location
+      const isMultiLocMode = branchSelect && branchSelect.value === '__multi_locations__';
       const multiLocChecked = form.querySelector('.input-multi-location');
-      if (multiLocChecked && multiLocChecked.checked) {
+      if (isMultiLocMode || (multiLocChecked && multiLocChecked.checked)) {
         const locEntries = form.querySelectorAll('.location-entry');
         card.locations = [];
         locEntries.forEach(function (entry) {
