@@ -889,7 +889,7 @@ const FlyerApp = (function () {
       // Wrapper: flex column for shared fields on top + columns below
       rightZone = el('div', {
         'class': 'flyer-kid-card-locations-wrapper',
-        style: { width: imageWidth, display: 'flex', flexDirection: 'column', justifyContent: 'space-evenly', flexShrink: '0', boxSizing: 'border-box', padding: '1px 6px 1px 0' },
+        style: { width: imageWidth, display: 'flex', flexDirection: 'column', justifyContent: 'space-evenly', flexShrink: '0', boxSizing: 'border-box', padding: '0' },
       });
 
       // Check for shared date/time across all locations
