@@ -17,6 +17,12 @@ const FlyerApp = (function () {
   let autosaveTimer = null;
   let lastColorOverride = '#000000';
 
+  // Cached pages for mode switching (preserves work when toggling between standard/kid)
+  let cachedStandardPages = null;
+  let cachedStandardActivePage = 0;
+  let cachedKidPages = null;
+  let cachedKidActivePage = 0;
+
   // In-memory cache for images loaded from IndexedDB (id → dataUrl)
   const imageCache = {};
 
@@ -3149,39 +3155,58 @@ const FlyerApp = (function () {
         const newMode = btn.getAttribute('data-flyer-mode');
         if (newMode === meta.mode) return;
 
+        // Cache current mode's pages before switching
+        if (meta.mode === 'kid') {
+          cachedKidPages = FlyerUtils.deepClone(pages);
+          cachedKidActivePage = activePage;
+        } else {
+          cachedStandardPages = FlyerUtils.deepClone(pages);
+          cachedStandardActivePage = activePage;
+        }
+
         meta.mode = newMode;
 
-        // Re-initialize pages for the new mode
+        // Restore cached pages or create new defaults
         if (newMode === 'kid') {
-          const kidPage = FlyerUtils.createDefaultKidPage();
-          // Carry over footer language from current page
-          const currentPage = getCurrentPage();
-          if (currentPage) {
-            kidPage.footer = FlyerUtils.deepClone(currentPage.footer);
-            kidPage.header.monthText = currentPage.header.monthText;
-            kidPage.header.titleColor = currentPage.header.titleColor;
-            kidPage.header.monthColor = currentPage.header.monthColor;
+          if (cachedKidPages) {
+            pages = cachedKidPages;
+            activePage = cachedKidActivePage;
+          } else {
+            const kidPage = FlyerUtils.createDefaultKidPage();
+            // Carry over footer language from current page
+            const currentPage = getCurrentPage();
+            if (currentPage) {
+              kidPage.footer = FlyerUtils.deepClone(currentPage.footer);
+              kidPage.header.monthText = currentPage.header.monthText;
+              kidPage.header.titleColor = currentPage.header.titleColor;
+              kidPage.header.monthColor = currentPage.header.monthColor;
+            }
+            // Set kid header title based on footer language
+            const footerSource = kidPage.footer.source;
+            const kidLangKey = footerSource === 'default-spanish' ? 'kid-spanish' : 'kid-english';
+            const kidTitle = CONFIG.HEADER_TITLE_BY_LANGUAGE[kidLangKey];
+            if (kidTitle) {
+              kidPage.header.titleText = kidTitle.text;
+              kidPage.styles.headerTitleFontSize = kidTitle.fontSize;
+              kidPage.styles.headerMonthFontSize = kidTitle.fontSize;
+            }
+            pages = [kidPage];
+            activePage = 0;
           }
-          // Set kid header title based on footer language
-          const footerSource = kidPage.footer.source;
-          const kidLangKey = footerSource === 'default-spanish' ? 'kid-spanish' : 'kid-english';
-          const kidTitle = CONFIG.HEADER_TITLE_BY_LANGUAGE[kidLangKey];
-          if (kidTitle) {
-            kidPage.header.titleText = kidTitle.text;
-            kidPage.styles.headerTitleFontSize = kidTitle.fontSize;
-            kidPage.styles.headerMonthFontSize = kidTitle.fontSize;
-          }
-          pages = [kidPage];
-          activePage = 0;
         } else {
-          const defaultFlyer = FlyerUtils.createDefaultFlyer();
-          pages = [{
-            header: defaultFlyer.header,
-            branches: defaultFlyer.branches,
-            footer: defaultFlyer.footer,
-            styles: defaultFlyer.styles,
-          }];
-          activePage = 0;
+          if (cachedStandardPages) {
+            pages = cachedStandardPages;
+            activePage = cachedStandardActivePage;
+          } else {
+            const defaultFlyer = FlyerUtils.createDefaultFlyer();
+            pages = [{
+              header: defaultFlyer.header,
+              branches: defaultFlyer.branches,
+              footer: defaultFlyer.footer,
+              styles: defaultFlyer.styles,
+            }];
+            activePage = 0;
+          }
         }
 
         applyModeUI();
@@ -3773,6 +3798,10 @@ const FlyerApp = (function () {
   }
 
   function applyState(data) {
+    // Clear mode caches when loading new state
+    cachedStandardPages = null;
+    cachedKidPages = null;
+
     // Restore meta
     if (data.meta) {
       meta.month = data.meta.month || CONFIG.DEFAULT_META.month;
