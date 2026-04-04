@@ -835,6 +835,8 @@ const FlyerApp = (function () {
 
     const nameImageDataUrl = card.nameImageId ? imageCache[card.nameImageId] : null;
     if (nameImageDataUrl) {
+      centerZone.style.paddingTop = '0';
+      centerZone.style.paddingBottom = '0';
       centerZone.appendChild(el('img', {
         'class': 'flyer-kid-card-name-image',
         src: nameImageDataUrl,
