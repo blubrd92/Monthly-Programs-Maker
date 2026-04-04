@@ -889,7 +889,7 @@ const FlyerApp = (function () {
       // Wrapper: flex column for shared fields on top + columns below
       rightZone = el('div', {
         'class': 'flyer-kid-card-locations-wrapper',
-        style: { width: imageWidth, display: 'flex', flexDirection: 'column', justifyContent: 'space-evenly', flexShrink: '0', boxSizing: 'border-box', padding: '0' },
+        style: { width: imageWidth, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '1px', flexShrink: '0', boxSizing: 'border-box', padding: '0' },
       });
 
       // Check for shared date/time across all locations
@@ -2304,7 +2304,9 @@ const FlyerApp = (function () {
     if (card.isClosure) displayName = '[CLOSURE] ' + displayName;
 
     const detailParts = [];
-    if (card.branchName) detailParts.push(card.branchName);
+    if (card.branchName) {
+      detailParts.push(card.branchName === '__multi_locations__' ? 'Multiple Locations' : card.branchName);
+    }
     if (card.dateText) detailParts.push(card.dateText);
 
     const item = el('div', {
