@@ -1083,7 +1083,7 @@ body.mode-kid .kid-mode-only .form-row { display: flex !important; }
 }
 
 .flyer-kid-card-name-image {
-  max-width: 100%;
+  width: 300px;
   max-height: 100%;
   object-fit: contain;
 }
