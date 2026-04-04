@@ -1139,10 +1139,10 @@ body.mode-kid .kid-mode-only .form-row { display: flex !important; }
   display: flex;
   flex-direction: column;
   justify-content: center;
-  white-space: nowrap;
   flex: 1;
   min-width: 0;
   padding: 1px 4px;
+  overflow: hidden;
 }
 
 .flyer-kid-card-locations .location-col + .location-col {

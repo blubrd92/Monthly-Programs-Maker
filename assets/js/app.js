@@ -870,26 +870,33 @@ const FlyerApp = (function () {
     if (hasMultiLocation) {
       rightZone = el('div', { 'class': 'flyer-kid-card-locations', style: { width: imageWidth } });
 
+      // Scale font sizes to fit available space
+      const totalCols = 1 + card.locations.length;
+      const scaleFactor = Math.max(0.5, 1 / (1 + 0.35 * (totalCols - 1)));
+      const mlDateSize = Math.round(dateSize * scaleFactor);
+      const mlTimeSize = Math.round(timeSize * scaleFactor);
+      const mlBranchSize = Math.round(dateSize * 0.9 * scaleFactor);
+
       // Helper to build a location column
-      function buildLocCol(dayText, timeText, branchName, branchAddress, color) {
+      function buildLocCol(dayText, locTimeText, branchName, branchAddress, color) {
         const col = el('div', { 'class': 'location-col' });
         if (dayText) {
           col.appendChild(el('div', {
             text: dayText,
             style: {
               fontFamily: fontRoles.programDate,
-              fontSize: dateSize + 'px',
+              fontSize: mlDateSize + 'px',
               fontWeight: styles.programDateBold ? '700' : '400',
               color: color,
             },
           }));
         }
-        if (timeText) {
+        if (locTimeText) {
           col.appendChild(el('div', {
-            text: timeText,
+            text: locTimeText,
             style: {
               fontFamily: fontRoles.programTime,
-              fontSize: timeSize + 'px',
+              fontSize: mlTimeSize + 'px',
               fontWeight: styles.programTimeBold ? '700' : '400',
               color: color,
             },
@@ -901,7 +908,7 @@ const FlyerApp = (function () {
             text: branchName,
             style: {
               fontFamily: fontRoles.programDate,
-              fontSize: (dateSize * 0.9) + 'px',
+              fontSize: mlBranchSize + 'px',
               color: color,
             },
           }));
@@ -912,7 +919,7 @@ const FlyerApp = (function () {
             text: branchAddress,
             style: {
               fontFamily: fontRoles.programDate,
-              fontSize: (dateSize * 0.9) + 'px',
+              fontSize: mlBranchSize + 'px',
               color: color,
             },
           }));
