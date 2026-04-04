@@ -1083,7 +1083,7 @@ body.mode-kid .kid-mode-only .form-row { display: flex !important; }
 }
 
 .flyer-kid-card-name-image {
-  width: 300px;
+  width: 100%;
   max-height: 100%;
   object-fit: contain;
 }
@@ -1116,6 +1116,7 @@ body.mode-kid .kid-mode-only .form-row { display: flex !important; }
   flex-direction: column;
   justify-content: center;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .flyer-kid-card-date,
@@ -1131,6 +1132,7 @@ body.mode-kid .kid-mode-only .form-row { display: flex !important; }
   padding: 3px 10px 3px 8px;
   flex-shrink: 0;
   align-items: center;
+  box-sizing: border-box;
 }
 
 .flyer-kid-card-locations .location-col {

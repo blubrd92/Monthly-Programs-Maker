@@ -868,7 +868,7 @@ const FlyerApp = (function () {
     const hasMultiLocation = card.locations && card.locations.length > 0;
 
     if (hasMultiLocation) {
-      rightZone = el('div', { 'class': 'flyer-kid-card-locations' });
+      rightZone = el('div', { 'class': 'flyer-kid-card-locations', style: { width: imageWidth } });
       card.locations.forEach(function (loc) {
         const locColor = isClosure ? CONFIG.COLORS.closureText : (loc.branchColor || effectiveColor);
         const col = el('div', { 'class': 'location-col' });
@@ -919,7 +919,7 @@ const FlyerApp = (function () {
         rightZone.appendChild(col);
       });
     } else {
-      rightZone = el('div', { 'class': 'flyer-kid-card-location' });
+      rightZone = el('div', { 'class': 'flyer-kid-card-location', style: { width: imageWidth } });
 
       if (card.dateText) {
         rightZone.appendChild(el('div', {
