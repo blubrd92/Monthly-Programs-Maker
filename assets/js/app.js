@@ -838,7 +838,7 @@ const FlyerApp = (function () {
             'class': 'flyer-kid-card-branch',
             text: loc.branchName,
             style: {
-              fontFamily: fontRoles.branchName,
+              fontFamily: fontRoles.programDate,
               fontSize: (dateSize * 0.9) + 'px',
               color: locColor,
             },
@@ -849,7 +849,7 @@ const FlyerApp = (function () {
             'class': 'flyer-kid-card-address',
             text: loc.branchAddress,
             style: {
-              fontFamily: fontRoles.branchAddress,
+              fontFamily: fontRoles.programDate,
               fontSize: (dateSize * 0.9) + 'px',
               color: locColor,
             },
@@ -891,7 +891,7 @@ const FlyerApp = (function () {
           'class': 'flyer-kid-card-branch',
           text: card.branchName,
           style: {
-            fontFamily: fontRoles.branchName,
+            fontFamily: fontRoles.programDate,
             fontSize: (dateSize * 0.9) + 'px',
             color: textColor,
           },
@@ -903,7 +903,7 @@ const FlyerApp = (function () {
           'class': 'flyer-kid-card-address',
           text: card.branchAddress,
           style: {
-            fontFamily: fontRoles.branchAddress,
+            fontFamily: fontRoles.programDate,
             fontSize: (dateSize * 0.9) + 'px',
             color: textColor,
           },
