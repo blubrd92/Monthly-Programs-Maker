@@ -811,11 +811,9 @@ const FlyerApp = (function () {
       card.locations.forEach(function (loc) {
         const locColor = isClosure ? CONFIG.COLORS.closureText : (loc.branchColor || effectiveColor);
         const col = el('div', { 'class': 'location-col' });
-        const locDay = loc.dayText || card.dateText;
-        const locTime = loc.timeText || card.timeText;
-        if (locDay) {
+        if (loc.dayText) {
           col.appendChild(el('div', {
-            text: locDay,
+            text: loc.dayText,
             style: {
               fontFamily: fontRoles.programDate,
               fontSize: dateSize + 'px',
@@ -824,9 +822,9 @@ const FlyerApp = (function () {
             },
           }));
         }
-        if (locTime) {
+        if (loc.timeText) {
           col.appendChild(el('div', {
-            text: locTime,
+            text: loc.timeText,
             style: {
               fontFamily: fontRoles.programTime,
               fontSize: timeSize + 'px',
