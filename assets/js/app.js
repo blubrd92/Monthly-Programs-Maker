@@ -2527,7 +2527,14 @@ const FlyerApp = (function () {
     multiLocCheck.addEventListener('change', function () {
       locationsContainer.style.display = multiLocCheck.checked ? 'block' : 'none';
       if (multiLocCheck.checked && locationsContainer.querySelectorAll('.location-entry').length === 0) {
-        addLocationEntry(null);
+        // Pre-populate first entry with the card's current location
+        addLocationEntry({
+          branchName: card.branchName,
+          branchAddress: card.branchAddress,
+          branchColor: card.branchColor,
+          dayText: form.querySelector('.input-date') ? form.querySelector('.input-date').value : '',
+          timeText: form.querySelector('.input-time') ? form.querySelector('.input-time').value : '',
+        });
         addLocationEntry(null);
       }
     });
