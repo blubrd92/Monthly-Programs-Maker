@@ -910,7 +910,7 @@ const FlyerApp = (function () {
       const mlTimeSize = Math.round(timeSize * scaleFactor);
       const mlBranchSize = Math.round(dateSize * 0.9 * scaleFactor);
 
-      // Render shared fields above columns (full width, centered)
+      // Render shared fields above columns (right-aligned, matching single-location padding)
       const sharedDayEl = sharedDay ? el('div', {
         text: sharedDay,
         style: {
@@ -918,7 +918,8 @@ const FlyerApp = (function () {
           fontSize: dateSize + 'px',
           fontWeight: styles.programDateBold ? '700' : '400',
           color: textColor,
-          textAlign: 'center',
+          textAlign: 'right',
+          paddingRight: '15px',
           lineHeight: '1.1',
           margin: '0',
         },
@@ -930,7 +931,8 @@ const FlyerApp = (function () {
           fontSize: timeSize + 'px',
           fontWeight: styles.programTimeBold ? '700' : '400',
           color: textColor,
-          textAlign: 'center',
+          textAlign: 'right',
+          paddingRight: '15px',
           lineHeight: '1.1',
           margin: '0',
         },
