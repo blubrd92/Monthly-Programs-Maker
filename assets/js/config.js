@@ -146,8 +146,8 @@ const CONFIG = (function () {
     KID_MODE_DEFAULTS: {
       styles: {
         programNameFontSize: 18,
-        programDateFontSize: 14,
-        programTimeFontSize: 14,
+        programDateFontSize: 12,
+        programTimeFontSize: 12,
         programSubtitleFontSize: 12,
         headerTitleFontSize: 30,
         headerMonthFontSize: 30,
