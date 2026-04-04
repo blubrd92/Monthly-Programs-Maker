@@ -2792,6 +2792,14 @@ const FlyerApp = (function () {
           }
         }
 
+        // Save any unsaved form data before re-rendering
+        if (editingCardId) {
+          const openForm = document.querySelector('.card-edit-form');
+          if (openForm) {
+            saveCardForm(openForm, editingCardId);
+          }
+        }
+
         markDirty();
         renderCardList();
         debouncedRenderPreview();
