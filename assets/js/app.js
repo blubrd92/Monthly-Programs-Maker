@@ -869,54 +869,68 @@ const FlyerApp = (function () {
 
     if (hasMultiLocation) {
       rightZone = el('div', { 'class': 'flyer-kid-card-locations', style: { width: imageWidth } });
-      card.locations.forEach(function (loc) {
-        const locColor = isClosure ? CONFIG.COLORS.closureText : (loc.branchColor || effectiveColor);
+
+      // Helper to build a location column
+      function buildLocCol(dayText, timeText, branchName, branchAddress, color) {
         const col = el('div', { 'class': 'location-col' });
-        if (loc.dayText) {
+        if (dayText) {
           col.appendChild(el('div', {
-            text: loc.dayText,
+            text: dayText,
             style: {
               fontFamily: fontRoles.programDate,
               fontSize: dateSize + 'px',
               fontWeight: styles.programDateBold ? '700' : '400',
-              color: locColor,
+              color: color,
             },
           }));
         }
-        if (loc.timeText) {
+        if (timeText) {
           col.appendChild(el('div', {
-            text: loc.timeText,
+            text: timeText,
             style: {
               fontFamily: fontRoles.programTime,
               fontSize: timeSize + 'px',
               fontWeight: styles.programTimeBold ? '700' : '400',
-              color: locColor,
+              color: color,
             },
           }));
         }
-        if (loc.branchName) {
+        if (branchName) {
           col.appendChild(el('div', {
             'class': 'flyer-kid-card-branch',
-            text: loc.branchName,
+            text: branchName,
             style: {
               fontFamily: fontRoles.programDate,
               fontSize: (dateSize * 0.9) + 'px',
-              color: locColor,
+              color: color,
             },
           }));
         }
-        if (loc.branchAddress) {
+        if (branchAddress) {
           col.appendChild(el('div', {
             'class': 'flyer-kid-card-address',
-            text: loc.branchAddress,
+            text: branchAddress,
             style: {
               fontFamily: fontRoles.programDate,
               fontSize: (dateSize * 0.9) + 'px',
-              color: locColor,
+              color: color,
             },
           }));
         }
-        rightZone.appendChild(col);
+        return col;
+      }
+
+      // First column: card's main location
+      rightZone.appendChild(buildLocCol(
+        card.dateText, card.timeText, card.branchName, card.branchAddress, textColor
+      ));
+
+      // Additional columns from locations[]
+      card.locations.forEach(function (loc) {
+        const locColor = isClosure ? CONFIG.COLORS.closureText : (loc.branchColor || effectiveColor);
+        rightZone.appendChild(buildLocCol(
+          loc.dayText, loc.timeText, loc.branchName, loc.branchAddress, locColor
+        ));
       });
     } else {
       rightZone = el('div', { 'class': 'flyer-kid-card-location', style: { width: imageWidth } });
@@ -2588,14 +2602,6 @@ const FlyerApp = (function () {
     multiLocCheck.addEventListener('change', function () {
       locationsContainer.style.display = multiLocCheck.checked ? 'block' : 'none';
       if (multiLocCheck.checked && locationsContainer.querySelectorAll('.location-entry').length === 0) {
-        // Pre-populate first entry with the card's current location
-        addLocationEntry({
-          branchName: card.branchName,
-          branchAddress: card.branchAddress,
-          branchColor: card.branchColor,
-          dayText: form.querySelector('.input-date') ? form.querySelector('.input-date').value : '',
-          timeText: form.querySelector('.input-time') ? form.querySelector('.input-time').value : '',
-        });
         addLocationEntry(null);
       }
     });

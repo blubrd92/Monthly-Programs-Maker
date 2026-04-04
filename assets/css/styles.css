@@ -1127,9 +1127,9 @@ body.mode-kid .kid-mode-only .form-row { display: flex !important; }
 /* Multi-location layout */
 .flyer-kid-card-locations {
   display: flex;
-  gap: 12px;
+  gap: 0;
   text-align: right;
-  padding: 3px 10px 3px 8px;
+  padding: 3px 6px 3px 0;
   flex-shrink: 0;
   align-items: center;
   box-sizing: border-box;
@@ -1140,9 +1140,13 @@ body.mode-kid .kid-mode-only .form-row { display: flex !important; }
   flex-direction: column;
   justify-content: center;
   white-space: nowrap;
-  min-width: 80px;
-  padding: 2px 6px;
-  border-left: 2px solid currentColor;
+  flex: 1;
+  min-width: 0;
+  padding: 1px 4px;
+}
+
+.flyer-kid-card-locations .location-col + .location-col {
+  border-left: 1px solid currentColor;
 }
 
 .flyer-kid-card-branch {
