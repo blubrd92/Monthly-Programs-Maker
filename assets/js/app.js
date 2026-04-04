@@ -808,6 +808,7 @@ const FlyerApp = (function () {
 
     const isClosure = card.isClosure;
     const textColor = isClosure ? CONFIG.COLORS.closureText : effectiveColor;
+    const branchTextColor = isClosure ? CONFIG.COLORS.closureText : (card.branchColor || '#0474bf');
     const bgColor = isClosure ? effectiveColor : '#ffffff';
 
     // Image zone (left side)
@@ -936,7 +937,8 @@ const FlyerApp = (function () {
       const colsRow = el('div', { 'class': 'flyer-kid-card-locations' });
 
       // Helper to build a location column (skip shared fields)
-      function buildLocCol(dayText, locTimeText, branchName, branchAddress, color) {
+      // dateTimeColor: color for date/time text; locBranchColor: color for branch name/address
+      function buildLocCol(dayText, locTimeText, branchName, branchAddress, dateTimeColor, locBranchColor) {
         const col = el('div', { 'class': 'location-col' });
         const colDayEl = (dayText && !sharedDay) ? el('div', {
           text: dayText,
@@ -944,7 +946,7 @@ const FlyerApp = (function () {
             fontFamily: fontRoles.programDate,
             fontSize: mlDateSize + 'px',
             fontWeight: styles.programDateBold ? '700' : '400',
-            color: color,
+            color: dateTimeColor,
           },
         }) : null;
         const colTimeEl = (locTimeText && !sharedTime) ? el('div', {
@@ -953,7 +955,7 @@ const FlyerApp = (function () {
             fontFamily: fontRoles.programTime,
             fontSize: mlTimeSize + 'px',
             fontWeight: styles.programTimeBold ? '700' : '400',
-            color: color,
+            color: dateTimeColor,
           },
         }) : null;
         if (isSpanish) {
@@ -970,7 +972,7 @@ const FlyerApp = (function () {
             style: {
               fontFamily: fontRoles.programDate,
               fontSize: mlBranchSize + 'px',
-              color: color,
+              color: locBranchColor,
             },
           }));
         }
@@ -981,7 +983,7 @@ const FlyerApp = (function () {
             style: {
               fontFamily: fontRoles.programDate,
               fontSize: mlBranchSize + 'px',
-              color: color,
+              color: locBranchColor,
             },
           }));
         }
@@ -989,15 +991,17 @@ const FlyerApp = (function () {
       }
 
       // First column: card's main location
+      // Date/time uses textColor (includes color override); branch name/address uses branch's own color
       colsRow.appendChild(buildLocCol(
-        card.dateText, card.timeText, card.branchName, card.branchAddress, textColor
+        card.dateText, card.timeText, card.branchName, card.branchAddress, textColor, branchTextColor
       ));
 
       // Additional columns from locations[]
       card.locations.forEach(function (loc) {
-        const locColor = isClosure ? CONFIG.COLORS.closureText : (loc.branchColor || effectiveColor);
+        const locDateTimeColor = isClosure ? CONFIG.COLORS.closureText : effectiveColor;
+        const locBranchColor = isClosure ? CONFIG.COLORS.closureText : (loc.branchColor || '#0474bf');
         colsRow.appendChild(buildLocCol(
-          loc.dayText, loc.timeText, loc.branchName, loc.branchAddress, locColor
+          loc.dayText, loc.timeText, loc.branchName, loc.branchAddress, locDateTimeColor, locBranchColor
         ));
       });
 
@@ -1042,7 +1046,7 @@ const FlyerApp = (function () {
           style: {
             fontFamily: fontRoles.programDate,
             fontSize: (dateSize * 0.9) + 'px',
-            color: textColor,
+            color: branchTextColor,
           },
         }));
       }
@@ -1054,7 +1058,7 @@ const FlyerApp = (function () {
           style: {
             fontFamily: fontRoles.programDate,
             fontSize: (dateSize * 0.9) + 'px',
-            color: textColor,
+            color: branchTextColor,
           },
         }));
       }
