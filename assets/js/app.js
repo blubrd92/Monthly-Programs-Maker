@@ -868,7 +868,17 @@ const FlyerApp = (function () {
     const hasMultiLocation = card.locations && card.locations.length > 0;
 
     if (hasMultiLocation) {
-      rightZone = el('div', { 'class': 'flyer-kid-card-locations', style: { width: imageWidth } });
+      // Wrapper: flex column for shared fields on top + columns below
+      rightZone = el('div', {
+        'class': 'flyer-kid-card-locations-wrapper',
+        style: { width: imageWidth, display: 'flex', flexDirection: 'column', justifyContent: 'center', flexShrink: '0', boxSizing: 'border-box', padding: '3px 6px 3px 0' },
+      });
+
+      // Check for shared date/time across all locations
+      const allDays = [card.dateText || ''].concat(card.locations.map(function (l) { return l.dayText || ''; }));
+      const allTimes = [card.timeText || ''].concat(card.locations.map(function (l) { return l.timeText || ''; }));
+      const sharedDay = allDays.every(function (d) { return d === allDays[0]; }) && allDays[0] ? allDays[0] : null;
+      const sharedTime = allTimes.every(function (t) { return t === allTimes[0]; }) && allTimes[0] ? allTimes[0] : null;
 
       // Scale font sizes to fit available space
       const totalCols = 1 + card.locations.length;
@@ -877,10 +887,39 @@ const FlyerApp = (function () {
       const mlTimeSize = Math.round(timeSize * scaleFactor);
       const mlBranchSize = Math.round(dateSize * 0.9 * scaleFactor);
 
-      // Helper to build a location column
+      // Render shared fields above columns (full width, centered)
+      if (sharedDay) {
+        rightZone.appendChild(el('div', {
+          text: sharedDay,
+          style: {
+            fontFamily: fontRoles.programDate,
+            fontSize: dateSize + 'px',
+            fontWeight: styles.programDateBold ? '700' : '400',
+            color: textColor,
+            textAlign: 'center',
+          },
+        }));
+      }
+      if (sharedTime) {
+        rightZone.appendChild(el('div', {
+          text: sharedTime,
+          style: {
+            fontFamily: fontRoles.programTime,
+            fontSize: timeSize + 'px',
+            fontWeight: styles.programTimeBold ? '700' : '400',
+            color: textColor,
+            textAlign: 'center',
+          },
+        }));
+      }
+
+      // Columns row
+      const colsRow = el('div', { 'class': 'flyer-kid-card-locations' });
+
+      // Helper to build a location column (skip shared fields)
       function buildLocCol(dayText, locTimeText, branchName, branchAddress, color) {
         const col = el('div', { 'class': 'location-col' });
-        if (dayText) {
+        if (dayText && !sharedDay) {
           col.appendChild(el('div', {
             text: dayText,
             style: {
@@ -891,7 +930,7 @@ const FlyerApp = (function () {
             },
           }));
         }
-        if (locTimeText) {
+        if (locTimeText && !sharedTime) {
           col.appendChild(el('div', {
             text: locTimeText,
             style: {
@@ -928,17 +967,19 @@ const FlyerApp = (function () {
       }
 
       // First column: card's main location
-      rightZone.appendChild(buildLocCol(
+      colsRow.appendChild(buildLocCol(
         card.dateText, card.timeText, card.branchName, card.branchAddress, textColor
       ));
 
       // Additional columns from locations[]
       card.locations.forEach(function (loc) {
         const locColor = isClosure ? CONFIG.COLORS.closureText : (loc.branchColor || effectiveColor);
-        rightZone.appendChild(buildLocCol(
+        colsRow.appendChild(buildLocCol(
           loc.dayText, loc.timeText, loc.branchName, loc.branchAddress, locColor
         ));
       });
+
+      rightZone.appendChild(colsRow);
     } else {
       rightZone = el('div', { 'class': 'flyer-kid-card-location', style: { width: imageWidth } });
 
