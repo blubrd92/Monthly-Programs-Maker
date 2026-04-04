@@ -275,7 +275,7 @@ describe('FlyerUtils.createDefaultKidPage', () => {
   it('creates a kid page with correct structure', () => {
     const page = FlyerUtils.createDefaultKidPage();
     expect(page.header).toBeDefined();
-    expect(page.header.titleText).toBe('Library Programs');
+    expect(page.header.titleText).toBe("San Rafael Public Library\nChildren's Programs");
     expect(Array.isArray(page.cards)).toBe(true);
     expect(page.cards).toHaveLength(1);
     expect(page.cards[0].name).toBe('Program Name');
@@ -305,7 +305,7 @@ describe('FlyerUtils.duplicatePage (kid mode)', () => {
     const dup = FlyerUtils.duplicatePage(page);
     dup.header.titleText = 'CHANGED';
     dup.cards[0].name = 'CHANGED';
-    expect(page.header.titleText).toBe('Library Programs');
+    expect(page.header.titleText).toBe("San Rafael Public Library\nChildren's Programs");
     expect(page.cards[0].name).toBe('Program Name');
   });
 });

@@ -216,8 +216,13 @@ const FlyerUtils = (function () {
    */
   function createDefaultKidPage() {
     const kidDefaults = CONFIG.KID_MODE_DEFAULTS;
+    const kidTitle = CONFIG.HEADER_TITLE_BY_LANGUAGE['kid-english'];
+    const header = deepClone(CONFIG.DEFAULT_HEADER);
+    if (kidTitle) {
+      header.titleText = kidTitle.text;
+    }
     return {
-      header: deepClone(CONFIG.DEFAULT_HEADER),
+      header: header,
       cards: [
         createBlankCard({
           name: 'Program Name',
