@@ -1145,7 +1145,7 @@ body.mode-kid .kid-mode-only .form-row { display: flex !important; }
   justify-content: center;
   flex: 1;
   min-width: 0;
-  padding: 0 4px 0 0;
+  padding: 0 4px;
   overflow: hidden;
 }
 
