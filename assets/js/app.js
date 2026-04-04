@@ -2642,6 +2642,9 @@ const FlyerApp = (function () {
       'class': 'locations-container',
       style: { display: hasLocations ? 'block' : 'none' },
     });
+    // Sortable wrapper for location entries only (excludes Add button)
+    const locEntriesWrapper = el('div', { 'class': 'location-entries-wrapper' });
+    locationsContainer.appendChild(locEntriesWrapper);
 
     function addLocationEntry(loc) {
       const entry = el('div', { 'class': 'location-entry' });
@@ -2649,8 +2652,12 @@ const FlyerApp = (function () {
         return b.name !== 'Online' && b.name !== 'City Hall' && b.name === loc.branchName;
       });
 
-      // Row 1: branch select + remove button
+      // Row 1: drag handle + branch select + remove button
       const branchRow = el('div', { 'class': 'location-entry-row' });
+      branchRow.appendChild(el('span', {
+        'class': 'location-drag-handle',
+        html: '<i class="fas fa-grip-vertical"></i>',
+      }));
       const locSelect = el('select', { 'class': 'location-branch-select' });
       CONFIG.BRANCH_DEFAULTS.forEach(function (b) {
         if (b.name === 'Online' || b.name === 'City Hall') return; // skip in kid mode
@@ -2718,7 +2725,7 @@ const FlyerApp = (function () {
       }));
       entry.appendChild(dateTimeRow);
 
-      locationsContainer.appendChild(entry);
+      locEntriesWrapper.appendChild(entry);
     }
 
     if (hasLocations && card.locations && card.locations.length > 0) {
@@ -2744,6 +2751,15 @@ const FlyerApp = (function () {
     });
     locationsContainer.appendChild(addLocBtn);
     structuredFields.appendChild(locationsContainer);
+
+    // Initialize Sortable for drag-and-drop reordering of location entries
+    if (typeof Sortable !== 'undefined') {
+      Sortable.create(locEntriesWrapper, {
+        handle: '.location-drag-handle',
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+      });
+    }
 
     multiLocCheck.addEventListener('change', function () {
       locationsContainer.style.display = multiLocCheck.checked ? 'block' : 'none';
