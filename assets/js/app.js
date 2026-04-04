@@ -2480,6 +2480,10 @@ const FlyerApp = (function () {
       }));
     }
     cardImageGroup.appendChild(cardImageUpload);
+    cardImageGroup.appendChild(el('span', {
+      'class': 'form-hint',
+      text: 'Recommended: ~1125px wide at 600 DPI',
+    }));
     structuredFields.appendChild(cardImageGroup);
 
     // Name
@@ -2512,6 +2516,10 @@ const FlyerApp = (function () {
       }));
     }
     nameImageGroup.appendChild(nameImageUpload);
+    nameImageGroup.appendChild(el('span', {
+      'class': 'form-hint',
+      text: 'Recommended: ~2400px wide at 600 DPI',
+    }));
     structuredFields.appendChild(nameImageGroup);
 
     // Subtitle (textarea for multi-line)
