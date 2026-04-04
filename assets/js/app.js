@@ -2449,10 +2449,10 @@ const FlyerApp = (function () {
     const branchGroup = el('div', { 'class': 'form-group' });
     branchGroup.appendChild(el('label', { text: 'Branch / Location' }));
     const branchSelect = el('select', { 'class': 'input-branch-select' });
-    const isCustomBranch = !CONFIG.BRANCH_DEFAULTS.some(function (b) {
+    const isMultiLocBranch = card.branchName === '__multi_locations__';
+    const isCustomBranch = !isMultiLocBranch && !CONFIG.BRANCH_DEFAULTS.some(function (b) {
       return b.name !== 'Online' && b.name !== 'City Hall' && b.name === card.branchName;
     });
-    const isMultiLocBranch = card.branchName === '__multi_locations__';
     CONFIG.BRANCH_DEFAULTS.forEach(function (b) {
       if (b.name === 'Online' || b.name === 'City Hall') return; // skip in kid mode
       const opt = el('option', {
