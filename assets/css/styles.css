@@ -1108,6 +1108,12 @@ body.mode-kid .kid-mode-only .form-row { display: flex !important; }
   font-weight: 400;
 }
 
+.flyer-kid-card-note {
+  line-height: 1.15;
+  font-weight: 400;
+  font-style: italic;
+}
+
 .flyer-kid-card-location {
   text-align: right;
   padding: 3px 10px 3px 8px;

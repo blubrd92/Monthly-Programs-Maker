@@ -282,7 +282,7 @@ describe('FlyerUtils.createDefaultKidPage', () => {
     expect(page.footer).toBeDefined();
     expect(page.styles).toBeDefined();
     expect(page.styles.cardBorderWidth).toBe(3);
-    expect(page.styles.cardBorderRadius).toBe(50);
+    expect(page.styles.cardBorderRadius).toBe(40);
     expect(page.styles.cardGap).toBe(4);
   });
 });

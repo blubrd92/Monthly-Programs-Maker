@@ -776,8 +776,9 @@ const FlyerApp = (function () {
     const dateSize = ptToPx(styles.programDateFontSize);
     const timeSize = ptToPx(styles.programTimeFontSize);
     const subtitleSize = ptToPx(styles.programSubtitleFontSize);
+    const noteSize = ptToPx(styles.programNoteFontSize || 10);
     const borderWidth = (styles.cardBorderWidth || 3) + 'px';
-    const borderRadius = (styles.cardBorderRadius || 50) + 'px';
+    const borderRadius = (styles.cardBorderRadius || 40) + 'px';
     const imageWidth = (styles.cardImageWidth || 180) + 'px';
     const isSpanish = page && page.footer && page.footer.source === 'default-spanish';
 
@@ -858,6 +859,19 @@ const FlyerApp = (function () {
         style: {
           fontFamily: fontRoles.programSubtitle,
           fontSize: subtitleSize + 'px',
+          color: textColor,
+          whiteSpace: 'pre-line',
+        },
+      }));
+    }
+
+    if (card.note) {
+      centerZone.appendChild(el('div', {
+        'class': 'flyer-kid-card-note',
+        text: card.note,
+        style: {
+          fontFamily: fontRoles.programSubtitle,
+          fontSize: noteSize + 'px',
           color: textColor,
           whiteSpace: 'pre-line',
         },
@@ -2546,6 +2560,18 @@ const FlyerApp = (function () {
       subtitleTextarea
     ));
 
+    // Program Note
+    const noteTextarea = el('textarea', {
+      'class': 'input-note',
+      rows: '2',
+      style: { resize: 'vertical' },
+    });
+    noteTextarea.value = card.note || '';
+    structuredFields.appendChild(el('div', { 'class': 'form-group' },
+      el('label', { text: 'Program Note' }),
+      noteTextarea
+    ));
+
     // Date + Time
     const dateInput = el('textarea', { 'class': 'input-date', rows: '2', style: { resize: 'none' } });
     dateInput.value = card.dateText || '';
@@ -2816,6 +2842,7 @@ const FlyerApp = (function () {
       card.freeTextOverride = null;
       card.name = form.querySelector('.input-name').value;
       card.subtitle = form.querySelector('.input-subtitle').value;
+      card.note = form.querySelector('.input-note') ? form.querySelector('.input-note').value : '';
       card.dateText = form.querySelector('.input-date').value;
       card.timeText = form.querySelector('.input-time').value;
       card.isClosure = form.querySelector('.input-closure').checked;
@@ -3152,6 +3179,14 @@ const FlyerApp = (function () {
     if (cardImageWidthInput) {
       cardImageWidthInput.addEventListener('input', function () {
         getCurrentPage().styles.cardImageWidth = parseInt(cardImageWidthInput.value, 10) || 80;
+        markDirty();
+        debouncedRenderPreview();
+      });
+    }
+    const noteFontSizeInput = document.getElementById('style-program-note-font-size');
+    if (noteFontSizeInput) {
+      noteFontSizeInput.addEventListener('input', function () {
+        getCurrentPage().styles.programNoteFontSize = parseInt(noteFontSizeInput.value, 10) || 10;
         markDirty();
         debouncedRenderPreview();
       });
@@ -3520,6 +3555,8 @@ const FlyerApp = (function () {
       const cardIWInput = document.getElementById('style-card-image-width');
       if (cardGInput) cardGInput.value = page.styles.cardGap || 4;
       if (cardIWInput) cardIWInput.value = page.styles.cardImageWidth || 180;
+      const noteFSInput = document.getElementById('style-program-note-font-size');
+      if (noteFSInput) noteFSInput.value = page.styles.programNoteFontSize || 10;
     }
 
   }

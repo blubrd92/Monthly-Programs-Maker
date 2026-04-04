@@ -206,6 +206,7 @@ const FlyerUtils = (function () {
       freeTextItalic: d.freeTextItalic || false,
       colorOverride: d.colorOverride || null,
       imageId: d.imageId || null,
+      note: d.note || '',
       nameImageId: d.nameImageId || null,
       locations: d.locations || [],
     };
