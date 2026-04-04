@@ -777,7 +777,7 @@ const FlyerApp = (function () {
     const timeSize = ptToPx(styles.programTimeFontSize);
     const subtitleSize = ptToPx(styles.programSubtitleFontSize);
     const borderWidth = (styles.cardBorderWidth || 3) + 'px';
-    const borderRadius = (styles.cardBorderRadius || 30) + 'px';
+    const borderRadius = (styles.cardBorderRadius || 50) + 'px';
     const imageWidth = (styles.cardImageWidth || 180) + 'px';
     const isSpanish = page && page.footer && page.footer.source === 'default-spanish';
 
@@ -3139,24 +3139,8 @@ const FlyerApp = (function () {
     });
 
     // ── Kid Mode: Card Styling Controls ──────────────
-    const cardBorderWidthInput = document.getElementById('style-card-border-width');
-    const cardBorderRadiusInput = document.getElementById('style-card-border-radius');
     const cardGapInput = document.getElementById('style-card-gap');
 
-    if (cardBorderWidthInput) {
-      cardBorderWidthInput.addEventListener('input', function () {
-        getCurrentPage().styles.cardBorderWidth = parseInt(cardBorderWidthInput.value, 10) || 3;
-        markDirty();
-        debouncedRenderPreview();
-      });
-    }
-    if (cardBorderRadiusInput) {
-      cardBorderRadiusInput.addEventListener('input', function () {
-        getCurrentPage().styles.cardBorderRadius = parseInt(cardBorderRadiusInput.value, 10) || 12;
-        markDirty();
-        debouncedRenderPreview();
-      });
-    }
     if (cardGapInput) {
       cardGapInput.addEventListener('input', function () {
         getCurrentPage().styles.cardGap = parseInt(cardGapInput.value, 10) || 4;
@@ -3532,12 +3516,8 @@ const FlyerApp = (function () {
 
     // Kid mode-specific settings
     if (meta.mode === 'kid' && page.styles) {
-      const cardBWInput = document.getElementById('style-card-border-width');
-      const cardBRInput = document.getElementById('style-card-border-radius');
       const cardGInput = document.getElementById('style-card-gap');
       const cardIWInput = document.getElementById('style-card-image-width');
-      if (cardBWInput) cardBWInput.value = page.styles.cardBorderWidth || 3;
-      if (cardBRInput) cardBRInput.value = page.styles.cardBorderRadius || 30;
       if (cardGInput) cardGInput.value = page.styles.cardGap || 4;
       if (cardIWInput) cardIWInput.value = page.styles.cardImageWidth || 180;
     }

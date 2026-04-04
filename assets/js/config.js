@@ -155,7 +155,7 @@ const CONFIG = (function () {
         programDateBold: true,
         programTimeBold: false,
         cardBorderWidth: 3,
-        cardBorderRadius: 30,
+        cardBorderRadius: 50,
         cardGap: 4,
         cardImageWidth: 180,
       },
