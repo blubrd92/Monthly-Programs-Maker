@@ -2274,10 +2274,10 @@ const FlyerApp = (function () {
     branchGroup.appendChild(el('label', { text: 'Branch / Location' }));
     const branchSelect = el('select', { 'class': 'input-branch-select' });
     const isCustomBranch = !CONFIG.BRANCH_DEFAULTS.some(function (b) {
-      return b.name !== 'Online' && b.name === card.branchName;
+      return b.name !== 'Online' && b.name !== 'City Hall' && b.name === card.branchName;
     });
     CONFIG.BRANCH_DEFAULTS.forEach(function (b) {
-      if (b.name === 'Online') return; // skip Online in kid mode
+      if (b.name === 'Online' || b.name === 'City Hall') return; // skip in kid mode
       const opt = el('option', {
         value: b.name,
         text: b.name + (b.address ? ' — ' + b.address : ''),
@@ -2423,14 +2423,14 @@ const FlyerApp = (function () {
     function addLocationEntry(loc) {
       const entry = el('div', { 'class': 'location-entry' });
       const isLocCustom = loc && !CONFIG.BRANCH_DEFAULTS.some(function (b) {
-        return b.name !== 'Online' && b.name === loc.branchName;
+        return b.name !== 'Online' && b.name !== 'City Hall' && b.name === loc.branchName;
       });
 
       // Top row: branch select + day input + remove button
       const topRow = el('div', { 'class': 'location-entry-row' });
       const locSelect = el('select', { 'class': 'location-branch-select' });
       CONFIG.BRANCH_DEFAULTS.forEach(function (b) {
-        if (b.name === 'Online') return; // skip Online in kid mode
+        if (b.name === 'Online' || b.name === 'City Hall') return; // skip in kid mode
         const opt = el('option', {
           value: b.name,
           text: b.name,
