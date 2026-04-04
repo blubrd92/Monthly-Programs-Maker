@@ -1263,10 +1263,11 @@ body.mode-kid .kid-mode-only .form-row { display: flex !important; }
 
 /* Multi-location editor rows */
 .location-entry {
-  padding: 8px;
-  border: 1px solid #eee;
-  border-radius: 4px;
-  margin-bottom: 6px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  background: #fafafa;
 }
 
 .location-entry-row {
@@ -1280,8 +1281,10 @@ body.mode-kid .kid-mode-only .form-row { display: flex !important; }
   min-width: 0;
 }
 
-.location-entry-row .location-day-input {
-  width: 100px;
+.location-entry-row .location-day-input,
+.location-entry-row .location-time-input {
+  flex: 1;
+  min-width: 0;
 }
 
 .location-entry .btn-remove-location {
@@ -1289,7 +1292,8 @@ body.mode-kid .kid-mode-only .form-row { display: flex !important; }
   border: none;
   cursor: pointer;
   color: #999;
-  padding: 2px 4px;
+  padding: 4px 6px;
+  flex-shrink: 0;
 }
 
 .location-entry .btn-remove-location:hover {

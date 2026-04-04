@@ -822,6 +822,17 @@ const FlyerApp = (function () {
             },
           }));
         }
+        if (loc.timeText) {
+          col.appendChild(el('div', {
+            text: loc.timeText,
+            style: {
+              fontFamily: fontRoles.programTime,
+              fontSize: timeSize + 'px',
+              fontWeight: styles.programTimeBold ? '700' : '400',
+              color: locColor,
+            },
+          }));
+        }
         if (loc.branchName) {
           col.appendChild(el('div', {
             'class': 'flyer-kid-card-branch',
@@ -2426,14 +2437,14 @@ const FlyerApp = (function () {
         return b.name !== 'Online' && b.name !== 'City Hall' && b.name === loc.branchName;
       });
 
-      // Top row: branch select + day input + remove button
-      const topRow = el('div', { 'class': 'location-entry-row' });
+      // Row 1: branch select + remove button
+      const branchRow = el('div', { 'class': 'location-entry-row' });
       const locSelect = el('select', { 'class': 'location-branch-select' });
       CONFIG.BRANCH_DEFAULTS.forEach(function (b) {
         if (b.name === 'Online' || b.name === 'City Hall') return; // skip in kid mode
         const opt = el('option', {
           value: b.name,
-          text: b.name,
+          text: b.name + (b.address ? ' — ' + b.address : ''),
           'data-address': b.address || '',
           'data-color': b.color,
         });
@@ -2443,21 +2454,15 @@ const FlyerApp = (function () {
       const locCustomOpt = el('option', { value: '__custom__', text: 'Custom...' });
       if (isLocCustom) locCustomOpt.selected = true;
       locSelect.appendChild(locCustomOpt);
-      topRow.appendChild(locSelect);
-      topRow.appendChild(el('input', {
-        type: 'text',
-        'class': 'location-day-input',
-        placeholder: 'Day (e.g. Wednesdays)',
-        value: (loc && loc.dayText) || '',
-      }));
-      topRow.appendChild(el('button', {
+      branchRow.appendChild(locSelect);
+      branchRow.appendChild(el('button', {
         'class': 'btn-remove-location',
         html: '<i class="fas fa-times"></i>',
         on: { click: function () { entry.remove(); } },
       }));
-      entry.appendChild(topRow);
+      entry.appendChild(branchRow);
 
-      // Custom location fields (below the top row)
+      // Custom location fields
       const locCustomFields = el('div', {
         'class': 'location-custom-fields',
         style: { display: isLocCustom ? 'block' : 'none', marginTop: '6px' },
@@ -2484,6 +2489,22 @@ const FlyerApp = (function () {
       locSelect.addEventListener('change', function () {
         locCustomFields.style.display = locSelect.value === '__custom__' ? 'block' : 'none';
       });
+
+      // Row 2: day + time inputs
+      const dateTimeRow = el('div', { 'class': 'location-entry-row', style: { marginTop: '6px' } });
+      dateTimeRow.appendChild(el('input', {
+        type: 'text',
+        'class': 'location-day-input',
+        placeholder: 'Date (e.g. Wednesdays)',
+        value: (loc && loc.dayText) || '',
+      }));
+      dateTimeRow.appendChild(el('input', {
+        type: 'text',
+        'class': 'location-time-input',
+        placeholder: 'Time (e.g. 3:00 PM)',
+        value: (loc && loc.timeText) || '',
+      }));
+      entry.appendChild(dateTimeRow);
 
       locationsContainer.appendChild(entry);
     }
@@ -2686,6 +2707,7 @@ const FlyerApp = (function () {
         locEntries.forEach(function (entry) {
           const locSelect = entry.querySelector('.location-branch-select');
           const dayInput = entry.querySelector('.location-day-input');
+          const timeInput = entry.querySelector('.location-time-input');
           if (locSelect) {
             let locData;
             if (locSelect.value === '__custom__') {
@@ -2694,6 +2716,7 @@ const FlyerApp = (function () {
                 branchAddress: entry.querySelector('.location-custom-address').value || '',
                 branchColor: entry.querySelector('.location-custom-color').value || '#666666',
                 dayText: dayInput ? dayInput.value : '',
+                timeText: timeInput ? timeInput.value : '',
               };
             } else {
               const selOpt = locSelect.options[locSelect.selectedIndex];
@@ -2702,6 +2725,7 @@ const FlyerApp = (function () {
                 branchAddress: selOpt.getAttribute('data-address') || '',
                 branchColor: selOpt.getAttribute('data-color') || '#0474bf',
                 dayText: dayInput ? dayInput.value : '',
+                timeText: timeInput ? timeInput.value : '',
               };
             }
             card.locations.push(locData);
