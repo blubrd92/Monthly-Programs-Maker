@@ -3742,7 +3742,7 @@ const FlyerApp = (function () {
       const a = document.createElement('a');
       a.href = url;
       const firstPage = pages[0];
-      const baseName = (firstPage.header.titleText + ' - ' + firstPage.header.monthText).trim() || 'flyer';
+      const baseName = ((firstPage.header.titleText || '').replace(/\n/g, ' ') + ' - ' + (firstPage.header.monthText || '')).trim() || 'flyer';
       a.download = baseName + '.flyer';
       document.body.appendChild(a);
       a.click();
@@ -4053,7 +4053,7 @@ const FlyerApp = (function () {
 
       chain.then(function () {
         const firstPage = pages[0];
-        const filename = (firstPage.header.titleText + ' - ' + firstPage.header.monthText).trim() + '.pdf' || 'flyer.pdf';
+        const filename = ((firstPage.header.titleText || '').replace(/\n/g, ' ') + ' - ' + (firstPage.header.monthText || '')).trim() + '.pdf' || 'flyer.pdf';
         pdf.save(filename);
         showNotification('PDF exported successfully!', 'success');
       }).catch(function (err) {
