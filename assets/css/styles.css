@@ -1133,29 +1133,28 @@ body.mode-kid .kid-mode-only .form-row { display: flex !important; }
 .flyer-kid-card-locations {
   display: flex;
   gap: 0;
+  text-align: right;
   align-items: center;
   min-height: 0;
-  margin-left: auto;
 }
 
 .flyer-kid-card-locations .location-col {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  flex: 1;
   min-width: 0;
   padding: 0 0 0 4px;
   overflow: hidden;
 }
 
 .flyer-kid-card-locations .location-col:first-child {
-  text-align: right;
   padding-left: 0;
   padding-right: 4px;
 }
 
 .flyer-kid-card-locations .location-col + .location-col {
   border-left: 1px solid currentColor;
-  text-align: left;
 }
 
 .flyer-kid-card-branch {
