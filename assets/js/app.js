@@ -4157,12 +4157,14 @@ const FlyerApp = (function () {
                 if (meta.mode === 'kid') {
                   fitMultiLocationText(tempDiv);
                   // IMPORTANT: Same delayed re-run as in renderKidPreview — images/fonts
-                  // may not be fully laid out yet, so we re-fit after 150ms before
+                  // may not be fully laid out yet, so we re-fit after 300ms before
                   // capturing to PDF. Without this, multi-location text can be clipped.
+                  // PDF export uses a longer delay (300ms vs 150ms in preview) because
+                  // the off-screen temp div may take longer to fully settle.
                   setTimeout(function () {
                     fitMultiLocationText(tempDiv);
                     capturePage();
-                  }, 150);
+                  }, 300);
                 } else {
                   autoSizeVerticalText(tempDiv);
                   rasterizeVerticalText(tempDiv, scaleRatio);
