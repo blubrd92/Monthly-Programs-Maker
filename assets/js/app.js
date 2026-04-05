@@ -3858,7 +3858,9 @@ const FlyerApp = (function () {
       const a = document.createElement('a');
       a.href = url;
       const firstPage = pages[0];
-      const baseName = ((firstPage.header.titleText || '').replace(/\n/g, ' ').replace(/San Rafael Public Library/gi, 'SRPL') + ' - ' + (firstPage.header.monthText || '')).trim() || 'flyer';
+      let titleForFile = (firstPage.header.titleText || '').replace(/\n/g, ' ');
+      if (firstPage.cards) titleForFile = titleForFile.replace(/San Rafael Public Library/gi, 'SRPL');
+      const baseName = (titleForFile + ' - ' + (firstPage.header.monthText || '')).trim() || 'flyer';
       a.download = baseName + '.flyer';
       document.body.appendChild(a);
       a.click();
@@ -4171,7 +4173,9 @@ const FlyerApp = (function () {
 
       chain.then(function () {
         const firstPage = pages[0];
-        const filename = ((firstPage.header.titleText || '').replace(/\n/g, ' ').replace(/San Rafael Public Library/gi, 'SRPL') + ' - ' + (firstPage.header.monthText || '')).trim() + '.pdf' || 'flyer.pdf';
+        let pdfTitle = (firstPage.header.titleText || '').replace(/\n/g, ' ');
+        if (firstPage.cards) pdfTitle = pdfTitle.replace(/San Rafael Public Library/gi, 'SRPL');
+        const filename = (pdfTitle + ' - ' + (firstPage.header.monthText || '')).trim() + '.pdf' || 'flyer.pdf';
         pdf.save(filename);
         showNotification('PDF exported successfully!', 'success');
       }).catch(function (err) {
