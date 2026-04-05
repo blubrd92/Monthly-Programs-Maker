@@ -1305,12 +1305,16 @@ const FlyerApp = (function () {
       container.style.transform = 'scale(' + zoomLevel + ')';
     }
 
-    // After layout settles: fit multi-location text and check overflow
+    // After layout settles: fit multi-location text and check overflow.
+    // IMPORTANT: fitMultiLocationText must run twice — once immediately after the
+    // double-rAF (for initial sizing), and again after a 150ms delay. The delayed
+    // re-run is necessary because images and fonts may still be loading/rendering
+    // after the initial pass, causing card heights to change. Without the delayed
+    // re-run, multi-location text can appear clipped until a manual page refresh.
     requestAnimationFrame(function () {
       requestAnimationFrame(function () {
         fitMultiLocationText(preview);
         checkOverflow();
-        // Re-run after a short delay to catch late layout changes (e.g. images loading)
         setTimeout(function () {
           fitMultiLocationText(preview);
         }, 150);
@@ -4152,7 +4156,9 @@ const FlyerApp = (function () {
                 // Kid mode: fit multi-location text; Standard: auto-size and rasterize vertical text
                 if (meta.mode === 'kid') {
                   fitMultiLocationText(tempDiv);
-                  // Delayed re-run to catch late layout changes, then capture
+                  // IMPORTANT: Same delayed re-run as in renderKidPreview — images/fonts
+                  // may not be fully laid out yet, so we re-fit after 150ms before
+                  // capturing to PDF. Without this, multi-location text can be clipped.
                   setTimeout(function () {
                     fitMultiLocationText(tempDiv);
                     capturePage();
