@@ -1152,22 +1152,24 @@ const FlyerApp = (function () {
         return;
       }
 
-      // Calculate scale ratio (how much we can grow)
+      // Calculate scale ratio to fit content to available space
       const ratio = availableHeight / naturalHeight;
-      if (ratio <= 1.05) {
+      // Skip if already a good fit (within 5% tolerance)
+      if (ratio > 0.95 && ratio < 1.05) {
         wrapper.style.justifyContent = origJustify;
         return;
       }
 
-      // Cap the scale-up and leave a margin to prevent content from pushing card height
-      const maxScale = Math.min(ratio * 0.85, 2.0);
+      // Apply safety margin: scale up to 93% of available, scale down fully
+      // maxHeight on the card prevents overflow, so we can be less conservative
+      const scale = ratio > 1 ? Math.min(ratio * 0.93, 2.0) : ratio;
 
-      // Collect text elements and their original sizes before modifying
+      // Scale all text elements within the wrapper
       const textEls = wrapper.querySelectorAll('div');
       textEls.forEach(function (textEl) {
         const currentSize = parseFloat(textEl.style.fontSize);
         if (currentSize) {
-          textEl.style.fontSize = Math.round(currentSize * maxScale) + 'px';
+          textEl.style.fontSize = Math.max(6, Math.round(currentSize * scale)) + 'px';
         }
       });
 
