@@ -938,6 +938,7 @@ const FlyerApp = (function () {
           color: textColor,
           textAlign: 'right',
           lineHeight: tightLineHeight,
+          whiteSpace: 'pre-line',
           margin: '0',
         },
       }) : null;
@@ -950,6 +951,7 @@ const FlyerApp = (function () {
           color: textColor,
           textAlign: 'right',
           lineHeight: tightLineHeight,
+          whiteSpace: 'pre-line',
           margin: '0',
         },
       }) : null;
@@ -977,6 +979,7 @@ const FlyerApp = (function () {
             fontWeight: styles.programDateBold ? '700' : '400',
             color: dateTimeColor,
             lineHeight: tightLineHeight,
+            whiteSpace: 'pre-line',
           },
         }) : null;
         const colTimeEl = (locTimeText && !sharedTime) ? el('div', {
@@ -987,6 +990,7 @@ const FlyerApp = (function () {
             fontWeight: styles.programTimeBold ? '700' : '400',
             color: dateTimeColor,
             lineHeight: tightLineHeight,
+            whiteSpace: 'pre-line',
           },
         }) : null;
         if (isSpanish) {
@@ -2826,18 +2830,22 @@ const FlyerApp = (function () {
 
       // Row 2: day + time inputs
       const dateTimeRow = el('div', { 'class': 'location-entry-row', style: { marginTop: '6px' } });
-      dateTimeRow.appendChild(el('input', {
-        type: 'text',
+      const dayTextarea = el('textarea', {
         'class': 'location-day-input',
         placeholder: 'Date (e.g. Wednesdays)',
-        value: (loc && loc.dayText) || '',
-      }));
-      dateTimeRow.appendChild(el('input', {
-        type: 'text',
+        rows: '1',
+        style: { resize: 'vertical' },
+      });
+      dayTextarea.value = (loc && loc.dayText) || '';
+      dateTimeRow.appendChild(dayTextarea);
+      const timeTextarea = el('textarea', {
         'class': 'location-time-input',
         placeholder: 'Time (e.g. 3:00 PM)',
-        value: (loc && loc.timeText) || '',
-      }));
+        rows: '1',
+        style: { resize: 'vertical' },
+      });
+      timeTextarea.value = (loc && loc.timeText) || '';
+      dateTimeRow.appendChild(timeTextarea);
       entry.appendChild(dateTimeRow);
 
       locEntriesWrapper.appendChild(entry);
