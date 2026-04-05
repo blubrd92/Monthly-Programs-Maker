@@ -1186,8 +1186,11 @@ const FlyerApp = (function () {
         if (contentHeight <= 0) break;
 
         const ratio = availableHeight / contentHeight;
-        // If content fits well enough (within 5% of available), stop
-        if (ratio >= 0.95 && ratio <= 1.05) break;
+        // Stop when content fits with 0-5% room to spare.
+        // ratio >= 1.0 ensures content never overflows (ratio < 1 means overflow).
+        // Previously used 0.95 lower bound, which allowed up to 5% overflow —
+        // invisible at screen resolution but caused clipping in 600 DPI PDF exports.
+        if (ratio >= 1.0 && ratio <= 1.05) break;
 
         // Scale all text elements proportionally
         let capped = false;
