@@ -2922,7 +2922,7 @@ const FlyerApp = (function () {
       el('button', {
         'class': 'btn btn-sm btn-success',
         html: '<i class="fas fa-check"></i> Save',
-        on: { click: function () { saveCardForm(form, card.id); } },
+        on: { click: function () { saveAndCloseCardForm(form, card.id); } },
       })
     ));
 
@@ -3113,7 +3113,10 @@ const FlyerApp = (function () {
     if (card.colorOverride) {
       lastColorOverride = card.colorOverride;
     }
+  }
 
+  function saveAndCloseCardForm(form, cardId) {
+    saveCardForm(form, cardId);
     editingCardId = null;
     isDirty = true;
     renderCardList();
