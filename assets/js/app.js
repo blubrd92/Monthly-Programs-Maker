@@ -899,7 +899,7 @@ const FlyerApp = (function () {
         'data-max-date-size': dateSize,
         'data-max-time-size': timeSize,
         'data-max-branch-size': Math.round(dateSize * 0.9),
-        style: { width: imageWidth, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '1px', flexShrink: '0', boxSizing: 'border-box', padding: '0 18px 0 0', overflow: 'hidden' },
+        style: { width: imageWidth, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '1px', flexShrink: '0', boxSizing: 'border-box', padding: '2px 18px 2px 0', overflow: 'hidden' },
       });
 
       // Check for shared date/time across all locations
