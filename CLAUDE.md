@@ -21,8 +21,8 @@ assets/
     flyer-utils.js                  Pure/utility functions (testable, no DOM)
     app.js                          Core app logic: rendering, UI, state, PDF export
   img/
-    footer-english-default.png      Default English footer (4800x600px, 600 DPI)
-    footer-spanish-default.png      Default Spanish footer (4800x600px, 600 DPI)
+    footer-english-default.png      Default English footer (4800x480px, 600 DPI)
+    footer-spanish-default.png      Default Spanish footer (4800x480px, 600 DPI)
 tests/
   flyer-utils.test.js              Unit tests for utility functions
 eslint.config.js                   ESLint config (ES2022, script sourceType, browser globals)
@@ -125,7 +125,7 @@ Programs support:
 - Per-program color override takes precedence over branch color
 - Closure rows: branch-color (or override color) background, white text
 - Subtitles: always normal weight (400), never inherit bold from closure
-- Footer images: 4800x600px (8"x1" at 600 DPI)
+- Footer images: 4800x480px (8"x0.8" at 600 DPI)
 - Asterisk note: supports multi-line via `white-space: pre-line`
 - PDF export: 600 DPI, JPEG 0.92 quality
 - Save files use `.flyer` extension (JSON format, supports legacy single-page)

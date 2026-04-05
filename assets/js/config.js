@@ -76,9 +76,9 @@ const CONFIG = (function () {
         'default-spanish': 'assets/img/footer-spanish-default.png',
       },
       widthInches: 8.0,
-      heightInches: 1.0,
+      heightInches: 0.8,
       widthPx: 4800,
-      heightPx: 600,
+      heightPx: 480,
     },
 
     // ── Default Styles ───────────────────────────────────
