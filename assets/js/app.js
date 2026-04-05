@@ -1055,6 +1055,7 @@ const FlyerApp = (function () {
           fontSize: dateSize + 'px',
           fontWeight: styles.programDateBold ? '700' : '400',
           color: textColor,
+          whiteSpace: 'pre-line',
         },
       }) : null;
 
@@ -1066,6 +1067,7 @@ const FlyerApp = (function () {
           fontSize: timeSize + 'px',
           fontWeight: styles.programTimeBold ? '700' : '400',
           color: textColor,
+          whiteSpace: 'pre-line',
         },
       }) : null;
 
