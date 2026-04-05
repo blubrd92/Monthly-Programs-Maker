@@ -895,6 +895,7 @@ const FlyerApp = (function () {
       // Wrapper: flex column for shared fields on top + columns below
       rightZone = el('div', {
         'class': 'flyer-kid-card-locations-wrapper',
+        'data-multi-loc-fit': 'true',
         style: { width: imageWidth, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '1px', flexShrink: '0', boxSizing: 'border-box', padding: '0' },
       });
 
@@ -1109,6 +1110,44 @@ const FlyerApp = (function () {
   }
 
   /**
+   * Post-render pass: scale multi-location text to fit available card height.
+   * Measures each wrapper's container height vs content height and scales up
+   * all text elements proportionally if there's extra room.
+   * Call after layout has settled (e.g. inside requestAnimationFrame).
+   */
+  function fitMultiLocationText(root) {
+    const wrappers = (root || document).querySelectorAll('[data-multi-loc-fit]');
+    wrappers.forEach(function (wrapper) {
+      const card = wrapper.closest('.flyer-kid-card');
+      if (!card) return;
+
+      // Available height = card inner height
+      const cardHeight = card.clientHeight;
+      if (cardHeight <= 0) return;
+
+      // Measure how tall the wrapper content currently is
+      const contentHeight = wrapper.scrollHeight;
+      if (contentHeight <= 0) return;
+
+      // Calculate scale ratio (how much we can grow)
+      const ratio = cardHeight / contentHeight;
+      if (ratio <= 1.05) return; // already filling the space (5% tolerance)
+
+      // Cap the scale-up to avoid absurdly large text
+      const maxScale = Math.min(ratio, 2.0);
+
+      // Scale all text elements within the wrapper
+      const textEls = wrapper.querySelectorAll('div');
+      textEls.forEach(function (textEl) {
+        const currentSize = parseFloat(textEl.style.fontSize);
+        if (currentSize) {
+          textEl.style.fontSize = Math.round(currentSize * maxScale) + 'px';
+        }
+      });
+    });
+  }
+
+  /**
    * Load all images referenced by current kid-mode cards into the in-memory cache.
    * Returns a Promise that resolves when all images are cached.
    */
@@ -1200,9 +1239,10 @@ const FlyerApp = (function () {
       container.style.transform = 'scale(' + zoomLevel + ')';
     }
 
-    // Check overflow after layout settles
+    // After layout settles: fit multi-location text and check overflow
     requestAnimationFrame(function () {
       requestAnimationFrame(function () {
+        fitMultiLocationText(preview);
         checkOverflow();
       });
     });
@@ -4022,8 +4062,10 @@ const FlyerApp = (function () {
             // Wait for layout to settle, then auto-size text, rasterize, then capture
             requestAnimationFrame(function () {
               requestAnimationFrame(function () {
-                // Kid mode has no vertical text, skip rasterization
-                if (meta.mode !== 'kid') {
+                // Kid mode: fit multi-location text; Standard: auto-size and rasterize vertical text
+                if (meta.mode === 'kid') {
+                  fitMultiLocationText(tempDiv);
+                } else {
                   autoSizeVerticalText(tempDiv);
                   rasterizeVerticalText(tempDiv, scaleRatio);
                 }
