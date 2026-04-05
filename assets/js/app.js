@@ -1118,6 +1118,15 @@ const FlyerApp = (function () {
   function fitMultiLocationText(root) {
     const wrappers = (root || document).querySelectorAll('[data-multi-loc-fit]');
     wrappers.forEach(function (wrapper) {
+      const card = wrapper.closest('.flyer-kid-card');
+      if (!card) return;
+
+      // Lock the card's current height so text scaling can't inflate it
+      const cardHeight = card.offsetHeight;
+      if (cardHeight > 0) {
+        card.style.maxHeight = cardHeight + 'px';
+      }
+
       // Temporarily switch to flex-start to measure natural content height
       const origJustify = wrapper.style.justifyContent;
       wrapper.style.justifyContent = 'flex-start';
