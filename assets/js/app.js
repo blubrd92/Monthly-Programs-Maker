@@ -1122,7 +1122,7 @@ const FlyerApp = (function () {
    * all text elements proportionally if there's extra room.
    * Call after layout has settled (e.g. inside requestAnimationFrame).
    */
-  function fitMultiLocationText(root) {
+  function fitMultiLocationText(root, forPdf) {
     const wrappers = (root || document).querySelectorAll('[data-multi-loc-fit]');
     wrappers.forEach(function (wrapper) {
       const card = wrapper.closest('.flyer-kid-card');
@@ -1209,6 +1209,18 @@ const FlyerApp = (function () {
         });
         // If everything hit the cap and we're scaling up, stop
         if (capped && ratio > 1) break;
+      }
+
+      // PDF safety margin: scale down by 3% to prevent clipping from sub-pixel
+      // rendering differences between the DOM and html2canvas. Only applied
+      // during PDF export — preview rendering doesn't need this.
+      if (forPdf) {
+        textEls.forEach(function (textEl) {
+          const size = parseFloat(textEl.style.fontSize);
+          if (size) {
+            textEl.style.fontSize = Math.max(6, Math.floor(size * 0.97)) + 'px';
+          }
+        });
       }
 
       // Restore overflow:hidden on columns
@@ -4175,7 +4187,7 @@ const FlyerApp = (function () {
                   Promise.all(imgPromises).then(function () {
                     requestAnimationFrame(function () {
                       requestAnimationFrame(function () {
-                        fitMultiLocationText(tempDiv);
+                        fitMultiLocationText(tempDiv, true);
                         capturePage();
                       });
                     });
