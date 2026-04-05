@@ -1146,14 +1146,18 @@ const FlyerApp = (function () {
           hoistedLineCount++;
         }
       }
-      // Count max lines in any single column
+      // Count max visual lines in any single column (account for \n in text)
       let maxColLines = 0;
       const cols = wrapper.querySelectorAll('.location-col');
       cols.forEach(function (col) {
         let colLines = 0;
         const colChildren = col.children;
         for (let j = 0; j < colChildren.length; j++) {
-          if (colChildren[j].textContent) colLines++;
+          const txt = colChildren[j].textContent;
+          if (txt) {
+            // Count newlines as extra visual lines
+            colLines += 1 + (txt.match(/\n/g) || []).length;
+          }
         }
         if (colLines > maxColLines) maxColLines = colLines;
       });
