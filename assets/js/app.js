@@ -2979,6 +2979,14 @@ const FlyerApp = (function () {
     const page = getActivePage();
     if (!page || !page.cards) return;
 
+    // Save any unsaved form data before re-rendering
+    if (editingCardId) {
+      const openForm = document.querySelector('.card-edit-form');
+      if (openForm) {
+        saveCardForm(openForm, editingCardId);
+      }
+    }
+
     for (let i = 0; i < page.cards.length; i++) {
       if (page.cards[i].id === cardId) {
         const key = field === 'nameImage' ? 'nameImageId' : 'imageId';
