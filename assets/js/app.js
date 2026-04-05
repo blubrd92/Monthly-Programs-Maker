@@ -1134,37 +1134,11 @@ const FlyerApp = (function () {
       const availableHeight = cardHeight - borderTop - borderBottom;
       if (availableHeight <= 0) return;
 
-      // Count effective vertical lines:
-      // hoisted elements (direct children with fontSize) + max lines in any single column
+      // Measure actual content height (scrollHeight accounts for wrapped text)
+      const contentHeight = wrapper.scrollHeight;
+      if (contentHeight <= 0) return;
+
       const textEls = wrapper.querySelectorAll('div[style]');
-      let hoistedLineCount = 0;
-      const directChildren = wrapper.children;
-      for (let i = 0; i < directChildren.length; i++) {
-        if (directChildren[i].style.fontSize && directChildren[i].textContent) {
-          hoistedLineCount++;
-        }
-      }
-      // Count max lines in any single column
-      let maxColLines = 0;
-      const cols = wrapper.querySelectorAll('.location-col');
-      cols.forEach(function (col) {
-        let colLines = 0;
-        const colChildren = col.children;
-        for (let j = 0; j < colChildren.length; j++) {
-          if (colChildren[j].textContent) colLines++;
-        }
-        if (colLines > maxColLines) maxColLines = colLines;
-      });
-      const lineCount = hoistedLineCount + maxColLines;
-      if (lineCount <= 0) return;
-
-      // Calculate ideal font size to fill available height
-      // Use lineHeight of 1.0 (matching tightLineHeight) plus small padding
-      const idealSize = Math.floor((availableHeight / lineCount) * 0.85);
-      if (idealSize < 6) return;
-
-      // Apply: scale each element proportionally based on its current relative size
-      // Find the largest current font size to use as reference
       let maxCurrentSize = 0;
       textEls.forEach(function (el) {
         const size = parseFloat(el.style.fontSize);
@@ -1176,12 +1150,17 @@ const FlyerApp = (function () {
       const maxDateSize = parseFloat(wrapper.getAttribute('data-max-date-size')) || 999;
       const maxBranchSize = parseFloat(wrapper.getAttribute('data-max-branch-size')) || 999;
 
-      const scale = idealSize / maxCurrentSize;
+      // Scale based on ratio of available height to actual content height
+      let scale = (availableHeight / contentHeight) * 0.92;
+      // Also cap: don't scale above single-location sizes
+      if (scale > maxDateSize / maxCurrentSize) {
+        scale = maxDateSize / maxCurrentSize;
+      }
+
       textEls.forEach(function (textEl) {
         const currentSize = parseFloat(textEl.style.fontSize);
         if (currentSize) {
           let newSize = Math.max(6, Math.round(currentSize * scale));
-          // Cap branch/address at branch max, everything else at date max
           const isBranch = textEl.classList.contains('flyer-kid-card-branch') || textEl.classList.contains('flyer-kid-card-address');
           newSize = Math.min(newSize, isBranch ? maxBranchSize : maxDateSize);
           textEl.style.fontSize = newSize + 'px';

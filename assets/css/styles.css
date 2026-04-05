@@ -1159,7 +1159,6 @@ body.mode-kid .kid-mode-only .form-row { display: flex !important; }
   flex: none;
   width: fit-content;
   max-width: 50%;
-  overflow: visible;
 }
 
 .flyer-kid-card-branch {
