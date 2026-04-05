@@ -910,23 +910,31 @@ const FlyerApp = (function () {
       const sharedTime = allTimes.every(function (t) { return t === allTimes[0]; }) && allTimes[0] ? allTimes[0] : null;
 
       // Scale font sizes to fit available space
+      // Adaptive: count max content lines per column to determine how aggressively to scale
       const totalCols = (isMultiLocMode ? 0 : 1) + card.locations.length;
-      const scaleFactor = Math.max(0.5, 1 / (1 + 0.35 * (totalCols - 1)));
+      const linesPerCol = (sharedDay ? 0 : 1) + (sharedTime ? 0 : 1) + 2; // date + time + branch + address (minus hoisted)
+      // Less aggressive scaling when hoisting reduces column content
+      const contentFactor = Math.max(0.6, linesPerCol / 4); // 4 = max possible lines
+      const colScale = 0.35 * contentFactor; // softer scaling when fewer lines per column
+      const scaleFactor = Math.max(0.5, 1 / (1 + colScale * (totalCols - 1)));
+      // Hoisted text scales too, but less aggressively (it has full width)
+      const hoistScale = Math.max(0.7, scaleFactor * 1.15);
       const mlDateSize = Math.round(dateSize * scaleFactor);
       const mlTimeSize = Math.round(timeSize * scaleFactor);
       const mlBranchSize = Math.round(dateSize * 0.9 * scaleFactor);
+      const tightLineHeight = '1.0';
 
       // Render shared fields above columns (right-aligned, matching single-location padding)
       const sharedDayEl = sharedDay ? el('div', {
         text: sharedDay,
         style: {
           fontFamily: fontRoles.programDate,
-          fontSize: dateSize + 'px',
+          fontSize: Math.round(dateSize * hoistScale) + 'px',
           fontWeight: styles.programDateBold ? '700' : '400',
           color: textColor,
           textAlign: 'right',
           paddingRight: '15px',
-          lineHeight: '1.1',
+          lineHeight: tightLineHeight,
           margin: '0',
         },
       }) : null;
@@ -934,12 +942,12 @@ const FlyerApp = (function () {
         text: sharedTime,
         style: {
           fontFamily: fontRoles.programTime,
-          fontSize: timeSize + 'px',
+          fontSize: Math.round(timeSize * hoistScale) + 'px',
           fontWeight: styles.programTimeBold ? '700' : '400',
           color: textColor,
           textAlign: 'right',
           paddingRight: '15px',
-          lineHeight: '1.1',
+          lineHeight: tightLineHeight,
           margin: '0',
         },
       }) : null;
@@ -966,6 +974,7 @@ const FlyerApp = (function () {
             fontSize: mlDateSize + 'px',
             fontWeight: styles.programDateBold ? '700' : '400',
             color: dateTimeColor,
+            lineHeight: tightLineHeight,
           },
         }) : null;
         const colTimeEl = (locTimeText && !sharedTime) ? el('div', {
@@ -975,6 +984,7 @@ const FlyerApp = (function () {
             fontSize: mlTimeSize + 'px',
             fontWeight: styles.programTimeBold ? '700' : '400',
             color: dateTimeColor,
+            lineHeight: tightLineHeight,
           },
         }) : null;
         if (isSpanish) {
@@ -992,6 +1002,7 @@ const FlyerApp = (function () {
               fontFamily: fontRoles.programDate,
               fontSize: mlBranchSize + 'px',
               color: locBranchColor,
+              lineHeight: tightLineHeight,
             },
           }));
         }
@@ -1003,6 +1014,7 @@ const FlyerApp = (function () {
               fontFamily: fontRoles.programDate,
               fontSize: mlBranchSize + 'px',
               color: locBranchColor,
+              lineHeight: tightLineHeight,
             },
           }));
         }
