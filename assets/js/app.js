@@ -1310,6 +1310,10 @@ const FlyerApp = (function () {
       requestAnimationFrame(function () {
         fitMultiLocationText(preview);
         checkOverflow();
+        // Re-run after a short delay to catch late layout changes (e.g. images loading)
+        setTimeout(function () {
+          fitMultiLocationText(preview);
+        }, 150);
       });
     });
   }
