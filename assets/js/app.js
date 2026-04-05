@@ -4155,16 +4155,28 @@ const FlyerApp = (function () {
               requestAnimationFrame(function () {
                 // Kid mode: fit multi-location text; Standard: auto-size and rasterize vertical text
                 if (meta.mode === 'kid') {
-                  fitMultiLocationText(tempDiv);
-                  // IMPORTANT: Same delayed re-run as in renderKidPreview — images/fonts
-                  // may not be fully laid out yet, so we re-fit after 300ms before
-                  // capturing to PDF. Without this, multi-location text can be clipped.
-                  // PDF export uses a longer delay (300ms vs 150ms in preview) because
-                  // the off-screen temp div may take longer to fully settle.
-                  setTimeout(function () {
-                    fitMultiLocationText(tempDiv);
-                    capturePage();
-                  }, 300);
+                  // IMPORTANT: Wait for all images in the temp div to load before
+                  // fitting text. Card heights depend on image dimensions, so measuring
+                  // before images load produces incorrect scaling. Without this,
+                  // multi-location text can be clipped in the exported PDF.
+                  const imgs = tempDiv.querySelectorAll('img');
+                  const imgPromises = [];
+                  imgs.forEach(function (img) {
+                    if (!img.complete) {
+                      imgPromises.push(new Promise(function (res) {
+                        img.addEventListener('load', res);
+                        img.addEventListener('error', res);
+                      }));
+                    }
+                  });
+                  Promise.all(imgPromises).then(function () {
+                    requestAnimationFrame(function () {
+                      requestAnimationFrame(function () {
+                        fitMultiLocationText(tempDiv);
+                        capturePage();
+                      });
+                    });
+                  });
                 } else {
                   autoSizeVerticalText(tempDiv);
                   rasterizeVerticalText(tempDiv, scaleRatio);
