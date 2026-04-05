@@ -1017,7 +1017,6 @@ const FlyerApp = (function () {
               fontSize: mlBranchSize + 'px',
               color: locBranchColor,
               lineHeight: tightLineHeight,
-              whiteSpace: 'pre-line',
             },
           }));
         }
@@ -1094,7 +1093,6 @@ const FlyerApp = (function () {
             fontFamily: fontRoles.programDate,
             fontSize: (dateSize * 0.9) + 'px',
             color: branchTextColor,
-            whiteSpace: 'pre-line',
           },
         }));
       }
