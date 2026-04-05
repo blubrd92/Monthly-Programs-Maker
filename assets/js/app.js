@@ -896,6 +896,9 @@ const FlyerApp = (function () {
       rightZone = el('div', {
         'class': 'flyer-kid-card-locations-wrapper',
         'data-multi-loc-fit': 'true',
+        'data-max-date-size': dateSize,
+        'data-max-time-size': timeSize,
+        'data-max-branch-size': Math.round(dateSize * 0.9),
         style: { width: imageWidth, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '1px', flexShrink: '0', boxSizing: 'border-box', padding: '0', overflow: 'hidden' },
       });
 
@@ -1171,11 +1174,19 @@ const FlyerApp = (function () {
       });
       if (maxCurrentSize <= 0) return;
 
+      // Cap sizes at single-location equivalents
+      const maxDateSize = parseFloat(wrapper.getAttribute('data-max-date-size')) || 999;
+      const maxBranchSize = parseFloat(wrapper.getAttribute('data-max-branch-size')) || 999;
+
       const scale = idealSize / maxCurrentSize;
-      textEls.forEach(function (el) {
-        const currentSize = parseFloat(el.style.fontSize);
+      textEls.forEach(function (textEl) {
+        const currentSize = parseFloat(textEl.style.fontSize);
         if (currentSize) {
-          el.style.fontSize = Math.max(6, Math.round(currentSize * scale)) + 'px';
+          let newSize = Math.max(6, Math.round(currentSize * scale));
+          // Cap branch/address at branch max, everything else at date max
+          const isBranch = textEl.classList.contains('flyer-kid-card-branch') || textEl.classList.contains('flyer-kid-card-address');
+          newSize = Math.min(newSize, isBranch ? maxBranchSize : maxDateSize);
+          textEl.style.fontSize = newSize + 'px';
         }
       });
     });
