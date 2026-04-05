@@ -1123,58 +1123,45 @@ const FlyerApp = (function () {
 
       // Lock the card's current height so text scaling can't inflate it
       const cardHeight = card.offsetHeight;
-      if (cardHeight > 0) {
-        card.style.maxHeight = cardHeight + 'px';
-      }
+      if (cardHeight <= 0) return;
+      card.style.maxHeight = cardHeight + 'px';
 
-      // Temporarily switch to flex-start to measure natural content height
-      const origJustify = wrapper.style.justifyContent;
-      wrapper.style.justifyContent = 'flex-start';
+      // Calculate available height for the wrapper (card height minus border)
+      const cardStyle = window.getComputedStyle(card);
+      const borderTop = parseFloat(cardStyle.borderTopWidth) || 0;
+      const borderBottom = parseFloat(cardStyle.borderBottomWidth) || 0;
+      const availableHeight = cardHeight - borderTop - borderBottom;
+      if (availableHeight <= 0) return;
 
-      // Available height = wrapper's rendered height (it stretches to fill the card via flex)
-      const availableHeight = wrapper.clientHeight;
-      if (availableHeight <= 0) {
-        wrapper.style.justifyContent = origJustify;
-        return;
-      }
+      // Count text lines: all divs with fontSize set are content lines
+      const textEls = wrapper.querySelectorAll('div[style]');
+      let lineCount = 0;
+      textEls.forEach(function (el) {
+        if (el.style.fontSize && el.textContent) lineCount++;
+      });
+      if (lineCount <= 0) return;
 
-      // Measure natural content height by summing children's offset heights
-      let naturalHeight = 0;
-      const children = wrapper.children;
-      for (let i = 0; i < children.length; i++) {
-        naturalHeight += children[i].offsetHeight;
-      }
-      const gap = parseFloat(wrapper.style.gap) || 0;
-      if (children.length > 1) naturalHeight += gap * (children.length - 1);
+      // Calculate ideal font size to fill available height
+      // Use lineHeight of 1.0 (matching tightLineHeight) plus small padding
+      const idealSize = Math.floor((availableHeight / lineCount) * 0.85);
+      if (idealSize < 6) return;
 
-      if (naturalHeight <= 0) {
-        wrapper.style.justifyContent = origJustify;
-        return;
-      }
+      // Apply: scale each element proportionally based on its current relative size
+      // Find the largest current font size to use as reference
+      let maxCurrentSize = 0;
+      textEls.forEach(function (el) {
+        const size = parseFloat(el.style.fontSize);
+        if (size > maxCurrentSize) maxCurrentSize = size;
+      });
+      if (maxCurrentSize <= 0) return;
 
-      // Calculate scale ratio to fit content to available space
-      const ratio = availableHeight / naturalHeight;
-      // Skip if already a good fit (within 5% tolerance)
-      if (ratio > 0.95 && ratio < 1.05) {
-        wrapper.style.justifyContent = origJustify;
-        return;
-      }
-
-      // Apply safety margin: scale up to 93% of available, scale down fully
-      // maxHeight on the card prevents overflow, so we can be less conservative
-      const scale = ratio > 1 ? Math.min(ratio * 0.93, 2.0) : ratio;
-
-      // Scale all text elements within the wrapper
-      const textEls = wrapper.querySelectorAll('div');
-      textEls.forEach(function (textEl) {
-        const currentSize = parseFloat(textEl.style.fontSize);
+      const scale = idealSize / maxCurrentSize;
+      textEls.forEach(function (el) {
+        const currentSize = parseFloat(el.style.fontSize);
         if (currentSize) {
-          textEl.style.fontSize = Math.max(6, Math.round(currentSize * scale)) + 'px';
+          el.style.fontSize = Math.max(6, Math.round(currentSize * scale)) + 'px';
         }
       });
-
-      // Restore justify-content
-      wrapper.style.justifyContent = origJustify;
     });
   }
 
