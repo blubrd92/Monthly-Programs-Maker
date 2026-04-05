@@ -1133,12 +1133,28 @@ const FlyerApp = (function () {
       const availableHeight = cardHeight - borderTop - borderBottom;
       if (availableHeight <= 0) return;
 
-      // Count text lines: all divs with fontSize set are content lines
+      // Count effective vertical lines:
+      // hoisted elements (direct children with fontSize) + max lines in any single column
       const textEls = wrapper.querySelectorAll('div[style]');
-      let lineCount = 0;
-      textEls.forEach(function (el) {
-        if (el.style.fontSize && el.textContent) lineCount++;
+      let hoistedLineCount = 0;
+      const directChildren = wrapper.children;
+      for (let i = 0; i < directChildren.length; i++) {
+        if (directChildren[i].style.fontSize && directChildren[i].textContent) {
+          hoistedLineCount++;
+        }
+      }
+      // Count max lines in any single column
+      let maxColLines = 0;
+      const cols = wrapper.querySelectorAll('.location-col');
+      cols.forEach(function (col) {
+        let colLines = 0;
+        const colChildren = col.children;
+        for (let j = 0; j < colChildren.length; j++) {
+          if (colChildren[j].textContent) colLines++;
+        }
+        if (colLines > maxColLines) maxColLines = colLines;
       });
+      const lineCount = hoistedLineCount + maxColLines;
       if (lineCount <= 0) return;
 
       // Calculate ideal font size to fill available height
