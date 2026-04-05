@@ -1150,15 +1150,25 @@ const FlyerApp = (function () {
 
       // Iteratively scale text to fit available height (up to 8 passes)
       for (let pass = 0; pass < 8; pass++) {
-        // Measure content height: sum each wrapper child's scrollHeight,
-        // plus any margin between them
+        // Measure content height: for the columns row, use the tallest
+        // column's scrollHeight (the row itself is constrained by the wrapper).
+        // For other children, use scrollHeight directly.
         let contentHeight = 0;
         for (let i = 0; i < wrapper.children.length; i++) {
           const child = wrapper.children[i];
           const childStyle = window.getComputedStyle(child);
           const mt = parseFloat(childStyle.marginTop) || 0;
           const mb = parseFloat(childStyle.marginBottom) || 0;
-          contentHeight += child.scrollHeight + mt + mb;
+          const childCols = child.querySelectorAll('.location-col');
+          if (childCols.length > 0) {
+            let maxColH = 0;
+            childCols.forEach(function (col) {
+              if (col.scrollHeight > maxColH) maxColH = col.scrollHeight;
+            });
+            contentHeight += maxColH + mt + mb;
+          } else {
+            contentHeight += child.scrollHeight + mt + mb;
+          }
         }
         if (contentHeight <= 0) break;
 
