@@ -149,7 +149,7 @@ const CONFIG = (function () {
         programDateFontSize: 12,
         programTimeFontSize: 12,
         programSubtitleFontSize: 16,
-        programNoteFontSize: 10,
+        programNoteFontSize: 9,
         headerTitleFontSize: 30,
         headerMonthFontSize: 30,
         programNameBold: true,
