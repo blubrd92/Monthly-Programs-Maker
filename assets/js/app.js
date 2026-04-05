@@ -1127,11 +1127,14 @@ const FlyerApp = (function () {
       if (cardHeight <= 0) return;
       card.style.maxHeight = cardHeight + 'px';
 
-      // Calculate available height for the wrapper (card height minus border)
+      // Calculate available height for the wrapper (card height minus border and wrapper padding)
       const cardStyle = window.getComputedStyle(card);
       const borderTop = parseFloat(cardStyle.borderTopWidth) || 0;
       const borderBottom = parseFloat(cardStyle.borderBottomWidth) || 0;
-      const availableHeight = cardHeight - borderTop - borderBottom;
+      const wrapperStyle = window.getComputedStyle(wrapper);
+      const padTop = parseFloat(wrapperStyle.paddingTop) || 0;
+      const padBottom = parseFloat(wrapperStyle.paddingBottom) || 0;
+      const availableHeight = cardHeight - borderTop - borderBottom - padTop - padBottom;
       if (availableHeight <= 0) return;
 
       const textEls = wrapper.querySelectorAll('div[style]');
