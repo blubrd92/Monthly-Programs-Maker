@@ -1136,9 +1136,6 @@ body.mode-kid .kid-mode-only .form-row { display: flex !important; }
   text-align: right;
   align-items: center;
   min-height: 0;
-  align-self: flex-end;
-  padding-right: 18px;
-  box-sizing: border-box;
 }
 
 .flyer-kid-card-locations .location-col {
