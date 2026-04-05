@@ -963,7 +963,7 @@ const FlyerApp = (function () {
       }
 
       // Columns row
-      const colsRow = el('div', { 'class': 'flyer-kid-card-locations' });
+      const colsRow = el('div', { 'class': 'flyer-kid-card-locations', style: { marginTop: '2px' } });
 
       // Helper to build a location column (skip shared fields)
       // dateTimeColor: color for date/time text; locBranchColor: color for branch name/address
@@ -1144,27 +1144,21 @@ const FlyerApp = (function () {
       const maxDateSize = parseFloat(wrapper.getAttribute('data-max-date-size')) || 999;
       const maxBranchSize = parseFloat(wrapper.getAttribute('data-max-branch-size')) || 999;
 
-      // Iteratively scale text to fit available height (up to 5 passes)
-      for (let pass = 0; pass < 5; pass++) {
-        // Measure content height: for each wrapper child, use the greater of
-        // offsetHeight and scrollHeight to catch overflow clipped by overflow:hidden.
-        // For the columns row (flex row), check each column's scrollHeight individually
-        // since the row's offsetHeight only reflects the visible/clipped portion.
+      // Temporarily remove overflow:hidden on columns so we can measure true content height
+      const cols = wrapper.querySelectorAll('.location-col');
+      cols.forEach(function (col) { col.style.overflow = 'visible'; });
+
+      // Iteratively scale text to fit available height (up to 8 passes)
+      for (let pass = 0; pass < 8; pass++) {
+        // Measure content height: sum each wrapper child's scrollHeight,
+        // plus any margin between them
         let contentHeight = 0;
         for (let i = 0; i < wrapper.children.length; i++) {
           const child = wrapper.children[i];
-          const cols = child.querySelectorAll('.location-col');
-          if (cols.length > 0) {
-            // Columns row: use tallest column's scrollHeight
-            let maxColHeight = 0;
-            cols.forEach(function (col) {
-              const h = Math.max(col.offsetHeight, col.scrollHeight);
-              if (h > maxColHeight) maxColHeight = h;
-            });
-            contentHeight += maxColHeight;
-          } else {
-            contentHeight += Math.max(child.offsetHeight, child.scrollHeight);
-          }
+          const childStyle = window.getComputedStyle(child);
+          const mt = parseFloat(childStyle.marginTop) || 0;
+          const mb = parseFloat(childStyle.marginBottom) || 0;
+          contentHeight += child.scrollHeight + mt + mb;
         }
         if (contentHeight <= 0) break;
 
@@ -1190,6 +1184,9 @@ const FlyerApp = (function () {
         // If everything hit the cap and we're scaling up, stop
         if (capped && ratio > 1) break;
       }
+
+      // Restore overflow:hidden on columns
+      cols.forEach(function (col) { col.style.overflow = ''; });
     });
   }
 
