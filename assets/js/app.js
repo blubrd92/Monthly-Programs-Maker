@@ -4152,34 +4152,42 @@ const FlyerApp = (function () {
                 // Kid mode: fit multi-location text; Standard: auto-size and rasterize vertical text
                 if (meta.mode === 'kid') {
                   fitMultiLocationText(tempDiv);
+                  // Delayed re-run to catch late layout changes, then capture
+                  setTimeout(function () {
+                    fitMultiLocationText(tempDiv);
+                    capturePage();
+                  }, 150);
                 } else {
                   autoSizeVerticalText(tempDiv);
                   rasterizeVerticalText(tempDiv, scaleRatio);
+                  capturePage();
                 }
 
-                html2canvas(tempDiv, {
-                  scale: scaleRatio,
-                  useCORS: true,
-                  logging: false,
-                  width: previewWidthPx,
-                  height: previewHeightPx,
-                  windowWidth: previewWidthPx,
-                  windowHeight: previewHeightPx,
-                }).then(function (canvas) {
-                  if (index > 0) {
-                    pdf.addPage([pageWidth, pageHeight], 'portrait');
-                  }
-                  const imgData = canvas.toDataURL('image/jpeg', CONFIG.PDF.jpegQuality);
-                  pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight);
+                function capturePage() {
+                  html2canvas(tempDiv, {
+                    scale: scaleRatio,
+                    useCORS: true,
+                    logging: false,
+                    width: previewWidthPx,
+                    height: previewHeightPx,
+                    windowWidth: previewWidthPx,
+                    windowHeight: previewHeightPx,
+                  }).then(function (canvas) {
+                    if (index > 0) {
+                      pdf.addPage([pageWidth, pageHeight], 'portrait');
+                    }
+                    const imgData = canvas.toDataURL('image/jpeg', CONFIG.PDF.jpegQuality);
+                    pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight);
 
-                  // Clean up temp div
-                  document.body.removeChild(tempDiv);
-                  resolve();
-                }).catch(function (err) {
-                  document.body.removeChild(tempDiv);
-                  resolve();
-                  showNotification('Page render failed: ' + err.message, 'error');
-                });
+                    // Clean up temp div
+                    document.body.removeChild(tempDiv);
+                    resolve();
+                  }).catch(function (err) {
+                    document.body.removeChild(tempDiv);
+                    resolve();
+                    showNotification('Page render failed: ' + err.message, 'error');
+                  });
+                }
               });
             });
           });
