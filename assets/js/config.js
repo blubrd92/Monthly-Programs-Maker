@@ -64,7 +64,7 @@ const CONFIG = (function () {
     BRANCH_DEFAULTS: [
       { name: 'Downtown',    address: '1100 E Street',              color: '#0474bf' },
       { name: 'City Hall',   address: '1400 5th Ave',              color: '#ff1a05' },
-      { name: 'Northgate',   address: '5800 Northgate Dr\nSte. 083', color: '#e87c09' },
+      { name: 'Northgate',   address: '5800 Northgate Dr Ste. 083', color: '#e87c09' },
       { name: 'Al Boro CC',  address: '50 Canal St',               color: '#7ca633' },
       { name: 'Online',      address: '',                           color: '#8d44ad' },
     ],
