@@ -1154,12 +1154,19 @@ const FlyerApp = (function () {
       const cols = wrapper.querySelectorAll('.location-col');
       cols.forEach(function (col) { col.style.overflow = 'visible'; });
 
+      // Account for flex gap between wrapper children
+      const wrapperGap = parseFloat(wrapperStyle.gap) || 0;
+      const gapTotal = wrapperGap * Math.max(0, wrapper.children.length - 1);
+
       // Iteratively scale text to fit available height (up to 8 passes)
       for (let pass = 0; pass < 8; pass++) {
+        // Force reflow so measurements reflect any font size changes from previous pass
+        void wrapper.offsetHeight;
+
         // Measure content height: for the columns row, use the tallest
         // column's scrollHeight (the row itself is constrained by the wrapper).
         // For other children, use scrollHeight directly.
-        let contentHeight = 0;
+        let contentHeight = gapTotal;
         for (let i = 0; i < wrapper.children.length; i++) {
           const child = wrapper.children[i];
           const childStyle = window.getComputedStyle(child);
