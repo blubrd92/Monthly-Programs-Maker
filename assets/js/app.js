@@ -1211,6 +1211,17 @@ const FlyerApp = (function () {
         if (capped && ratio > 1) break;
       }
 
+      // Safety margin: scale down by 3% to prevent clipping from sub-pixel
+      // rendering differences between the DOM and html2canvas (PDF export).
+      // DOM measurements may show content "fits" but canvas rendering of fonts
+      // can be slightly larger, causing bottom text to clip.
+      textEls.forEach(function (textEl) {
+        const size = parseFloat(textEl.style.fontSize);
+        if (size) {
+          textEl.style.fontSize = Math.max(6, Math.floor(size * 0.97)) + 'px';
+        }
+      });
+
       // Restore overflow:hidden on columns
       cols.forEach(function (col) { col.style.overflow = ''; });
     });
