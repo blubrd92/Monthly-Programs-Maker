@@ -1121,16 +1121,25 @@ const FlyerApp = (function () {
       const card = wrapper.closest('.flyer-kid-card');
       if (!card) return;
 
-      // Available height = card inner height
-      const cardHeight = card.clientHeight;
-      if (cardHeight <= 0) return;
+      // Available height = wrapper's rendered height (it stretches to fill the card)
+      const availableHeight = wrapper.clientHeight;
+      if (availableHeight <= 0) return;
 
-      // Measure how tall the wrapper content currently is
-      const contentHeight = wrapper.scrollHeight;
-      if (contentHeight <= 0) return;
+      // Measure natural content height by summing children's heights
+      // (scrollHeight won't work because flex justify-content prevents overflow)
+      let naturalHeight = 0;
+      const children = wrapper.children;
+      for (let i = 0; i < children.length; i++) {
+        naturalHeight += children[i].offsetHeight;
+      }
+      // Add gap between children
+      const gap = parseFloat(wrapper.style.gap) || 0;
+      if (children.length > 1) naturalHeight += gap * (children.length - 1);
+
+      if (naturalHeight <= 0) return;
 
       // Calculate scale ratio (how much we can grow)
-      const ratio = cardHeight / contentHeight;
+      const ratio = availableHeight / naturalHeight;
       if (ratio <= 1.05) return; // already filling the space (5% tolerance)
 
       // Cap the scale-up to avoid absurdly large text
