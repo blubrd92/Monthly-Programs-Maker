@@ -896,7 +896,7 @@ const FlyerApp = (function () {
       rightZone = el('div', {
         'class': 'flyer-kid-card-locations-wrapper',
         'data-multi-loc-fit': 'true',
-        style: { width: imageWidth, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '1px', flexShrink: '0', boxSizing: 'border-box', padding: '0' },
+        style: { width: imageWidth, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '1px', flexShrink: '0', boxSizing: 'border-box', padding: '0', overflow: 'hidden' },
       });
 
       // Check for shared date/time across all locations
@@ -1142,8 +1142,8 @@ const FlyerApp = (function () {
       const ratio = availableHeight / naturalHeight;
       if (ratio <= 1.05) return; // already filling the space (5% tolerance)
 
-      // Cap the scale-up to avoid absurdly large text
-      const maxScale = Math.min(ratio, 2.0);
+      // Cap the scale-up and leave a small margin to avoid clipping
+      const maxScale = Math.min(ratio * 0.92, 2.0);
 
       // Scale all text elements within the wrapper
       const textEls = wrapper.querySelectorAll('div');
