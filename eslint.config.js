@@ -36,10 +36,12 @@ export default [
         Sortable: 'readonly',
         jspdf: 'readonly',
         html2canvas: 'readonly',
+        indexedDB: 'readonly',
         // Project globals
         CONFIG: 'writable',
         FlyerUtils: 'writable',
         FlyerApp: 'writable',
+        ImageStore: 'writable',
       },
     },
     rules: {

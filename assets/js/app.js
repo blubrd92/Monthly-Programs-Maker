@@ -17,6 +17,15 @@ const FlyerApp = (function () {
   let autosaveTimer = null;
   let lastColorOverride = '#000000';
 
+  // Cached pages for mode switching (preserves work when toggling between standard/kid)
+  let cachedStandardPages = null;
+  let cachedStandardActivePage = 0;
+  let cachedKidPages = null;
+  let cachedKidActivePage = 0;
+
+  // In-memory cache for images loaded from IndexedDB (id → dataUrl)
+  const imageCache = {};
+
   // Shared state (not per-page)
   let meta = FlyerUtils.deepClone(CONFIG.DEFAULT_META);
   let fontRoles = FlyerUtils.deepClone(CONFIG.FONT_ROLES);
@@ -333,6 +342,67 @@ const FlyerApp = (function () {
     const titleSize = ptToPx(styles.headerTitleFontSize || CONFIG.DEFAULT_STYLES.headerTitleFontSize);
     const monthSize = ptToPx(styles.headerMonthFontSize || CONFIG.DEFAULT_STYLES.headerMonthFontSize);
 
+    // Kid mode: centered, stacked lines, month appended to title
+    if (meta.mode === 'kid') {
+      const titleText = header.titleText || '';
+      const monthText = header.monthText || '';
+      const lines = titleText.split('\n');
+      // Append month to the last line
+      if (monthText) {
+        lines[lines.length - 1] = lines[lines.length - 1] + ' ' + monthText;
+      }
+
+      const headerDiv = el('div', {
+        'class': 'flyer-header flyer-header-kid',
+        style: {
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '0',
+        },
+      });
+
+      lines.forEach(function (line, i) {
+        // Last line contains month text — render it with mixed colors
+        if (monthText && i === lines.length - 1) {
+          const titlePart = lines[lines.length - 1].replace(' ' + monthText, '');
+          const lineEl = el('div', {
+            style: {
+              fontFamily: fontRoles.headerTitle,
+              fontSize: titleSize + 'px',
+              fontWeight: '700',
+              textTransform: 'uppercase',
+              lineHeight: '1.1',
+            },
+          });
+          lineEl.appendChild(el('span', {
+            text: titlePart + ' ',
+            style: { color: header.titleColor || CONFIG.COLORS.headerTitle },
+          }));
+          lineEl.appendChild(el('span', {
+            text: monthText,
+            style: { color: header.monthColor || CONFIG.COLORS.headerMonth },
+          }));
+          headerDiv.appendChild(lineEl);
+        } else {
+          headerDiv.appendChild(el('div', {
+            text: line,
+            style: {
+              color: header.titleColor || CONFIG.COLORS.headerTitle,
+              fontFamily: fontRoles.headerTitle,
+              fontSize: titleSize + 'px',
+              fontWeight: '700',
+              textTransform: 'uppercase',
+              lineHeight: '1.1',
+            },
+          }));
+        }
+      });
+
+      return headerDiv;
+    }
+
+    // Standard mode: side-by-side title + month
     // Check if title contains a "de la" pattern for stacked rendering
     const delaMatch = (header.titleText || '').match(/^(.+?)\s+(de)\s+(la)\s+(.+)$/i);
 
@@ -702,6 +772,579 @@ const FlyerApp = (function () {
     return footerEl;
   }
 
+  // ══════════════════════════════════════════════════════════════
+  //  KID MODE RENDERING
+  // ══════════════════════════════════════════════════════════════
+
+  function renderKidCard(card, styles, page) {
+    const effectiveColor = card.colorOverride || card.branchColor || '#0474bf';
+    const nameSize = ptToPx(styles.programNameFontSize);
+    const dateSize = ptToPx(styles.programDateFontSize);
+    const timeSize = ptToPx(styles.programTimeFontSize);
+    const subtitleSize = ptToPx(styles.programSubtitleFontSize);
+    const noteSize = ptToPx(styles.programNoteFontSize || 10);
+    const borderWidth = (styles.cardBorderWidth || 3) + 'px';
+    const borderRadius = (styles.cardBorderRadius || 40) + 'px';
+    const imageWidth = (styles.cardImageWidth || 180) + 'px';
+    const isSpanish = page && page.footer && page.footer.source === 'default-spanish';
+
+    // Free-text override
+    if (card.freeTextOverride) {
+      const ftSize = ptToPx(card.freeTextFontSize || 12);
+      const ftClosure = card.isClosure;
+      const ftColor = ftClosure ? CONFIG.COLORS.closureText : effectiveColor;
+      const ftBg = ftClosure ? effectiveColor : '#ffffff';
+      return el('div', {
+        'class': 'flyer-kid-card' + (ftClosure ? ' closure' : ''),
+        text: card.freeTextOverride,
+        style: {
+          border: borderWidth + ' solid ' + effectiveColor,
+          borderRadius: borderRadius,
+          color: ftColor,
+          backgroundColor: ftBg,
+          fontFamily: fontRoles.programName,
+          fontSize: ftSize + 'px',
+          textAlign: card.freeTextAlign || 'left',
+          fontWeight: card.freeTextBold ? '700' : '400',
+          fontStyle: card.freeTextItalic ? 'italic' : 'normal',
+          padding: '4px 8px',
+        },
+      });
+    }
+
+    const isClosure = card.isClosure;
+    const textColor = isClosure ? CONFIG.COLORS.closureText : effectiveColor;
+    const branchTextColor = isClosure ? CONFIG.COLORS.closureText : (card.branchColor || '#0474bf');
+    const bgColor = isClosure ? effectiveColor : '#ffffff';
+
+    // Image zone (left side)
+    const imageDataUrl = card.imageId ? imageCache[card.imageId] : null;
+    let imageZone;
+    if (imageDataUrl) {
+      imageZone = el('div', {
+        'class': 'flyer-kid-card-image',
+        style: { width: imageWidth },
+      }, el('img', { src: imageDataUrl, alt: '' }));
+    } else {
+      imageZone = el('div', {
+        'class': 'flyer-kid-card-image empty',
+        style: {
+          width: imageWidth,
+          color: effectiveColor,
+          borderRight: '1px dashed ' + effectiveColor,
+        },
+      }, el('i', { 'class': 'fas fa-image', style: { fontSize: '16px' } }));
+    }
+
+    // Center: name (or name image) + subtitle
+    const centerZone = el('div', { 'class': 'flyer-kid-card-center' });
+
+    const nameImageDataUrl = card.nameImageId ? imageCache[card.nameImageId] : null;
+    if (nameImageDataUrl) {
+      centerZone.style.paddingTop = '0';
+      centerZone.style.paddingBottom = '0';
+      centerZone.appendChild(el('img', {
+        'class': 'flyer-kid-card-name-image',
+        src: nameImageDataUrl,
+        alt: card.name || '',
+      }));
+    } else {
+      centerZone.appendChild(el('div', {
+        'class': 'flyer-kid-card-name',
+        text: card.name || '',
+        style: {
+          fontFamily: fontRoles.programName,
+          fontSize: nameSize + 'px',
+          fontWeight: styles.programNameBold ? '700' : '400',
+          color: textColor,
+        },
+      }));
+    }
+
+    if (card.subtitle) {
+      centerZone.appendChild(el('div', {
+        'class': 'flyer-kid-card-subtitle',
+        text: card.subtitle,
+        style: {
+          fontFamily: fontRoles.programSubtitle,
+          fontSize: subtitleSize + 'px',
+          color: textColor,
+          whiteSpace: 'pre-line',
+        },
+      }));
+    }
+
+    if (card.note) {
+      centerZone.appendChild(el('div', {
+        'class': 'flyer-kid-card-note',
+        text: card.note,
+        style: {
+          fontFamily: fontRoles.programSubtitle,
+          fontSize: noteSize + 'px',
+          color: textColor,
+          whiteSpace: 'pre-line',
+        },
+      }));
+    }
+
+    // Right zone: single location or multi-location
+    let rightZone;
+    const hasMultiLocation = card.locations && card.locations.length > 0;
+
+    if (hasMultiLocation) {
+      // Wrapper: flex column for shared fields on top + columns below
+      rightZone = el('div', {
+        'class': 'flyer-kid-card-locations-wrapper',
+        'data-multi-loc-fit': 'true',
+        'data-max-date-size': dateSize,
+        'data-max-time-size': timeSize,
+        'data-max-branch-size': Math.round(dateSize * 0.9),
+        style: { width: imageWidth, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '1px', flexShrink: '0', boxSizing: 'border-box', padding: '0 18px 0 0', overflow: 'hidden' },
+      });
+
+      // Check for shared date/time across all locations
+      const isMultiLocMode = card.branchName === '__multi_locations__';
+      const allDays = isMultiLocMode
+        ? card.locations.map(function (l) { return l.dayText || ''; })
+        : [card.dateText || ''].concat(card.locations.map(function (l) { return l.dayText || ''; }));
+      const allTimes = isMultiLocMode
+        ? card.locations.map(function (l) { return l.timeText || ''; })
+        : [card.timeText || ''].concat(card.locations.map(function (l) { return l.timeText || ''; }));
+      const sharedDay = allDays.every(function (d) { return d === allDays[0]; }) && allDays[0] ? allDays[0] : null;
+      const sharedTime = allTimes.every(function (t) { return t === allTimes[0]; }) && allTimes[0] ? allTimes[0] : null;
+
+      // Scale font sizes to fit available space
+      // Adaptive: count max content lines per column to determine how aggressively to scale
+      const totalCols = (isMultiLocMode ? 0 : 1) + card.locations.length;
+      const linesPerCol = (sharedDay ? 0 : 1) + (sharedTime ? 0 : 1) + 2; // date + time + branch + address (minus hoisted)
+      // Less aggressive scaling when hoisting reduces column content
+      const contentFactor = Math.max(0.6, linesPerCol / 4); // 4 = max possible lines
+      const colScale = 0.35 * contentFactor; // softer scaling when fewer lines per column
+      const scaleFactor = Math.max(0.5, 1 / (1 + colScale * (totalCols - 1)));
+      // Hoisted text scales too, but less aggressively (it has full width)
+      const hoistScale = Math.max(0.7, scaleFactor * 1.15);
+      const mlDateSize = Math.round(dateSize * scaleFactor);
+      const mlTimeSize = Math.round(timeSize * scaleFactor);
+      const mlBranchSize = Math.round(dateSize * 0.9 * scaleFactor);
+      const tightLineHeight = '1.0';
+
+      // Render shared fields above columns (right-aligned, matching single-location padding)
+      const sharedDayEl = sharedDay ? el('div', {
+        text: sharedDay,
+        style: {
+          fontFamily: fontRoles.programDate,
+          fontSize: Math.round(dateSize * hoistScale) + 'px',
+          fontWeight: styles.programDateBold ? '700' : '400',
+          color: textColor,
+          textAlign: 'right',
+          lineHeight: tightLineHeight,
+          margin: '0',
+        },
+      }) : null;
+      const sharedTimeEl = sharedTime ? el('div', {
+        text: sharedTime,
+        style: {
+          fontFamily: fontRoles.programTime,
+          fontSize: Math.round(timeSize * hoistScale) + 'px',
+          fontWeight: styles.programTimeBold ? '700' : '400',
+          color: textColor,
+          textAlign: 'right',
+          lineHeight: tightLineHeight,
+          margin: '0',
+        },
+      }) : null;
+
+      if (isSpanish) {
+        if (sharedTimeEl) rightZone.appendChild(sharedTimeEl);
+        if (sharedDayEl) rightZone.appendChild(sharedDayEl);
+      } else {
+        if (sharedDayEl) rightZone.appendChild(sharedDayEl);
+        if (sharedTimeEl) rightZone.appendChild(sharedTimeEl);
+      }
+
+      // Columns row
+      const colsRow = el('div', { 'class': 'flyer-kid-card-locations' });
+
+      // Helper to build a location column (skip shared fields)
+      // dateTimeColor: color for date/time text; locBranchColor: color for branch name/address
+      function buildLocCol(dayText, locTimeText, branchName, branchAddress, dateTimeColor, locBranchColor) {
+        const col = el('div', { 'class': 'location-col' });
+        const colDayEl = (dayText && !sharedDay) ? el('div', {
+          text: dayText,
+          style: {
+            fontFamily: fontRoles.programDate,
+            fontSize: mlDateSize + 'px',
+            fontWeight: styles.programDateBold ? '700' : '400',
+            color: dateTimeColor,
+            lineHeight: tightLineHeight,
+          },
+        }) : null;
+        const colTimeEl = (locTimeText && !sharedTime) ? el('div', {
+          text: locTimeText,
+          style: {
+            fontFamily: fontRoles.programTime,
+            fontSize: mlTimeSize + 'px',
+            fontWeight: styles.programTimeBold ? '700' : '400',
+            color: dateTimeColor,
+            lineHeight: tightLineHeight,
+          },
+        }) : null;
+        if (isSpanish) {
+          if (colTimeEl) col.appendChild(colTimeEl);
+          if (colDayEl) col.appendChild(colDayEl);
+        } else {
+          if (colDayEl) col.appendChild(colDayEl);
+          if (colTimeEl) col.appendChild(colTimeEl);
+        }
+        if (branchName) {
+          col.appendChild(el('div', {
+            'class': 'flyer-kid-card-branch',
+            text: branchName,
+            style: {
+              fontFamily: fontRoles.programDate,
+              fontSize: mlBranchSize + 'px',
+              color: locBranchColor,
+              lineHeight: tightLineHeight,
+            },
+          }));
+        }
+        if (branchAddress) {
+          col.appendChild(el('div', {
+            'class': 'flyer-kid-card-address',
+            text: branchAddress,
+            style: {
+              fontFamily: fontRoles.programDate,
+              fontSize: mlBranchSize + 'px',
+              color: locBranchColor,
+              lineHeight: tightLineHeight,
+            },
+          }));
+        }
+        return col;
+      }
+
+      // First column: card's main location (skip when "Multiple Locations" branch is selected)
+      if (!isMultiLocMode) {
+        // In-column date/time uses branch's own color; only hoisted shared fields use color override
+        colsRow.appendChild(buildLocCol(
+          card.dateText, card.timeText, card.branchName, card.branchAddress, branchTextColor, branchTextColor
+        ));
+      }
+
+      // Additional columns from locations[]
+      card.locations.forEach(function (loc) {
+        const locBranchColor = isClosure ? CONFIG.COLORS.closureText : (loc.branchColor || '#0474bf');
+        colsRow.appendChild(buildLocCol(
+          loc.dayText, loc.timeText, loc.branchName, loc.branchAddress, locBranchColor, locBranchColor
+        ));
+      });
+
+      rightZone.appendChild(colsRow);
+    } else {
+      rightZone = el('div', { 'class': 'flyer-kid-card-location', style: { width: imageWidth } });
+
+      const dateEl = card.dateText ? el('div', {
+        'class': 'flyer-kid-card-date',
+        text: card.dateText,
+        style: {
+          fontFamily: fontRoles.programDate,
+          fontSize: dateSize + 'px',
+          fontWeight: styles.programDateBold ? '700' : '400',
+          color: textColor,
+        },
+      }) : null;
+
+      const timeEl = card.timeText ? el('div', {
+        'class': 'flyer-kid-card-time',
+        text: card.timeText,
+        style: {
+          fontFamily: fontRoles.programTime,
+          fontSize: timeSize + 'px',
+          fontWeight: styles.programTimeBold ? '700' : '400',
+          color: textColor,
+        },
+      }) : null;
+
+      if (isSpanish) {
+        if (timeEl) rightZone.appendChild(timeEl);
+        if (dateEl) rightZone.appendChild(dateEl);
+      } else {
+        if (dateEl) rightZone.appendChild(dateEl);
+        if (timeEl) rightZone.appendChild(timeEl);
+      }
+
+      if (card.branchName) {
+        rightZone.appendChild(el('div', {
+          'class': 'flyer-kid-card-branch',
+          text: card.branchName,
+          style: {
+            fontFamily: fontRoles.programDate,
+            fontSize: (dateSize * 0.9) + 'px',
+            color: branchTextColor,
+          },
+        }));
+      }
+
+      if (card.branchAddress) {
+        rightZone.appendChild(el('div', {
+          'class': 'flyer-kid-card-address',
+          text: card.branchAddress,
+          style: {
+            fontFamily: fontRoles.programDate,
+            fontSize: (dateSize * 0.9) + 'px',
+            color: branchTextColor,
+          },
+        }));
+      }
+    }
+
+    const cardEl = el('div', {
+      'class': 'flyer-kid-card' + (isClosure ? ' closure' : ''),
+      style: {
+        border: borderWidth + ' solid ' + effectiveColor,
+        borderRadius: borderRadius,
+        backgroundColor: bgColor,
+      },
+    }, imageZone, centerZone, rightZone);
+
+    return cardEl;
+  }
+
+  /**
+   * Post-render pass: scale multi-location text to fit available card height.
+   * Measures each wrapper's container height vs content height and scales up
+   * all text elements proportionally if there's extra room.
+   * Call after layout has settled (e.g. inside requestAnimationFrame).
+   */
+  function fitMultiLocationText(root) {
+    const wrappers = (root || document).querySelectorAll('[data-multi-loc-fit]');
+    wrappers.forEach(function (wrapper) {
+      const card = wrapper.closest('.flyer-kid-card');
+      if (!card) return;
+
+      // Lock the card's current height so text scaling can't inflate it
+      const cardHeight = card.offsetHeight;
+      if (cardHeight <= 0) return;
+      card.style.maxHeight = cardHeight + 'px';
+
+      // Calculate available height for the wrapper (card height minus border)
+      const cardStyle = window.getComputedStyle(card);
+      const borderTop = parseFloat(cardStyle.borderTopWidth) || 0;
+      const borderBottom = parseFloat(cardStyle.borderBottomWidth) || 0;
+      const availableHeight = cardHeight - borderTop - borderBottom;
+      if (availableHeight <= 0) return;
+
+      // Count effective vertical lines:
+      // hoisted elements (direct children with fontSize) + max lines in any single column
+      const textEls = wrapper.querySelectorAll('div[style]');
+      let hoistedLineCount = 0;
+      const directChildren = wrapper.children;
+      for (let i = 0; i < directChildren.length; i++) {
+        if (directChildren[i].style.fontSize && directChildren[i].textContent) {
+          hoistedLineCount++;
+        }
+      }
+      // Count max lines in any single column
+      let maxColLines = 0;
+      const cols = wrapper.querySelectorAll('.location-col');
+      cols.forEach(function (col) {
+        let colLines = 0;
+        const colChildren = col.children;
+        for (let j = 0; j < colChildren.length; j++) {
+          if (colChildren[j].textContent) colLines++;
+        }
+        if (colLines > maxColLines) maxColLines = colLines;
+      });
+      const lineCount = hoistedLineCount + maxColLines;
+      if (lineCount <= 0) return;
+
+      // Calculate ideal font size to fill available height
+      // Use lineHeight of 1.0 (matching tightLineHeight) plus small padding
+      const idealSize = Math.floor((availableHeight / lineCount) * 0.85);
+      if (idealSize < 6) return;
+
+      // Apply: scale each element proportionally based on its current relative size
+      // Find the largest current font size to use as reference
+      let maxCurrentSize = 0;
+      textEls.forEach(function (el) {
+        const size = parseFloat(el.style.fontSize);
+        if (size > maxCurrentSize) maxCurrentSize = size;
+      });
+      if (maxCurrentSize <= 0) return;
+
+      // Cap sizes at single-location equivalents
+      const maxDateSize = parseFloat(wrapper.getAttribute('data-max-date-size')) || 999;
+      const maxBranchSize = parseFloat(wrapper.getAttribute('data-max-branch-size')) || 999;
+
+      const scale = idealSize / maxCurrentSize;
+      textEls.forEach(function (textEl) {
+        const currentSize = parseFloat(textEl.style.fontSize);
+        if (currentSize) {
+          let newSize = Math.max(6, Math.round(currentSize * scale));
+          // Cap branch/address at branch max, everything else at date max
+          const isBranch = textEl.classList.contains('flyer-kid-card-branch') || textEl.classList.contains('flyer-kid-card-address');
+          newSize = Math.min(newSize, isBranch ? maxBranchSize : maxDateSize);
+          textEl.style.fontSize = newSize + 'px';
+        }
+      });
+    });
+  }
+
+  /**
+   * Load all images referenced by current kid-mode cards into the in-memory cache.
+   * Returns a Promise that resolves when all images are cached.
+   */
+  function loadImageCache() {
+    const page = getActivePage();
+    if (!page || !page.cards) return Promise.resolve();
+
+    const idsToLoad = [];
+    page.cards.forEach(function (card) {
+      if (card.imageId && !imageCache[card.imageId]) idsToLoad.push(card.imageId);
+      if (card.nameImageId && !imageCache[card.nameImageId]) idsToLoad.push(card.nameImageId);
+    });
+
+    if (idsToLoad.length === 0) return Promise.resolve();
+
+    return Promise.all(idsToLoad.map(function (id) {
+      return ImageStore.getImage(id).then(function (dataUrl) {
+        if (dataUrl) imageCache[id] = dataUrl;
+      });
+    }));
+  }
+
+  function renderKidPreview() {
+    const page = getActivePage();
+    if (!page) return;
+
+    const preview = document.getElementById('flyer-preview');
+    if (!preview) return;
+
+    const dims = getPageDimensions();
+    const margin = getMarginPx();
+
+    preview.style.width = dims.width + 'px';
+    preview.style.height = dims.height + 'px';
+    preview.style.position = 'relative';
+    preview.style.overflow = 'hidden';
+    preview.innerHTML = '';
+
+    const contentWrapper = el('div', {
+      style: {
+        position: 'absolute',
+        top: margin + 'px',
+        left: margin + 'px',
+        right: margin + 'px',
+        bottom: margin + 'px',
+        display: 'flex',
+        flexDirection: 'column',
+      },
+    });
+
+    // Header (reuse same header renderer)
+    const headerEl = renderFlyerHeader(page.header, page.styles);
+    contentWrapper.appendChild(headerEl);
+
+    // Cards container — flex-grow to fill available space
+    const gap = (page.styles.cardGap || 4) + 'px';
+    const cardsContainer = el('div', {
+      'data-branches-container': 'true',
+      style: {
+        flex: '1',
+        minHeight: '0',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        gap: gap,
+      },
+    });
+
+    if (page.cards && page.cards.length > 0) {
+      page.cards.forEach(function (card) {
+        const cardEl = renderKidCard(card, page.styles, page);
+        if (cardEl) {
+          cardsContainer.appendChild(cardEl);
+        }
+      });
+    }
+
+    contentWrapper.appendChild(cardsContainer);
+
+    // Footer (reuse same footer renderer)
+    const footerEl = renderFooter(page.footer);
+    contentWrapper.appendChild(footerEl);
+
+    preview.appendChild(contentWrapper);
+
+    // Apply zoom
+    const container = document.getElementById('preview-container');
+    if (container) {
+      container.style.transform = 'scale(' + zoomLevel + ')';
+    }
+
+    // After layout settles: fit multi-location text and check overflow
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        fitMultiLocationText(preview);
+        checkOverflow();
+      });
+    });
+  }
+
+  function renderKidPreviewInto(container, page) {
+    const dims = getPageDimensions();
+    const margin = getMarginPx();
+
+    container.style.width = dims.width + 'px';
+    container.style.height = dims.height + 'px';
+    container.style.position = 'relative';
+    container.style.overflow = 'hidden';
+    container.innerHTML = '';
+
+    const contentWrapper = el('div', {
+      style: {
+        position: 'absolute',
+        top: margin + 'px',
+        left: margin + 'px',
+        right: margin + 'px',
+        bottom: margin + 'px',
+        display: 'flex',
+        flexDirection: 'column',
+      },
+    });
+
+    const headerEl = renderFlyerHeader(page.header, page.styles);
+    contentWrapper.appendChild(headerEl);
+
+    const gap = (page.styles.cardGap || 4) + 'px';
+    const cardsContainer = el('div', {
+      style: {
+        flex: '1',
+        minHeight: '0',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        gap: gap,
+      },
+    });
+
+    if (page.cards && page.cards.length > 0) {
+      page.cards.forEach(function (card) {
+        const cardEl = renderKidCard(card, page.styles, page);
+        if (cardEl) {
+          cardsContainer.appendChild(cardEl);
+        }
+      });
+    }
+
+    contentWrapper.appendChild(cardsContainer);
+
+    const footerEl = renderFooter(page.footer);
+    contentWrapper.appendChild(footerEl);
+
+    container.appendChild(contentWrapper);
+  }
+
   // ── Check Overflow ─────────────────────────────────────────────
   function checkOverflow() {
     const preview = document.getElementById('flyer-preview');
@@ -734,6 +1377,13 @@ const FlyerApp = (function () {
 
   // ── Render: Main Preview ───────────────────────────────────────
   function renderPreview() {
+    if (meta.mode === 'kid') {
+      loadImageCache().then(function () {
+        renderKidPreview();
+      });
+      return;
+    }
+
     const page = getActivePage();
     if (!page) return;
 
@@ -817,6 +1467,11 @@ const FlyerApp = (function () {
 
   // ── Render into arbitrary container (for PDF export) ─────────
   function renderPreviewInto(container, page) {
+    if (meta.mode === 'kid') {
+      renderKidPreviewInto(container, page);
+      return;
+    }
+
     const dims = getPageDimensions();
     const margin = getMarginPx();
 
@@ -1244,20 +1899,30 @@ const FlyerApp = (function () {
   // ── Build Full State Object ────────────────────────────────────
   function buildFullState() {
     const page = getActivePage();
-    return {
+    const state = {
       schema: CONFIG.SCHEMA_VERSION,
       savedAt: null,
       meta: FlyerUtils.deepClone(meta),
       fontRoles: FlyerUtils.deepClone(fontRoles),
       header: page ? FlyerUtils.deepClone(page.header) : FlyerUtils.deepClone(CONFIG.DEFAULT_HEADER),
-      branches: page ? FlyerUtils.deepClone(page.branches) : [],
       footer: page ? FlyerUtils.deepClone(page.footer) : FlyerUtils.deepClone(CONFIG.DEFAULT_FOOTER),
       styles: page ? FlyerUtils.deepClone(page.styles) : FlyerUtils.deepClone(CONFIG.DEFAULT_STYLES),
     };
+    if (meta.mode === 'kid') {
+      state.cards = page ? FlyerUtils.deepClone(page.cards) : [];
+    } else {
+      state.branches = page ? FlyerUtils.deepClone(page.branches) : [];
+    }
+    return state;
   }
 
   // ── Render: Branch List (Sidebar Programs Tab) ─────────────────
   function renderBranchList() {
+    if (meta.mode === 'kid') {
+      renderCardList();
+      return;
+    }
+
     const container = document.getElementById('branch-list');
     if (!container) return;
 
@@ -1675,6 +2340,801 @@ const FlyerApp = (function () {
 
 
   // ══════════════════════════════════════════════════════════════
+  //  KID MODE SIDEBAR
+  // ══════════════════════════════════════════════════════════════
+
+  let kidCardSortableInstance = null;
+  let editingCardId = null;
+
+  function renderCardList() {
+    const container = document.getElementById('kid-card-list');
+    if (!container) return;
+
+    const page = getActivePage();
+    if (!page || !page.cards) {
+      container.innerHTML = '<p style="color:#999;text-align:center;padding:20px;">No page loaded.</p>';
+      return;
+    }
+
+    // Clean up old sortable
+    if (kidCardSortableInstance) {
+      kidCardSortableInstance.destroy();
+      kidCardSortableInstance = null;
+    }
+
+    container.innerHTML = '';
+
+    page.cards.forEach(function (card) {
+      if (editingCardId === card.id) {
+        const formEl = renderCardEditForm(card);
+        container.appendChild(formEl);
+      } else {
+        const item = renderKidSidebarCard(card);
+        container.appendChild(item);
+      }
+    });
+
+    // Initialize sortable
+    if (typeof Sortable !== 'undefined') {
+      kidCardSortableInstance = Sortable.create(container, {
+        handle: '.program-drag-handle',
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        onEnd: function (evt) {
+          const pg = getActivePage();
+          if (!pg || !pg.cards) return;
+          const oldIndex = evt.oldIndex;
+          const newIndex = evt.newIndex;
+          if (oldIndex === newIndex) return;
+          const moved = pg.cards.splice(oldIndex, 1)[0];
+          pg.cards.splice(newIndex, 0, moved);
+          isDirty = true;
+          debouncedRenderPreview();
+          scheduleAutosave();
+        },
+      });
+    }
+  }
+
+  function renderKidSidebarCard(card) {
+    const color = card.colorOverride || card.branchColor || '#0474bf';
+    let displayName = card.freeTextOverride
+      ? card.freeTextOverride.substring(0, 40) + (card.freeTextOverride.length > 40 ? '...' : '')
+      : (card.name || '(untitled)');
+    if (card.isClosure) displayName = '[CLOSURE] ' + displayName;
+
+    const detailParts = [];
+    if (card.branchName) {
+      detailParts.push(card.branchName === '__multi_locations__' ? 'Multiple Locations' : card.branchName);
+    }
+    if (card.dateText) detailParts.push(card.dateText);
+
+    const item = el('div', {
+      'class': 'kid-card-item',
+      'data-card-id': card.id,
+    });
+
+    const dragHandle = el('span', {
+      'class': 'program-drag-handle',
+      html: '<i class="fas fa-grip-vertical"></i>',
+    });
+    item.appendChild(dragHandle);
+
+    const dot = el('span', {
+      'class': 'branch-color-dot',
+      style: { backgroundColor: color },
+    });
+    item.appendChild(dot);
+
+    const info = el('div', { 'class': 'kid-card-info' });
+    info.appendChild(el('div', { 'class': 'kid-card-info-name', text: displayName }));
+    if (detailParts.length > 0) {
+      info.appendChild(el('div', { 'class': 'kid-card-info-detail', text: detailParts.join(' | ') }));
+    }
+    item.appendChild(info);
+
+    const actions = el('div', { 'class': 'kid-card-actions' });
+    actions.appendChild(el('button', {
+      title: 'Edit card',
+      html: '<i class="fas fa-pen"></i>',
+      on: { click: function () { editingCardId = card.id; renderCardList(); } },
+    }));
+    actions.appendChild(el('button', {
+      'class': 'btn-delete',
+      title: 'Delete card',
+      html: '<i class="fas fa-trash"></i>',
+      on: { click: function () { deleteKidCard(card.id); } },
+    }));
+    item.appendChild(actions);
+
+    return item;
+  }
+
+  function renderCardEditForm(card) {
+    const form = el('div', { 'class': 'program-edit-form', 'data-card-id': card.id });
+
+    const isFreeText = !!card.freeTextOverride;
+
+    // Toggle: structured vs free-text
+    const freeTextToggle = el('div', { 'class': 'form-group' },
+      el('label', { 'class': 'checkbox-label' },
+        el('input', {
+          type: 'checkbox',
+          on: {
+            change: function (e) {
+              const structuredFields = form.querySelector('.structured-fields');
+              const freeTextField = form.querySelector('.freetext-field');
+              if (e.target.checked) {
+                structuredFields.style.display = 'none';
+                freeTextField.style.display = 'block';
+              } else {
+                structuredFields.style.display = 'block';
+                freeTextField.style.display = 'none';
+              }
+            },
+          },
+        }),
+        'Free-text override'
+      )
+    );
+    freeTextToggle.querySelector('input[type="checkbox"]').checked = isFreeText;
+    form.appendChild(freeTextToggle);
+
+    // Free-text fields
+    const freeTextField = el('div', {
+      'class': 'freetext-field',
+      style: { display: isFreeText ? 'block' : 'none' },
+    });
+    freeTextField.appendChild(el('div', { 'class': 'form-group' },
+      el('label', { text: 'Free Text' }),
+      el('textarea', { 'class': 'input-freetext', rows: '3', text: card.freeTextOverride || '' })
+    ));
+    const ftOptionsRow = el('div', { 'class': 'form-row' });
+    const ftSizeGroup = el('div', { 'class': 'form-group' });
+    ftSizeGroup.appendChild(el('label', { text: 'Font Size (pt)' }));
+    ftSizeGroup.appendChild(el('input', {
+      type: 'number', 'class': 'input-freetext-size',
+      value: String(card.freeTextFontSize || 12), min: '6', max: '36',
+    }));
+    ftOptionsRow.appendChild(ftSizeGroup);
+    const ftAlignGroup = el('div', { 'class': 'form-group' });
+    ftAlignGroup.appendChild(el('label', { text: 'Alignment' }));
+    const ftAlignSelect = el('select', { 'class': 'input-freetext-align' });
+    ['left', 'center', 'right'].forEach(function (val) {
+      const opt = el('option', { value: val, text: val.charAt(0).toUpperCase() + val.slice(1) });
+      if (val === (card.freeTextAlign || 'left')) opt.selected = true;
+      ftAlignSelect.appendChild(opt);
+    });
+    ftAlignGroup.appendChild(ftAlignSelect);
+    ftOptionsRow.appendChild(ftAlignGroup);
+    freeTextField.appendChild(ftOptionsRow);
+
+    const ftStyleGroup = el('div', { 'class': 'form-group' },
+      el('label', { text: 'Style' }),
+      el('div', { 'class': 'checkbox-group' },
+        el('label', { 'class': 'checkbox-label' },
+          el('input', { type: 'checkbox', 'class': 'input-freetext-bold' }), 'Bold'),
+        el('label', { 'class': 'checkbox-label' },
+          el('input', { type: 'checkbox', 'class': 'input-freetext-italic' }), 'Italic'),
+        el('label', { 'class': 'checkbox-label' },
+          el('input', { type: 'checkbox', 'class': 'input-freetext-closure' }), 'Closure (colored row)')
+      )
+    );
+    ftStyleGroup.querySelector('.input-freetext-bold').checked = !!card.freeTextBold;
+    ftStyleGroup.querySelector('.input-freetext-italic').checked = !!card.freeTextItalic;
+    ftStyleGroup.querySelector('.input-freetext-closure').checked = !!card.isClosure;
+
+    // Color override for free text
+    const ftColorOverrideCheck = el('input', { type: 'checkbox', 'class': 'input-freetext-color-override' });
+    ftColorOverrideCheck.checked = !!card.colorOverride;
+    const ftColorOverridePicker = el('input', {
+      type: 'color', 'class': 'input-freetext-color-override-value',
+      value: card.colorOverride || lastColorOverride,
+      style: { width: '50px', height: '20px', padding: '0', border: '1px solid #ddd',
+        borderRadius: '3px', cursor: 'pointer', marginLeft: '6px',
+        display: card.colorOverride ? 'inline-block' : 'none', verticalAlign: 'middle' },
+    });
+    ftColorOverrideCheck.addEventListener('change', function () {
+      ftColorOverridePicker.style.display = ftColorOverrideCheck.checked ? 'inline-block' : 'none';
+    });
+    const ftColorLabel = el('label', { 'class': 'checkbox-label' }, ftColorOverrideCheck, 'Color override');
+    ftColorLabel.appendChild(ftColorOverridePicker);
+    ftStyleGroup.querySelector('.checkbox-group').appendChild(ftColorLabel);
+    freeTextField.appendChild(ftStyleGroup);
+    form.appendChild(freeTextField);
+
+    // Structured fields
+    const structuredFields = el('div', {
+      'class': 'structured-fields',
+      style: { display: isFreeText ? 'none' : 'block' },
+    });
+
+    // Branch dropdown (exclude Online, add Custom option)
+    const branchGroup = el('div', { 'class': 'form-group' });
+    branchGroup.appendChild(el('label', { text: 'Branch / Location' }));
+    const branchSelect = el('select', { 'class': 'input-branch-select' });
+    const isMultiLocBranch = card.branchName === '__multi_locations__';
+    const isCustomBranch = !isMultiLocBranch && !CONFIG.BRANCH_DEFAULTS.some(function (b) {
+      return b.name !== 'Online' && b.name !== 'City Hall' && b.name === card.branchName;
+    });
+    CONFIG.BRANCH_DEFAULTS.forEach(function (b) {
+      if (b.name === 'Online' || b.name === 'City Hall') return; // skip in kid mode
+      const opt = el('option', {
+        value: b.name,
+        text: b.name + (b.address ? ' — ' + b.address : ''),
+        'data-address': b.address || '',
+        'data-color': b.color,
+      });
+      if (!isCustomBranch && !isMultiLocBranch && b.name === card.branchName) opt.selected = true;
+      branchSelect.appendChild(opt);
+    });
+    // "Multiple Locations" option — switches to multi-location mode directly
+    const multiLocBranchOpt = el('option', { value: '__multi_locations__', text: 'Multiple Locations' });
+    if (isMultiLocBranch) multiLocBranchOpt.selected = true;
+    branchSelect.appendChild(multiLocBranchOpt);
+    const customOpt = el('option', { value: '__custom__', text: 'Custom...' });
+    if (isCustomBranch && !isMultiLocBranch) customOpt.selected = true;
+    branchSelect.appendChild(customOpt);
+    branchGroup.appendChild(branchSelect);
+
+    // Custom branch fields (shown when "Custom..." is selected)
+    const customBranchFields = el('div', {
+      'class': 'custom-branch-fields',
+      style: { display: isCustomBranch ? 'block' : 'none', marginTop: '6px' },
+    });
+    customBranchFields.appendChild(el('input', {
+      type: 'text', 'class': 'input-custom-branch-name', placeholder: 'Location name',
+      value: isCustomBranch ? (card.branchName || '') : '',
+    }));
+    customBranchFields.appendChild(el('input', {
+      type: 'text', 'class': 'input-custom-branch-address', placeholder: 'Address',
+      value: isCustomBranch ? (card.branchAddress || '') : '',
+      style: { marginTop: '4px' },
+    }));
+    const customColorRow = el('div', { style: { display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' } });
+    customColorRow.appendChild(el('label', { text: 'Color:', style: { fontSize: '0.85em', margin: '0' } }));
+    customColorRow.appendChild(el('input', {
+      type: 'color', 'class': 'input-custom-branch-color',
+      value: isCustomBranch ? (card.branchColor || '#666666') : '#666666',
+      style: { width: '40px', height: '24px', padding: '0', border: '1px solid #ddd', borderRadius: '3px', cursor: 'pointer' },
+    }));
+    customBranchFields.appendChild(customColorRow);
+    branchGroup.appendChild(customBranchFields);
+
+    branchSelect.addEventListener('change', function () {
+      const isMulti = branchSelect.value === '__multi_locations__';
+      customBranchFields.style.display = branchSelect.value === '__custom__' ? 'block' : 'none';
+      dateTimeRow.style.display = isMulti ? 'none' : '';
+      multiLocToggle.style.display = isMulti ? 'none' : '';
+      if (isMulti) {
+        // Activate multi-location mode and pre-populate if empty
+        multiLocCheck.checked = true;
+        locationsContainer.style.display = 'block';
+        if (locationsContainer.querySelectorAll('.location-entry').length === 0) {
+          const kidBranches = CONFIG.BRANCH_DEFAULTS.filter(function (b) {
+            return b.name !== 'Online' && b.name !== 'City Hall';
+          });
+          const firstBranch = kidBranches[0] || {};
+          const secondBranch = kidBranches.length > 1 ? kidBranches[1] : kidBranches[0] || {};
+          addLocationEntry({ branchName: firstBranch.name, branchAddress: firstBranch.address, branchColor: firstBranch.color, dayText: '', timeText: '' });
+          addLocationEntry({ branchName: secondBranch.name, branchAddress: secondBranch.address, branchColor: secondBranch.color, dayText: '', timeText: '' });
+        }
+      }
+    });
+
+    structuredFields.appendChild(branchGroup);
+
+    // Card image upload
+    const cardImageGroup = el('div', { 'class': 'form-group' });
+    cardImageGroup.appendChild(el('label', { text: 'Card Image (left zone)' }));
+    const cardImageUpload = el('div', { 'class': 'image-upload-group' });
+    const cardImagePreview = el('div', { 'class': 'image-preview' });
+    if (card.imageId && imageCache[card.imageId]) {
+      cardImagePreview.appendChild(el('img', { src: imageCache[card.imageId], alt: '' }));
+    } else {
+      cardImagePreview.appendChild(el('i', { 'class': 'fas fa-image placeholder-icon' }));
+    }
+    cardImageUpload.appendChild(cardImagePreview);
+    cardImageUpload.appendChild(el('button', {
+      'class': 'btn btn-sm btn-outline',
+      html: '<i class="fas fa-upload"></i> Upload',
+      on: { click: function () { triggerImageUpload(card.id, 'image'); } },
+    }));
+    if (card.imageId) {
+      cardImageUpload.appendChild(el('button', {
+        'class': 'btn btn-sm btn-outline btn-delete',
+        html: '<i class="fas fa-trash"></i>',
+        on: { click: function () { removeCardImage(card.id, 'image'); } },
+      }));
+    }
+    cardImageGroup.appendChild(cardImageUpload);
+    cardImageGroup.appendChild(el('span', {
+      'class': 'form-hint',
+      text: 'Recommended: ~1125px wide at 600 DPI',
+    }));
+    structuredFields.appendChild(cardImageGroup);
+
+    // Name
+    structuredFields.appendChild(el('div', { 'class': 'form-group' },
+      el('label', { text: 'Program Name' }),
+      el('input', { type: 'text', 'class': 'input-name', value: card.name || '' })
+    ));
+
+    // Name image upload (replaces text name)
+    const nameImageGroup = el('div', { 'class': 'form-group' });
+    nameImageGroup.appendChild(el('label', { text: 'Name Image (replaces text name)' }));
+    const nameImageUpload = el('div', { 'class': 'image-upload-group' });
+    const nameImagePreview = el('div', { 'class': 'image-preview' });
+    if (card.nameImageId && imageCache[card.nameImageId]) {
+      nameImagePreview.appendChild(el('img', { src: imageCache[card.nameImageId], alt: '' }));
+    } else {
+      nameImagePreview.appendChild(el('i', { 'class': 'fas fa-heading placeholder-icon' }));
+    }
+    nameImageUpload.appendChild(nameImagePreview);
+    nameImageUpload.appendChild(el('button', {
+      'class': 'btn btn-sm btn-outline',
+      html: '<i class="fas fa-upload"></i> Upload',
+      on: { click: function () { triggerImageUpload(card.id, 'nameImage'); } },
+    }));
+    if (card.nameImageId) {
+      nameImageUpload.appendChild(el('button', {
+        'class': 'btn btn-sm btn-outline btn-delete',
+        html: '<i class="fas fa-trash"></i>',
+        on: { click: function () { removeCardImage(card.id, 'nameImage'); } },
+      }));
+    }
+    nameImageGroup.appendChild(nameImageUpload);
+    nameImageGroup.appendChild(el('span', {
+      'class': 'form-hint',
+      text: 'Recommended: ~2400px wide at 600 DPI',
+    }));
+    structuredFields.appendChild(nameImageGroup);
+
+    // Subtitle (textarea for multi-line)
+    const subtitleTextarea = el('textarea', {
+      'class': 'input-subtitle',
+      rows: '2',
+      style: { resize: 'vertical' },
+    });
+    subtitleTextarea.value = card.subtitle || '';
+    structuredFields.appendChild(el('div', { 'class': 'form-group' },
+      el('label', { text: 'Subtitle' }),
+      subtitleTextarea
+    ));
+
+    // Program Note
+    const noteTextarea = el('textarea', {
+      'class': 'input-note',
+      rows: '2',
+      style: { resize: 'vertical' },
+    });
+    noteTextarea.value = card.note || '';
+    structuredFields.appendChild(el('div', { 'class': 'form-group' },
+      el('label', { text: 'Program Note' }),
+      noteTextarea
+    ));
+
+    // Date + Time
+    const dateInput = el('textarea', { 'class': 'input-date', rows: '2', style: { resize: 'none' } });
+    dateInput.value = card.dateText || '';
+    const timeInput = el('textarea', { 'class': 'input-time', rows: '2', style: { resize: 'none' } });
+    timeInput.value = card.timeText || '';
+    const dateTimeRow = el('div', { 'class': 'form-row date-time-row' },
+      el('div', { 'class': 'form-group' }, el('label', { text: 'Date' }), dateInput),
+      el('div', { 'class': 'form-group' }, el('label', { text: 'Time' }), timeInput)
+    );
+    // Hide date/time when "Multiple Locations" branch is selected
+    if (isMultiLocBranch) dateTimeRow.style.display = 'none';
+    structuredFields.appendChild(dateTimeRow);
+
+    // Multi-location toggle
+    const hasLocations = (card.locations && card.locations.length > 0) || isMultiLocBranch;
+    const multiLocToggle = el('div', { 'class': 'form-group multi-loc-toggle' },
+      el('label', { 'class': 'checkbox-label' },
+        el('input', { type: 'checkbox', 'class': 'input-multi-location' }),
+        'Multiple locations'
+      )
+    );
+    const multiLocCheck = multiLocToggle.querySelector('.input-multi-location');
+    multiLocCheck.checked = hasLocations;
+    // Hide toggle when "Multiple Locations" branch is selected (implied)
+    if (isMultiLocBranch) multiLocToggle.style.display = 'none';
+    structuredFields.appendChild(multiLocToggle);
+
+    // Multi-location entries container
+    const locationsContainer = el('div', {
+      'class': 'locations-container',
+      style: { display: hasLocations ? 'block' : 'none' },
+    });
+    // Sortable wrapper for location entries only (excludes Add button)
+    const locEntriesWrapper = el('div', { 'class': 'location-entries-wrapper' });
+    locationsContainer.appendChild(locEntriesWrapper);
+
+    function addLocationEntry(loc) {
+      const entry = el('div', { 'class': 'location-entry' });
+      const isLocCustom = loc && !CONFIG.BRANCH_DEFAULTS.some(function (b) {
+        return b.name !== 'Online' && b.name !== 'City Hall' && b.name === loc.branchName;
+      });
+
+      // Row 1: drag handle + branch select + remove button
+      const branchRow = el('div', { 'class': 'location-entry-row' });
+      branchRow.appendChild(el('span', {
+        'class': 'location-drag-handle',
+        html: '<i class="fas fa-grip-vertical"></i>',
+      }));
+      const locSelect = el('select', { 'class': 'location-branch-select' });
+      CONFIG.BRANCH_DEFAULTS.forEach(function (b) {
+        if (b.name === 'Online' || b.name === 'City Hall') return; // skip in kid mode
+        const opt = el('option', {
+          value: b.name,
+          text: b.name + (b.address ? ' — ' + b.address : ''),
+          'data-address': b.address || '',
+          'data-color': b.color,
+        });
+        if (!isLocCustom && loc && b.name === loc.branchName) opt.selected = true;
+        locSelect.appendChild(opt);
+      });
+      const locCustomOpt = el('option', { value: '__custom__', text: 'Custom...' });
+      if (isLocCustom) locCustomOpt.selected = true;
+      locSelect.appendChild(locCustomOpt);
+      branchRow.appendChild(locSelect);
+      branchRow.appendChild(el('button', {
+        'class': 'btn-remove-location',
+        html: '<i class="fas fa-times"></i>',
+        on: { click: function () { entry.remove(); } },
+      }));
+      entry.appendChild(branchRow);
+
+      // Custom location fields
+      const locCustomFields = el('div', {
+        'class': 'location-custom-fields',
+        style: { display: isLocCustom ? 'block' : 'none', marginTop: '6px' },
+      });
+      locCustomFields.appendChild(el('input', {
+        type: 'text', 'class': 'location-custom-name', placeholder: 'Location name',
+        value: isLocCustom ? (loc.branchName || '') : '',
+      }));
+      locCustomFields.appendChild(el('input', {
+        type: 'text', 'class': 'location-custom-address', placeholder: 'Address',
+        value: isLocCustom ? (loc.branchAddress || '') : '',
+        style: { marginTop: '3px' },
+      }));
+      const locCustomColorRow = el('div', { style: { display: 'flex', alignItems: 'center', gap: '4px', marginTop: '3px' } });
+      locCustomColorRow.appendChild(el('label', { text: 'Color:', style: { fontSize: '0.85em', margin: '0' } }));
+      locCustomColorRow.appendChild(el('input', {
+        type: 'color', 'class': 'location-custom-color',
+        value: isLocCustom ? (loc.branchColor || '#666666') : '#666666',
+        style: { width: '36px', height: '22px', padding: '0', border: '1px solid #ddd', borderRadius: '3px', cursor: 'pointer' },
+      }));
+      locCustomFields.appendChild(locCustomColorRow);
+      entry.appendChild(locCustomFields);
+
+      locSelect.addEventListener('change', function () {
+        locCustomFields.style.display = locSelect.value === '__custom__' ? 'block' : 'none';
+      });
+
+      // Row 2: day + time inputs
+      const dateTimeRow = el('div', { 'class': 'location-entry-row', style: { marginTop: '6px' } });
+      dateTimeRow.appendChild(el('input', {
+        type: 'text',
+        'class': 'location-day-input',
+        placeholder: 'Date (e.g. Wednesdays)',
+        value: (loc && loc.dayText) || '',
+      }));
+      dateTimeRow.appendChild(el('input', {
+        type: 'text',
+        'class': 'location-time-input',
+        placeholder: 'Time (e.g. 3:00 PM)',
+        value: (loc && loc.timeText) || '',
+      }));
+      entry.appendChild(dateTimeRow);
+
+      locEntriesWrapper.appendChild(entry);
+    }
+
+    if (hasLocations && card.locations && card.locations.length > 0) {
+      card.locations.forEach(function (loc) {
+        addLocationEntry(loc);
+      });
+    } else if (isMultiLocBranch) {
+      // Pre-populate with 2 default entries: Downtown + next available branch
+      const kidBranches = CONFIG.BRANCH_DEFAULTS.filter(function (b) {
+        return b.name !== 'Online' && b.name !== 'City Hall';
+      });
+      const firstBranch = kidBranches[0] || {};
+      const secondBranch = kidBranches.length > 1 ? kidBranches[1] : kidBranches[0] || {};
+      addLocationEntry({ branchName: firstBranch.name, branchAddress: firstBranch.address, branchColor: firstBranch.color, dayText: '', timeText: '' });
+      addLocationEntry({ branchName: secondBranch.name, branchAddress: secondBranch.address, branchColor: secondBranch.color, dayText: '', timeText: '' });
+    }
+
+    const addLocBtn = el('button', {
+      'class': 'btn btn-sm btn-outline',
+      html: '<i class="fas fa-plus"></i> Add Location',
+      style: { marginTop: '4px' },
+      on: { click: function () { addLocationEntry(null); } },
+    });
+    locationsContainer.appendChild(addLocBtn);
+    structuredFields.appendChild(locationsContainer);
+
+    // Initialize Sortable for drag-and-drop reordering of location entries
+    if (typeof Sortable !== 'undefined') {
+      Sortable.create(locEntriesWrapper, {
+        handle: '.location-drag-handle',
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+      });
+    }
+
+    multiLocCheck.addEventListener('change', function () {
+      locationsContainer.style.display = multiLocCheck.checked ? 'block' : 'none';
+      if (multiLocCheck.checked && locationsContainer.querySelectorAll('.location-entry').length === 0) {
+        addLocationEntry(null);
+      }
+    });
+
+    // Options: Closure + Color override
+    const checkboxGroup = el('div', { 'class': 'form-group' },
+      el('label', { text: 'Options' }),
+      el('div', { 'class': 'checkbox-group' },
+        el('label', { 'class': 'checkbox-label' },
+          el('input', { type: 'checkbox', 'class': 'input-closure' }), 'Closure (colored row)')
+      )
+    );
+    checkboxGroup.querySelector('.input-closure').checked = !!card.isClosure;
+
+    const colorOverrideCheck = el('input', { type: 'checkbox', 'class': 'input-color-override' });
+    colorOverrideCheck.checked = !!card.colorOverride;
+    const colorOverridePicker = el('input', {
+      type: 'color', 'class': 'input-color-override-value',
+      value: card.colorOverride || lastColorOverride,
+      style: { width: '50px', height: '20px', padding: '0', border: '1px solid #ddd',
+        borderRadius: '3px', cursor: 'pointer', marginLeft: '6px',
+        display: card.colorOverride ? 'inline-block' : 'none', verticalAlign: 'middle' },
+    });
+    colorOverrideCheck.addEventListener('change', function () {
+      colorOverridePicker.style.display = colorOverrideCheck.checked ? 'inline-block' : 'none';
+    });
+    const colorLabel = el('label', { 'class': 'checkbox-label' }, colorOverrideCheck, 'Color override');
+    colorLabel.appendChild(colorOverridePicker);
+    checkboxGroup.querySelector('.checkbox-group').appendChild(colorLabel);
+    structuredFields.appendChild(checkboxGroup);
+
+    form.appendChild(structuredFields);
+
+    // Action buttons
+    form.appendChild(el('div', { 'class': 'form-actions' },
+      el('button', {
+        'class': 'btn btn-sm btn-outline',
+        html: '<i class="fas fa-times"></i> Cancel',
+        on: { click: function () { editingCardId = null; renderCardList(); } },
+      }),
+      el('button', {
+        'class': 'btn btn-sm btn-success',
+        html: '<i class="fas fa-check"></i> Save',
+        on: { click: function () { saveCardForm(form, card.id); } },
+      })
+    ));
+
+    return form;
+  }
+
+  // Track which card/field is waiting for an image upload
+  let pendingImageUpload = { cardId: null, field: null };
+
+  function triggerImageUpload(cardId, field) {
+    pendingImageUpload = { cardId: cardId, field: field };
+    const inputId = field === 'nameImage' ? 'card-name-image-upload' : 'card-image-upload';
+    document.getElementById(inputId).click();
+  }
+
+  function handleCardImageUpload(event, field) {
+    const file = event.target.files[0];
+    if (!file || !pendingImageUpload.cardId) return;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const dataUrl = e.target.result;
+      const imageId = FlyerUtils.generateId();
+      const cardId = pendingImageUpload.cardId;
+
+      ImageStore.saveImage(imageId, dataUrl).then(function () {
+        imageCache[imageId] = dataUrl;
+
+        // Find the card and set the image
+        const page = getActivePage();
+        if (page && page.cards) {
+          for (let i = 0; i < page.cards.length; i++) {
+            if (page.cards[i].id === cardId) {
+              if (field === 'nameImage') {
+                page.cards[i].nameImageId = imageId;
+              } else {
+                page.cards[i].imageId = imageId;
+              }
+              break;
+            }
+          }
+        }
+
+        // Save any unsaved form data before re-rendering
+        if (editingCardId) {
+          const openForm = document.querySelector('.card-edit-form');
+          if (openForm) {
+            saveCardForm(openForm, editingCardId);
+          }
+        }
+
+        markDirty();
+        renderCardList();
+        debouncedRenderPreview();
+      });
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
+  }
+
+  function removeCardImage(cardId, field) {
+    const page = getActivePage();
+    if (!page || !page.cards) return;
+
+    // Save any unsaved form data before re-rendering
+    if (editingCardId) {
+      const openForm = document.querySelector('.card-edit-form');
+      if (openForm) {
+        saveCardForm(openForm, editingCardId);
+      }
+    }
+
+    for (let i = 0; i < page.cards.length; i++) {
+      if (page.cards[i].id === cardId) {
+        const key = field === 'nameImage' ? 'nameImageId' : 'imageId';
+        const oldId = page.cards[i][key];
+        if (oldId) {
+          ImageStore.deleteImage(oldId);
+          delete imageCache[oldId];
+        }
+        page.cards[i][key] = null;
+        break;
+      }
+    }
+
+    markDirty();
+    renderCardList();
+    debouncedRenderPreview();
+  }
+
+  function saveCardForm(form, cardId) {
+    const page = getActivePage();
+    if (!page || !page.cards) return;
+
+    let card = null;
+    for (let i = 0; i < page.cards.length; i++) {
+      if (page.cards[i].id === cardId) { card = page.cards[i]; break; }
+    }
+    if (!card) return;
+
+    const freeTextChecked = form.querySelector('.freetext-field').style.display !== 'none';
+
+    if (freeTextChecked) {
+      card.freeTextOverride = form.querySelector('.input-freetext').value || null;
+      const ftSize = form.querySelector('.input-freetext-size');
+      card.freeTextFontSize = ftSize && ftSize.value ? parseInt(ftSize.value, 10) : 12;
+      const ftAlign = form.querySelector('.input-freetext-align');
+      card.freeTextAlign = ftAlign ? ftAlign.value : 'left';
+      card.freeTextBold = !!form.querySelector('.input-freetext-bold').checked;
+      card.freeTextItalic = !!form.querySelector('.input-freetext-italic').checked;
+      card.isClosure = !!form.querySelector('.input-freetext-closure').checked;
+      const ftColorOverride = form.querySelector('.input-freetext-color-override');
+      card.colorOverride = ftColorOverride && ftColorOverride.checked
+        ? form.querySelector('.input-freetext-color-override-value').value : null;
+    } else {
+      card.freeTextOverride = null;
+      card.name = form.querySelector('.input-name').value;
+      card.subtitle = form.querySelector('.input-subtitle').value;
+      card.note = form.querySelector('.input-note') ? form.querySelector('.input-note').value : '';
+      card.dateText = form.querySelector('.input-date').value;
+      card.timeText = form.querySelector('.input-time').value;
+      card.isClosure = form.querySelector('.input-closure').checked;
+
+      // Branch selection
+      const branchSelect = form.querySelector('.input-branch-select');
+      if (branchSelect) {
+        if (branchSelect.value === '__multi_locations__') {
+          card.branchName = '__multi_locations__';
+          card.branchAddress = '';
+          card.branchColor = '#cc007e';
+          card.branchId = '__multi_locations__';
+        } else if (branchSelect.value === '__custom__') {
+          card.branchName = form.querySelector('.input-custom-branch-name').value || 'Custom';
+          card.branchAddress = form.querySelector('.input-custom-branch-address').value || '';
+          card.branchColor = form.querySelector('.input-custom-branch-color').value || '#666666';
+          card.branchId = card.branchName;
+        } else {
+          const selectedOpt = branchSelect.options[branchSelect.selectedIndex];
+          card.branchName = branchSelect.value;
+          card.branchAddress = selectedOpt.getAttribute('data-address') || '';
+          card.branchColor = selectedOpt.getAttribute('data-color') || '#0474bf';
+          card.branchId = branchSelect.value;
+        }
+      }
+
+      const colorOverrideChecked = form.querySelector('.input-color-override').checked;
+      card.colorOverride = colorOverrideChecked
+        ? form.querySelector('.input-color-override-value').value : null;
+
+      // Multi-location
+      const isMultiLocMode = branchSelect && branchSelect.value === '__multi_locations__';
+      const multiLocChecked = form.querySelector('.input-multi-location');
+      if (isMultiLocMode || (multiLocChecked && multiLocChecked.checked)) {
+        const locEntries = form.querySelectorAll('.location-entry');
+        card.locations = [];
+        locEntries.forEach(function (entry) {
+          const locSelect = entry.querySelector('.location-branch-select');
+          const dayInput = entry.querySelector('.location-day-input');
+          const timeInput = entry.querySelector('.location-time-input');
+          if (locSelect) {
+            let locData;
+            if (locSelect.value === '__custom__') {
+              locData = {
+                branchName: entry.querySelector('.location-custom-name').value || 'Custom',
+                branchAddress: entry.querySelector('.location-custom-address').value || '',
+                branchColor: entry.querySelector('.location-custom-color').value || '#666666',
+                dayText: dayInput ? dayInput.value : '',
+                timeText: timeInput ? timeInput.value : '',
+              };
+            } else {
+              const selOpt = locSelect.options[locSelect.selectedIndex];
+              locData = {
+                branchName: locSelect.value,
+                branchAddress: selOpt.getAttribute('data-address') || '',
+                branchColor: selOpt.getAttribute('data-color') || '#0474bf',
+                dayText: dayInput ? dayInput.value : '',
+                timeText: timeInput ? timeInput.value : '',
+              };
+            }
+            card.locations.push(locData);
+          }
+        });
+      } else {
+        card.locations = [];
+      }
+    }
+
+    if (card.colorOverride) {
+      lastColorOverride = card.colorOverride;
+    }
+
+    editingCardId = null;
+    isDirty = true;
+    renderCardList();
+    debouncedRenderPreview();
+    scheduleAutosave();
+  }
+
+  function addKidCard() {
+    const page = getActivePage();
+    if (!page || !page.cards) return;
+    const newCard = FlyerUtils.createBlankCard();
+    page.cards.push(newCard);
+    editingCardId = newCard.id;
+    isDirty = true;
+    renderCardList();
+    debouncedRenderPreview();
+    scheduleAutosave();
+  }
+
+  function deleteKidCard(cardId) {
+    const page = getActivePage();
+    if (!page || !page.cards) return;
+    page.cards = page.cards.filter(function (c) { return c.id !== cardId; });
+    if (editingCardId === cardId) editingCardId = null;
+    isDirty = true;
+    renderCardList();
+    debouncedRenderPreview();
+    scheduleAutosave();
+  }
+
+  // ══════════════════════════════════════════════════════════════
   //  SORTABLE.JS INTEGRATION
   // ══════════════════════════════════════════════════════════════
 
@@ -1768,7 +3228,110 @@ const FlyerApp = (function () {
   // SETTINGS TAB BINDING
   // ═══════════════════════════════════════════════════
 
+  function applyModeUI() {
+    const isKid = meta.mode === 'kid';
+    document.body.classList.toggle('mode-kid', isKid);
+
+    // Toggle sidebar program containers
+    const standardContainer = document.getElementById('standard-programs-container');
+    const kidContainer = document.getElementById('kid-programs-container');
+    if (standardContainer) standardContainer.style.display = isKid ? 'none' : '';
+    if (kidContainer) kidContainer.style.display = isKid ? '' : 'none';
+
+    // Lock page size to letter in kid mode
+    const pageSizeGroup = document.getElementById('page-size-group');
+    if (pageSizeGroup) pageSizeGroup.style.display = isKid ? 'none' : '';
+    if (isKid) meta.pageSize = 'letter';
+
+    // Mode toggle buttons
+    const modeBtns = document.querySelectorAll('[data-flyer-mode]');
+    modeBtns.forEach(function (btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-flyer-mode') === meta.mode);
+    });
+  }
+
   function bindSettings() {
+    // ── Mode Toggle ──────────────────────────────────
+    const modeBtns = document.querySelectorAll('[data-flyer-mode]');
+    modeBtns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const newMode = btn.getAttribute('data-flyer-mode');
+        if (newMode === meta.mode) return;
+
+        // Warn user that mode switch uses a separate set of pages
+        const currentModeName = meta.mode === 'kid' ? 'Kid' : 'Standard';
+        const newModeName = newMode === 'kid' ? 'Kid' : 'Standard';
+        const hasCache = newMode === 'kid' ? cachedKidPages : cachedStandardPages;
+        const cacheMsg = hasCache
+          ? 'Your ' + currentModeName + ' mode work will be saved and you\'ll return to your previous ' + newModeName + ' mode pages.'
+          : 'Your ' + currentModeName + ' mode work will be saved. A new ' + newModeName + ' mode flyer will be created.';
+        if (!confirm('Switch to ' + newModeName + ' Mode?\n\n' + cacheMsg + '\n\nYou can switch back anytime without losing your work.')) {
+          return;
+        }
+
+        // Cache current mode's pages before switching
+        if (meta.mode === 'kid') {
+          cachedKidPages = FlyerUtils.deepClone(pages);
+          cachedKidActivePage = activePage;
+        } else {
+          cachedStandardPages = FlyerUtils.deepClone(pages);
+          cachedStandardActivePage = activePage;
+        }
+
+        meta.mode = newMode;
+
+        // Restore cached pages or create new defaults
+        if (newMode === 'kid') {
+          if (cachedKidPages) {
+            pages = cachedKidPages;
+            activePage = cachedKidActivePage;
+          } else {
+            const kidPage = FlyerUtils.createDefaultKidPage();
+            // Carry over footer language from current page
+            const currentPage = getCurrentPage();
+            if (currentPage) {
+              kidPage.footer = FlyerUtils.deepClone(currentPage.footer);
+              kidPage.header.monthText = currentPage.header.monthText;
+              kidPage.header.titleColor = currentPage.header.titleColor;
+              kidPage.header.monthColor = currentPage.header.monthColor;
+            }
+            // Set kid header title based on footer language
+            const footerSource = kidPage.footer.source;
+            const kidLangKey = footerSource === 'default-spanish' ? 'kid-spanish' : 'kid-english';
+            const kidTitle = CONFIG.HEADER_TITLE_BY_LANGUAGE[kidLangKey];
+            if (kidTitle) {
+              kidPage.header.titleText = kidTitle.text;
+              kidPage.styles.headerTitleFontSize = kidTitle.fontSize;
+              kidPage.styles.headerMonthFontSize = kidTitle.fontSize;
+            }
+            pages = [kidPage];
+            activePage = 0;
+          }
+        } else {
+          if (cachedStandardPages) {
+            pages = cachedStandardPages;
+            activePage = cachedStandardActivePage;
+          } else {
+            const defaultFlyer = FlyerUtils.createDefaultFlyer();
+            pages = [{
+              header: defaultFlyer.header,
+              branches: defaultFlyer.branches,
+              footer: defaultFlyer.footer,
+              styles: defaultFlyer.styles,
+            }];
+            activePage = 0;
+          }
+        }
+
+        applyModeUI();
+        markDirty();
+        syncSettingsFromPage();
+        renderPageList();
+        renderBranchList();
+        renderPreview();
+      });
+    });
+
     // ── Page Size Toggle ──────────────────────────────
     const pageSizeBtns = document.querySelectorAll('[data-page-size]');
     pageSizeBtns.forEach(function (btn) {
@@ -1827,7 +3390,32 @@ const FlyerApp = (function () {
       debouncedRenderPreview();
     });
 
+    // ── Kid Mode: Card Styling Controls ──────────────
+    const cardGapInput = document.getElementById('style-card-gap');
 
+    if (cardGapInput) {
+      cardGapInput.addEventListener('input', function () {
+        getCurrentPage().styles.cardGap = parseInt(cardGapInput.value, 10) || 4;
+        markDirty();
+        debouncedRenderPreview();
+      });
+    }
+    const cardImageWidthInput = document.getElementById('style-card-image-width');
+    if (cardImageWidthInput) {
+      cardImageWidthInput.addEventListener('input', function () {
+        getCurrentPage().styles.cardImageWidth = parseInt(cardImageWidthInput.value, 10) || 80;
+        markDirty();
+        debouncedRenderPreview();
+      });
+    }
+    const noteFontSizeInput = document.getElementById('style-program-note-font-size');
+    if (noteFontSizeInput) {
+      noteFontSizeInput.addEventListener('input', function () {
+        getCurrentPage().styles.programNoteFontSize = parseInt(noteFontSizeInput.value, 10) || 10;
+        markDirty();
+        debouncedRenderPreview();
+      });
+    }
 
     // ── Column Width Controls ─────────────────────────
     const columnNameSlider = document.getElementById('style-column-name-width');
@@ -1928,8 +3516,12 @@ const FlyerApp = (function () {
         const source = btn.getAttribute('data-footer-source');
         const page = getCurrentPage();
         page.footer.source = source;
-        // Auto-set title text and font size based on language
-        const langTitle = CONFIG.HEADER_TITLE_BY_LANGUAGE[source];
+        // Auto-set title text and font size based on language and mode
+        let langKey = source;
+        if (meta.mode === 'kid') {
+          langKey = source === 'default-spanish' ? 'kid-spanish' : 'kid-english';
+        }
+        const langTitle = CONFIG.HEADER_TITLE_BY_LANGUAGE[langKey];
         if (langTitle) {
           page.header.titleText = langTitle.text;
           page.styles.headerTitleFontSize = langTitle.fontSize;
@@ -2178,6 +3770,20 @@ const FlyerApp = (function () {
     const fontDisplay = document.getElementById('font-display');
     if (fontCondensed) fontCondensed.value = fontRoles.headerTitle;
     if (fontDisplay) fontDisplay.value = fontRoles.branchName;
+
+    // Mode UI
+    applyModeUI();
+
+    // Kid mode-specific settings
+    if (meta.mode === 'kid' && page.styles) {
+      const cardGInput = document.getElementById('style-card-gap');
+      const cardIWInput = document.getElementById('style-card-image-width');
+      if (cardGInput) cardGInput.value = page.styles.cardGap || 4;
+      if (cardIWInput) cardIWInput.value = page.styles.cardImageWidth || 180;
+      const noteFSInput = document.getElementById('style-program-note-font-size');
+      if (noteFSInput) noteFSInput.value = page.styles.programNoteFontSize || 10;
+    }
+
   }
 
   // ═══════════════════════════════════════════════════
@@ -2191,31 +3797,63 @@ const FlyerApp = (function () {
       meta: FlyerUtils.deepClone(meta),
       fontRoles: FlyerUtils.deepClone(fontRoles),
       pages: pages.map(function (page) {
-        return {
+        const serialized = {
           header: FlyerUtils.deepClone(page.header),
-          branches: FlyerUtils.deepClone(page.branches),
           footer: FlyerUtils.deepClone(page.footer),
           styles: FlyerUtils.deepClone(page.styles),
         };
+        if (meta.mode === 'kid') {
+          serialized.cards = FlyerUtils.deepClone(page.cards || []);
+        } else {
+          serialized.branches = FlyerUtils.deepClone(page.branches || []);
+        }
+        return serialized;
       }),
     }, null, 2);
   }
 
   function saveFile() {
-    const json = serializeAll();
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const firstPage = pages[0];
-    const baseName = (firstPage.header.titleText + ' - ' + firstPage.header.monthText).trim() || 'flyer';
-    a.download = baseName + '.flyer';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    isDirty = false;
-    showNotification('File saved successfully.', 'success');
+    // Collect image IDs used by kid mode cards
+    const usedIds = meta.mode === 'kid' ? ImageStore.collectUsedImageIds(pages) : [];
+
+    const saveWithImages = usedIds.length > 0
+      ? (function () {
+        // Gather only the images actually used
+        return Promise.all(usedIds.map(function (id) {
+          return ImageStore.getImage(id).then(function (dataUrl) {
+            return { id: id, dataUrl: dataUrl };
+          });
+        })).then(function (results) {
+          const imageMap = {};
+          results.forEach(function (r) {
+            if (r.dataUrl) imageMap[r.id] = r.dataUrl;
+          });
+          return imageMap;
+        });
+      })()
+      : Promise.resolve({});
+
+    saveWithImages.then(function (imageMap) {
+      const data = JSON.parse(serializeAll());
+      // Embed images in the file for portability
+      if (Object.keys(imageMap).length > 0) {
+        data.images = imageMap;
+      }
+      const json = JSON.stringify(data, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const firstPage = pages[0];
+      const baseName = ((firstPage.header.titleText || '').replace(/\n/g, ' ') + ' - ' + (firstPage.header.monthText || '')).trim() || 'flyer';
+      a.download = baseName + '.flyer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      isDirty = false;
+      showNotification('File saved successfully.', 'success');
+    });
   }
 
   function loadFile() {
@@ -2238,6 +3876,7 @@ const FlyerApp = (function () {
               meta: data.meta,
               header: page.header,
               branches: page.branches,
+              cards: page.cards,
               footer: page.footer,
               styles: page.styles,
             });
@@ -2273,12 +3912,17 @@ const FlyerApp = (function () {
   }
 
   function applyState(data) {
+    // Clear mode caches when loading new state
+    cachedStandardPages = null;
+    cachedKidPages = null;
+
     // Restore meta
     if (data.meta) {
       meta.month = data.meta.month || CONFIG.DEFAULT_META.month;
       meta.year = data.meta.year || CONFIG.DEFAULT_META.year;
       meta.pageSize = data.meta.pageSize || CONFIG.DEFAULT_META.pageSize;
       meta.listName = data.meta.listName || CONFIG.DEFAULT_META.listName;
+      meta.mode = data.meta.mode || 'standard';
     }
 
     // Restore font roles
@@ -2288,15 +3932,20 @@ const FlyerApp = (function () {
       fontRoles = FlyerUtils.deepClone(CONFIG.FONT_ROLES);
     }
 
-    // Restore pages (supports both multi-page and legacy single-page format)
+    // Restore pages (supports both multi-page, kid mode, and legacy single-page format)
     if (data.pages && data.pages.length > 0) {
       pages = data.pages.map(function (p) {
-        return {
+        const page = {
           header: FlyerUtils.deepClone(p.header || CONFIG.DEFAULT_HEADER),
-          branches: FlyerUtils.deepClone(p.branches || []),
           footer: FlyerUtils.deepClone(p.footer || CONFIG.DEFAULT_FOOTER),
           styles: FlyerUtils.deepClone(p.styles || CONFIG.DEFAULT_STYLES),
         };
+        if (meta.mode === 'kid') {
+          page.cards = FlyerUtils.deepClone(p.cards || []);
+        } else {
+          page.branches = FlyerUtils.deepClone(p.branches || []);
+        }
+        return page;
       });
     } else if (data.header || data.branches) {
       // Legacy single-page format
@@ -2311,14 +3960,26 @@ const FlyerApp = (function () {
     activePage = 0;
     isDirty = false;
 
-    // Update all settings inputs to reflect loaded state
-    populateFontDropdowns();
-    syncSettingsFromPage();
-    renderPageList();
-    renderBranchList();
-    renderPreview();
+    // Import embedded images into IndexedDB and cache
+    const imageImportPromise = data.images && typeof data.images === 'object'
+      ? ImageStore.importImages(data.images).then(function () {
+        Object.keys(data.images).forEach(function (id) {
+          imageCache[id] = data.images[id];
+        });
+      })
+      : Promise.resolve();
 
-    showNotification('File loaded successfully.', 'success');
+    imageImportPromise.then(function () {
+      // Update all settings inputs to reflect loaded state
+      applyModeUI();
+      populateFontDropdowns();
+      syncSettingsFromPage();
+      renderPageList();
+      renderBranchList();
+      renderPreview();
+
+      showNotification('File loaded successfully.', 'success');
+    });
   }
 
   function checkDraft() {
@@ -2344,19 +4005,26 @@ const FlyerApp = (function () {
 
   function resetToDefaults() {
     if (!confirm('Reset everything to defaults? All unsaved changes will be lost.')) return;
-    const defaultFlyer = FlyerUtils.createDefaultFlyer();
-    pages = [{
-      header: defaultFlyer.header,
-      branches: defaultFlyer.branches,
-      footer: defaultFlyer.footer,
-      styles: defaultFlyer.styles,
-    }];
+    if (meta.mode === 'kid') {
+      pages = [FlyerUtils.createDefaultKidPage()];
+    } else {
+      const defaultFlyer = FlyerUtils.createDefaultFlyer();
+      pages = [{
+        header: defaultFlyer.header,
+        branches: defaultFlyer.branches,
+        footer: defaultFlyer.footer,
+        styles: defaultFlyer.styles,
+      }];
+    }
     activePage = 0;
+    const savedMode = meta.mode;
     meta = FlyerUtils.deepClone(CONFIG.DEFAULT_META);
+    meta.mode = savedMode;
     fontRoles = FlyerUtils.deepClone(CONFIG.FONT_ROLES);
     isDirty = false;
     localStorage.removeItem(CONFIG.STORAGE_KEY);
 
+    applyModeUI();
     populateFontDropdowns();
     syncSettingsFromPage();
     renderPageList();
@@ -2401,6 +4069,28 @@ const FlyerApp = (function () {
       const previewWidthPx = pageWidth * CONFIG.SCREEN_DPI;
       const previewHeightPx = pageHeight * CONFIG.SCREEN_DPI;
 
+      // Pre-load all kid mode images into cache before rendering PDF pages
+      const preloadPromise = meta.mode === 'kid'
+        ? (function () {
+          const ids = [];
+          pages.forEach(function (p) {
+            if (p.cards) {
+              p.cards.forEach(function (c) {
+                if (c.imageId && !imageCache[c.imageId]) ids.push(c.imageId);
+                if (c.nameImageId && !imageCache[c.nameImageId]) ids.push(c.nameImageId);
+              });
+            }
+          });
+          return ids.length > 0
+            ? Promise.all(ids.map(function (id) {
+              return ImageStore.getImage(id).then(function (dataUrl) {
+                if (dataUrl) imageCache[id] = dataUrl;
+              });
+            }))
+            : Promise.resolve();
+        })()
+        : Promise.resolve();
+
       const pagePromises = [];
 
       pages.forEach(function (page, index) {
@@ -2423,8 +4113,13 @@ const FlyerApp = (function () {
             // Wait for layout to settle, then auto-size text, rasterize, then capture
             requestAnimationFrame(function () {
               requestAnimationFrame(function () {
-                autoSizeVerticalText(tempDiv);
-                rasterizeVerticalText(tempDiv, scaleRatio);
+                // Kid mode: fit multi-location text; Standard: auto-size and rasterize vertical text
+                if (meta.mode === 'kid') {
+                  fitMultiLocationText(tempDiv);
+                } else {
+                  autoSizeVerticalText(tempDiv);
+                  rasterizeVerticalText(tempDiv, scaleRatio);
+                }
 
                 html2canvas(tempDiv, {
                   scale: scaleRatio,
@@ -2455,15 +4150,15 @@ const FlyerApp = (function () {
         });
       });
 
-      // Execute page renders sequentially
-      let chain = Promise.resolve();
+      // Execute page renders sequentially (after image preload)
+      let chain = preloadPromise;
       pagePromises.forEach(function (fn) {
         chain = chain.then(fn);
       });
 
       chain.then(function () {
         const firstPage = pages[0];
-        const filename = (firstPage.header.titleText + ' - ' + firstPage.header.monthText).trim() + '.pdf' || 'flyer.pdf';
+        const filename = ((firstPage.header.titleText || '').replace(/\n/g, ' ') + ' - ' + (firstPage.header.monthText || '')).trim() + '.pdf' || 'flyer.pdf';
         pdf.save(filename);
         showNotification('PDF exported successfully!', 'success');
       }).catch(function (err) {
@@ -2658,7 +4353,7 @@ const FlyerApp = (function () {
     bindSidebarToggle();
     bindTabSwitching();
 
-    // Add Branch button
+    // Add Branch button (standard mode)
     document.getElementById('btn-add-branch').addEventListener('click', function () {
       const newBranch = FlyerUtils.createBlankBranch();
       getCurrentPage().branches.push(newBranch);
@@ -2666,6 +4361,25 @@ const FlyerApp = (function () {
       renderBranchList();
       debouncedRenderPreview();
     });
+
+    // Add Card button (kid mode)
+    document.getElementById('btn-add-card').addEventListener('click', function () {
+      addKidCard();
+    });
+
+    // Card image upload handlers
+    document.getElementById('card-image-upload').addEventListener('change', function (e) {
+      handleCardImageUpload(e, 'image');
+    });
+    document.getElementById('card-name-image-upload').addEventListener('change', function (e) {
+      handleCardImageUpload(e, 'nameImage');
+    });
+
+    // Initialize ImageStore
+    ImageStore.init();
+
+    // Apply initial mode UI
+    applyModeUI();
 
     // Beforeunload warning
     bindBeforeUnload();

@@ -127,7 +127,8 @@ const FlyerUtils = (function () {
     if (!data.header || typeof data.header !== 'object') {
       return false;
     }
-    if (!Array.isArray(data.branches)) {
+    // Kid mode pages have cards[] instead of branches[]
+    if (!Array.isArray(data.branches) && !Array.isArray(data.cards)) {
       return false;
     }
     if (!data.footer || typeof data.footer !== 'object') {
@@ -165,13 +166,75 @@ const FlyerUtils = (function () {
   function duplicatePage(page) {
     const clone = deepClone(page);
     // Regenerate all IDs
-    clone.branches.forEach(function (branch) {
-      branch.id = generateId();
-      branch.programs.forEach(function (program) {
-        program.id = generateId();
+    if (clone.branches) {
+      clone.branches.forEach(function (branch) {
+        branch.id = generateId();
+        branch.programs.forEach(function (program) {
+          program.id = generateId();
+        });
       });
-    });
+    }
+    if (clone.cards) {
+      clone.cards.forEach(function (card) {
+        card.id = generateId();
+      });
+    }
     return clone;
+  }
+
+  /**
+   * Create a blank Kid Mode program card with default values.
+   */
+  function createBlankCard(defaults) {
+    const d = defaults || {};
+    const branch = CONFIG.BRANCH_DEFAULTS[0] || {};
+    return {
+      id: generateId(),
+      name: d.name || '',
+      subtitle: d.subtitle || '',
+      dateText: d.dateText || '',
+      timeText: d.timeText || '',
+      branchId: d.branchId || branch.name || 'Downtown',
+      branchName: d.branchName || branch.name || 'Downtown',
+      branchAddress: d.branchAddress || branch.address || '',
+      branchColor: d.branchColor || branch.color || '#0474bf',
+      isClosure: d.isClosure || false,
+      freeTextOverride: d.freeTextOverride || null,
+      freeTextFontSize: d.freeTextFontSize || null,
+      freeTextAlign: d.freeTextAlign || null,
+      freeTextBold: d.freeTextBold || false,
+      freeTextItalic: d.freeTextItalic || false,
+      colorOverride: d.colorOverride || null,
+      imageId: d.imageId || null,
+      note: d.note || '',
+      nameImageId: d.nameImageId || null,
+      locations: d.locations || [],
+    };
+  }
+
+  /**
+   * Create a default Kid Mode page.
+   */
+  function createDefaultKidPage() {
+    const kidDefaults = CONFIG.KID_MODE_DEFAULTS;
+    const kidTitle = CONFIG.HEADER_TITLE_BY_LANGUAGE['kid-english'];
+    const header = deepClone(CONFIG.DEFAULT_HEADER);
+    if (kidTitle) {
+      header.titleText = kidTitle.text;
+    }
+    return {
+      header: header,
+      cards: [
+        createBlankCard({
+          name: 'Program Name',
+          subtitle: 'Age Group · Details',
+          dateText: 'Day, Month #',
+          timeText: '00:00 AM',
+        }),
+      ],
+      footer: deepClone(CONFIG.DEFAULT_FOOTER),
+      styles: deepClone(kidDefaults.styles),
+    };
   }
 
   /**
@@ -193,7 +256,9 @@ const FlyerUtils = (function () {
     generateId: generateId,
     createBlankProgram: createBlankProgram,
     createBlankBranch: createBlankBranch,
+    createBlankCard: createBlankCard,
     createDefaultFlyer: createDefaultFlyer,
+    createDefaultKidPage: createDefaultKidPage,
     deepClone: deepClone,
     serializeState: serializeState,
     deserializeState: deserializeState,
