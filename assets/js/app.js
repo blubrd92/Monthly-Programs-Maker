@@ -1143,10 +1143,25 @@ const FlyerApp = (function () {
 
       // Iteratively scale text to fit available height (up to 5 passes)
       for (let pass = 0; pass < 5; pass++) {
-        // Measure total content height by summing children's offsetHeight
+        // Measure content height: for each wrapper child, use the greater of
+        // offsetHeight and scrollHeight to catch overflow clipped by overflow:hidden.
+        // For the columns row (flex row), check each column's scrollHeight individually
+        // since the row's offsetHeight only reflects the visible/clipped portion.
         let contentHeight = 0;
         for (let i = 0; i < wrapper.children.length; i++) {
-          contentHeight += wrapper.children[i].offsetHeight;
+          const child = wrapper.children[i];
+          const cols = child.querySelectorAll('.location-col');
+          if (cols.length > 0) {
+            // Columns row: use tallest column's scrollHeight
+            let maxColHeight = 0;
+            cols.forEach(function (col) {
+              const h = Math.max(col.offsetHeight, col.scrollHeight);
+              if (h > maxColHeight) maxColHeight = h;
+            });
+            contentHeight += maxColHeight;
+          } else {
+            contentHeight += Math.max(child.offsetHeight, child.scrollHeight);
+          }
         }
         if (contentHeight <= 0) break;
 
