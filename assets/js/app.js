@@ -2968,7 +2968,7 @@ const FlyerApp = (function () {
 
         // Save any unsaved form data before re-rendering
         if (editingCardId) {
-          const openForm = document.querySelector('.card-edit-form');
+          const openForm = document.querySelector('.program-edit-form');
           if (openForm) {
             saveCardForm(openForm, editingCardId);
           }
@@ -2989,7 +2989,7 @@ const FlyerApp = (function () {
 
     // Save any unsaved form data before re-rendering
     if (editingCardId) {
-      const openForm = document.querySelector('.card-edit-form');
+      const openForm = document.querySelector('.program-edit-form');
       if (openForm) {
         saveCardForm(openForm, editingCardId);
       }
