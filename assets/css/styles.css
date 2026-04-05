@@ -1115,7 +1115,7 @@ body.mode-kid .kid-mode-only .form-row { display: flex !important; }
 
 .flyer-kid-card-location {
   text-align: right;
-  padding: 3px 15px 3px 0;
+  padding: 3px 18px 3px 0;
   white-space: nowrap;
   display: flex;
   flex-direction: column;
