@@ -1118,34 +1118,42 @@ const FlyerApp = (function () {
   function fitMultiLocationText(root) {
     const wrappers = (root || document).querySelectorAll('[data-multi-loc-fit]');
     wrappers.forEach(function (wrapper) {
-      const card = wrapper.closest('.flyer-kid-card');
-      if (!card) return;
+      // Temporarily switch to flex-start to measure natural content height
+      const origJustify = wrapper.style.justifyContent;
+      wrapper.style.justifyContent = 'flex-start';
 
-      // Available height = wrapper's rendered height (it stretches to fill the card)
+      // Available height = wrapper's rendered height (it stretches to fill the card via flex)
       const availableHeight = wrapper.clientHeight;
-      if (availableHeight <= 0) return;
+      if (availableHeight <= 0) {
+        wrapper.style.justifyContent = origJustify;
+        return;
+      }
 
-      // Measure natural content height by summing children's heights
-      // (scrollHeight won't work because flex justify-content prevents overflow)
+      // Measure natural content height by summing children's offset heights
       let naturalHeight = 0;
       const children = wrapper.children;
       for (let i = 0; i < children.length; i++) {
         naturalHeight += children[i].offsetHeight;
       }
-      // Add gap between children
       const gap = parseFloat(wrapper.style.gap) || 0;
       if (children.length > 1) naturalHeight += gap * (children.length - 1);
 
-      if (naturalHeight <= 0) return;
+      if (naturalHeight <= 0) {
+        wrapper.style.justifyContent = origJustify;
+        return;
+      }
 
       // Calculate scale ratio (how much we can grow)
       const ratio = availableHeight / naturalHeight;
-      if (ratio <= 1.05) return; // already filling the space (5% tolerance)
+      if (ratio <= 1.05) {
+        wrapper.style.justifyContent = origJustify;
+        return;
+      }
 
-      // Cap the scale-up and leave a small margin to avoid clipping
-      const maxScale = Math.min(ratio * 0.92, 2.0);
+      // Cap the scale-up and leave a margin to prevent content from pushing card height
+      const maxScale = Math.min(ratio * 0.85, 2.0);
 
-      // Scale all text elements within the wrapper
+      // Collect text elements and their original sizes before modifying
       const textEls = wrapper.querySelectorAll('div');
       textEls.forEach(function (textEl) {
         const currentSize = parseFloat(textEl.style.fontSize);
@@ -1153,6 +1161,9 @@ const FlyerApp = (function () {
           textEl.style.fontSize = Math.round(currentSize * maxScale) + 'px';
         }
       });
+
+      // Restore justify-content
+      wrapper.style.justifyContent = origJustify;
     });
   }
 
