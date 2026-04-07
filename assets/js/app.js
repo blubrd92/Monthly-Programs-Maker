@@ -1150,12 +1150,14 @@ const FlyerApp = (function () {
       const maxDateSize = parseFloat(wrapper.getAttribute('data-max-date-size')) || 999;
       const maxBranchSize = parseFloat(wrapper.getAttribute('data-max-branch-size')) || 999;
 
-      // Temporarily remove overflow:hidden and change justify-content on columns
-      // so we can measure true content height. justify-content:center causes content
-      // to overflow upward when it exceeds the column height, but scrollHeight only
-      // measures downward — missing the upward overflow entirely. Switching to
-      // flex-start forces all content downward so scrollHeight is accurate.
+      // Temporarily change layout for accurate measurement:
+      // 1. Remove overflow:hidden on columns so scrollHeight is accurate
+      // 2. Switch justify-content to flex-start on BOTH wrapper and columns —
+      //    justify-content:center causes bidirectional overflow that scrollHeight
+      //    and offsetHeight miss (they only measure downward from top edge)
       const cols = wrapper.querySelectorAll('.location-col');
+      const origWrapperJC = wrapper.style.justifyContent;
+      wrapper.style.justifyContent = 'flex-start';
       cols.forEach(function (col) {
         col.style.overflow = 'visible';
         col.style.justifyContent = 'flex-start';
@@ -1244,7 +1246,8 @@ const FlyerApp = (function () {
         });
       }
 
-      // Restore overflow and justify-content on columns
+      // Restore overflow and justify-content on columns and wrapper
+      wrapper.style.justifyContent = origWrapperJC;
       cols.forEach(function (col) {
         col.style.overflow = '';
         col.style.justifyContent = '';
