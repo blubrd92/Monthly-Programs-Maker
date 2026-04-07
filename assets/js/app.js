@@ -1197,12 +1197,16 @@ const FlyerApp = (function () {
         textEls.forEach(function (textEl) {
           const currentSize = parseFloat(textEl.style.fontSize);
           if (currentSize) {
-            const isBranch = textEl.classList.contains('flyer-kid-card-branch') || textEl.classList.contains('flyer-kid-card-address');
-            const cap = isBranch ? maxBranchSize : maxDateSize;
             let newSize = Math.max(6, Math.round(currentSize * ratio));
-            if (newSize >= cap) {
-              newSize = cap;
-              capped = true;
+            // Only apply caps when scaling UP — caps prevent exceeding single-location
+            // sizes but must not interfere when shrinking to fit available space
+            if (ratio > 1) {
+              const isBranch = textEl.classList.contains('flyer-kid-card-branch') || textEl.classList.contains('flyer-kid-card-address');
+              const cap = isBranch ? maxBranchSize : maxDateSize;
+              if (newSize >= cap) {
+                newSize = cap;
+                capped = true;
+              }
             }
             textEl.style.fontSize = newSize + 'px';
           }
