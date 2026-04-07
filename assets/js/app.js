@@ -1140,26 +1140,26 @@ const FlyerApp = (function () {
       const maxDateSize = parseFloat(wrapper.getAttribute('data-max-date-size')) || 999;
       const maxBranchSize = parseFloat(wrapper.getAttribute('data-max-branch-size')) || 999;
 
-      // Temporarily switch to flex-start and remove overflow:hidden so that
-      // wrapper.scrollHeight accurately reflects total content height.
-      // justify-content:center causes bidirectional overflow that scrollHeight misses.
+      // Temporarily switch justify-content to flex-start on wrapper and columns.
+      // Keep overflow:hidden on wrapper — removing it changes flex layout sizing.
+      // With flex-start, all content flows downward so scrollHeight captures overflow
+      // that justify-content:center would split bidirectionally (invisible to scrollHeight).
       const cols = wrapper.querySelectorAll('.location-col');
       const origWrapperJC = wrapper.style.justifyContent;
-      const origWrapperOF = wrapper.style.overflow;
       wrapper.style.justifyContent = 'flex-start';
-      wrapper.style.overflow = 'visible';
       cols.forEach(function (col) {
         col.style.overflow = 'visible';
         col.style.justifyContent = 'flex-start';
       });
 
-      // Use wrapper.clientHeight as available space (actual rendered inner area)
-      // This is more reliable than computing from card dimensions.
+      // Available = wrapper's content area (clientHeight includes padding, subtract it)
       void wrapper.offsetHeight;
-      const availableHeight = wrapper.clientHeight;
+      const wrapperStyle = window.getComputedStyle(wrapper);
+      const padTop = parseFloat(wrapperStyle.paddingTop) || 0;
+      const padBottom = parseFloat(wrapperStyle.paddingBottom) || 0;
+      const availableHeight = wrapper.clientHeight - padTop - padBottom;
       if (availableHeight <= 0) {
         wrapper.style.justifyContent = origWrapperJC;
-        wrapper.style.overflow = origWrapperOF;
         cols.forEach(function (col) { col.style.overflow = ''; col.style.justifyContent = ''; });
         return;
       }
@@ -1169,9 +1169,10 @@ const FlyerApp = (function () {
         // Force reflow so measurements reflect font size changes from previous pass
         void wrapper.offsetHeight;
 
-        // Use scrollHeight as content height — with flex-start and overflow:visible,
-        // this directly tells us if content exceeds available space
-        const contentHeight = wrapper.scrollHeight;
+        // scrollHeight includes padding, so subtract it for content-only height.
+        // With flex-start and columns overflow:visible, this captures the true
+        // content height even when it exceeds the wrapper's box.
+        const contentHeight = wrapper.scrollHeight - padTop - padBottom;
         if (contentHeight <= 0) break;
 
         const ratio = availableHeight / contentHeight;
@@ -1222,7 +1223,6 @@ const FlyerApp = (function () {
 
       // Restore layout properties
       wrapper.style.justifyContent = origWrapperJC;
-      wrapper.style.overflow = origWrapperOF;
       cols.forEach(function (col) {
         col.style.overflow = '';
         col.style.justifyContent = '';
