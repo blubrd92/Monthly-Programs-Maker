@@ -1150,9 +1150,16 @@ const FlyerApp = (function () {
       const maxDateSize = parseFloat(wrapper.getAttribute('data-max-date-size')) || 999;
       const maxBranchSize = parseFloat(wrapper.getAttribute('data-max-branch-size')) || 999;
 
-      // Temporarily remove overflow:hidden on columns so we can measure true content height
+      // Temporarily remove overflow:hidden and change justify-content on columns
+      // so we can measure true content height. justify-content:center causes content
+      // to overflow upward when it exceeds the column height, but scrollHeight only
+      // measures downward — missing the upward overflow entirely. Switching to
+      // flex-start forces all content downward so scrollHeight is accurate.
       const cols = wrapper.querySelectorAll('.location-col');
-      cols.forEach(function (col) { col.style.overflow = 'visible'; });
+      cols.forEach(function (col) {
+        col.style.overflow = 'visible';
+        col.style.justifyContent = 'flex-start';
+      });
 
       // Account for flex gap between wrapper children
       const wrapperGap = parseFloat(wrapperStyle.gap) || 0;
@@ -1227,8 +1234,11 @@ const FlyerApp = (function () {
         });
       }
 
-      // Restore overflow:hidden on columns
-      cols.forEach(function (col) { col.style.overflow = ''; });
+      // Restore overflow and justify-content on columns
+      cols.forEach(function (col) {
+        col.style.overflow = '';
+        col.style.justifyContent = '';
+      });
     });
   }
 
