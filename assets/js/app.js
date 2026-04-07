@@ -1133,16 +1133,6 @@ const FlyerApp = (function () {
       if (cardHeight <= 0) return;
       card.style.maxHeight = cardHeight + 'px';
 
-      // Calculate available height for the wrapper (card height minus border and wrapper padding)
-      const cardStyle = window.getComputedStyle(card);
-      const borderTop = parseFloat(cardStyle.borderTopWidth) || 0;
-      const borderBottom = parseFloat(cardStyle.borderBottomWidth) || 0;
-      const wrapperStyle = window.getComputedStyle(wrapper);
-      const padTop = parseFloat(wrapperStyle.paddingTop) || 0;
-      const padBottom = parseFloat(wrapperStyle.paddingBottom) || 0;
-      const availableHeight = cardHeight - borderTop - borderBottom - padTop - padBottom;
-      if (availableHeight <= 0) return;
-
       const textEls = wrapper.querySelectorAll('div[style]');
       if (textEls.length === 0) return;
 
@@ -1150,54 +1140,38 @@ const FlyerApp = (function () {
       const maxDateSize = parseFloat(wrapper.getAttribute('data-max-date-size')) || 999;
       const maxBranchSize = parseFloat(wrapper.getAttribute('data-max-branch-size')) || 999;
 
-      // Temporarily change layout for accurate measurement:
-      // 1. Remove overflow:hidden on columns so scrollHeight is accurate
-      // 2. Switch justify-content to flex-start on BOTH wrapper and columns —
-      //    justify-content:center causes bidirectional overflow that scrollHeight
-      //    and offsetHeight miss (they only measure downward from top edge)
+      // Temporarily switch to flex-start and remove overflow:hidden so that
+      // wrapper.scrollHeight accurately reflects total content height.
+      // justify-content:center causes bidirectional overflow that scrollHeight misses.
       const cols = wrapper.querySelectorAll('.location-col');
       const origWrapperJC = wrapper.style.justifyContent;
+      const origWrapperOF = wrapper.style.overflow;
       wrapper.style.justifyContent = 'flex-start';
+      wrapper.style.overflow = 'visible';
       cols.forEach(function (col) {
         col.style.overflow = 'visible';
         col.style.justifyContent = 'flex-start';
       });
 
-      // Account for flex gap between wrapper children
-      const wrapperGap = parseFloat(wrapperStyle.gap) || 0;
-      const gapTotal = wrapperGap * Math.max(0, wrapper.children.length - 1);
+      // Use wrapper.clientHeight as available space (actual rendered inner area)
+      // This is more reliable than computing from card dimensions.
+      void wrapper.offsetHeight;
+      const availableHeight = wrapper.clientHeight;
+      if (availableHeight <= 0) {
+        wrapper.style.justifyContent = origWrapperJC;
+        wrapper.style.overflow = origWrapperOF;
+        cols.forEach(function (col) { col.style.overflow = ''; col.style.justifyContent = ''; });
+        return;
+      }
 
-      // Iteratively scale text to fit available height (up to 8 passes)
-      for (let pass = 0; pass < 8; pass++) {
-        // Force reflow so measurements reflect any font size changes from previous pass
+      // Iteratively scale text to fit available height (up to 12 passes)
+      for (let pass = 0; pass < 12; pass++) {
+        // Force reflow so measurements reflect font size changes from previous pass
         void wrapper.offsetHeight;
 
-        // Measure content height by summing actual child element heights.
-        // For columns, sum each column's children's offsetHeight directly rather
-        // than relying on scrollHeight, which can be unreliable in nested flex
-        // containers (especially with justify-content:center causing bidirectional overflow).
-        let contentHeight = gapTotal;
-        for (let i = 0; i < wrapper.children.length; i++) {
-          const child = wrapper.children[i];
-          const childStyle = window.getComputedStyle(child);
-          const mt = parseFloat(childStyle.marginTop) || 0;
-          const mb = parseFloat(childStyle.marginBottom) || 0;
-          const childCols = child.querySelectorAll('.location-col');
-          if (childCols.length > 0) {
-            // For columns row: find the tallest column by summing its children's heights
-            let maxColH = 0;
-            childCols.forEach(function (col) {
-              let colContentH = 0;
-              for (let k = 0; k < col.children.length; k++) {
-                colContentH += col.children[k].offsetHeight;
-              }
-              if (colContentH > maxColH) maxColH = colContentH;
-            });
-            contentHeight += maxColH + mt + mb;
-          } else {
-            contentHeight += child.scrollHeight + mt + mb;
-          }
-        }
+        // Use scrollHeight as content height — with flex-start and overflow:visible,
+        // this directly tells us if content exceeds available space
+        const contentHeight = wrapper.scrollHeight;
         if (contentHeight <= 0) break;
 
         const ratio = availableHeight / contentHeight;
@@ -1246,8 +1220,9 @@ const FlyerApp = (function () {
         });
       }
 
-      // Restore overflow and justify-content on columns and wrapper
+      // Restore layout properties
       wrapper.style.justifyContent = origWrapperJC;
+      wrapper.style.overflow = origWrapperOF;
       cols.forEach(function (col) {
         col.style.overflow = '';
         col.style.justifyContent = '';
