@@ -1210,7 +1210,11 @@ const FlyerApp = (function () {
         textEls.forEach(function (textEl) {
           const currentSize = parseFloat(textEl.style.fontSize);
           if (currentSize) {
-            let newSize = Math.max(6, Math.round(currentSize * ratio));
+            // Use floor when shrinking, round when growing — rounding can prevent
+            // convergence when scaling down (e.g. Math.round(14 * 0.97) = 14, no change)
+            let newSize = Math.max(6, ratio < 1
+              ? Math.floor(currentSize * ratio)
+              : Math.round(currentSize * ratio));
             // Only apply caps when scaling UP — caps prevent exceeding single-location
             // sizes but must not interfere when shrinking to fit available space
             if (ratio > 1) {
