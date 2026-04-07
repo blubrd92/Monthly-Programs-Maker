@@ -1205,8 +1205,19 @@ const FlyerApp = (function () {
             textEl.style.fontSize = newSize + 'px';
           }
         });
-        // If everything hit the cap and we're scaling up, stop
-        if (capped && ratio > 1) break;
+        // If ALL elements hit the cap and we're scaling up, stop — no more growth possible
+        if (ratio > 1) {
+          let allCapped = true;
+          textEls.forEach(function (textEl) {
+            const size = parseFloat(textEl.style.fontSize);
+            if (size) {
+              const isBranch = textEl.classList.contains('flyer-kid-card-branch') || textEl.classList.contains('flyer-kid-card-address');
+              const cap = isBranch ? maxBranchSize : maxDateSize;
+              if (size < cap) allCapped = false;
+            }
+          });
+          if (allCapped) break;
+        }
       }
 
       // PDF safety margin: scale down by 3% to prevent clipping from sub-pixel
