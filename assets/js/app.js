@@ -1155,6 +1155,7 @@ const FlyerApp = (function () {
       // Available = wrapper's content area (clientHeight includes padding, subtract it)
       void wrapper.offsetHeight;
       const wrapperStyle = window.getComputedStyle(wrapper);
+      const wrapperGap = parseFloat(wrapperStyle.gap) || 0;
       const padTop = parseFloat(wrapperStyle.paddingTop) || 0;
       const padBottom = parseFloat(wrapperStyle.paddingBottom) || 0;
       const availableHeight = wrapper.clientHeight - padTop - padBottom;
@@ -1169,10 +1170,32 @@ const FlyerApp = (function () {
         // Force reflow so measurements reflect font size changes from previous pass
         void wrapper.offsetHeight;
 
-        // scrollHeight includes padding, so subtract it for content-only height.
-        // With flex-start and columns overflow:visible, this captures the true
-        // content height even when it exceeds the wrapper's box.
-        const contentHeight = wrapper.scrollHeight - padTop - padBottom;
+        // Measure content by summing actual element heights — NOT scrollHeight.
+        // scrollHeight === clientHeight when content fits, so it can't detect room
+        // to grow. Summing children gives the true content height in both directions.
+        const gapTotal = wrapperGap * Math.max(0, wrapper.children.length - 1);
+        let contentHeight = gapTotal;
+        for (let ci = 0; ci < wrapper.children.length; ci++) {
+          const child = wrapper.children[ci];
+          const childCS = window.getComputedStyle(child);
+          const mt = parseFloat(childCS.marginTop) || 0;
+          const mb = parseFloat(childCS.marginBottom) || 0;
+          const childCols = child.querySelectorAll('.location-col');
+          if (childCols.length > 0) {
+            // Columns row: use tallest column's summed children heights
+            let maxColH = 0;
+            childCols.forEach(function (col) {
+              let colH = 0;
+              for (let k = 0; k < col.children.length; k++) {
+                colH += col.children[k].offsetHeight;
+              }
+              if (colH > maxColH) maxColH = colH;
+            });
+            contentHeight += maxColH + mt + mb;
+          } else {
+            contentHeight += child.offsetHeight + mt + mb;
+          }
+        }
         if (contentHeight <= 0) break;
 
         const ratio = availableHeight / contentHeight;
