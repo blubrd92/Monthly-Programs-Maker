@@ -1170,9 +1170,10 @@ const FlyerApp = (function () {
         // Force reflow so measurements reflect any font size changes from previous pass
         void wrapper.offsetHeight;
 
-        // Measure content height: for the columns row, use the tallest
-        // column's scrollHeight (the row itself is constrained by the wrapper).
-        // For other children, use scrollHeight directly.
+        // Measure content height by summing actual child element heights.
+        // For columns, sum each column's children's offsetHeight directly rather
+        // than relying on scrollHeight, which can be unreliable in nested flex
+        // containers (especially with justify-content:center causing bidirectional overflow).
         let contentHeight = gapTotal;
         for (let i = 0; i < wrapper.children.length; i++) {
           const child = wrapper.children[i];
@@ -1181,9 +1182,14 @@ const FlyerApp = (function () {
           const mb = parseFloat(childStyle.marginBottom) || 0;
           const childCols = child.querySelectorAll('.location-col');
           if (childCols.length > 0) {
+            // For columns row: find the tallest column by summing its children's heights
             let maxColH = 0;
             childCols.forEach(function (col) {
-              if (col.scrollHeight > maxColH) maxColH = col.scrollHeight;
+              let colContentH = 0;
+              for (let k = 0; k < col.children.length; k++) {
+                colContentH += col.children[k].offsetHeight;
+              }
+              if (colContentH > maxColH) maxColH = colContentH;
             });
             contentHeight += maxColH + mt + mb;
           } else {
