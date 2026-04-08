@@ -4224,6 +4224,22 @@ const FlyerApp = (function () {
                     requestAnimationFrame(function () {
                       requestAnimationFrame(function () {
                         fitMultiLocationText(tempDiv, true);
+
+                        // PDF fix: html2canvas at high DPI (6.25x) renders text
+                        // metrics slightly larger than the browser, causing the
+                        // bottom of text (descenders on the last line) to be
+                        // clipped by overflow:hidden on .flyer-kid-card. Add
+                        // bottom padding to location containers to compensate.
+                        // This only affects the temporary PDF render div, not
+                        // the on-screen preview.
+                        tempDiv.querySelectorAll('.flyer-kid-card-location').forEach(function (loc) {
+                          loc.style.paddingBottom = '5px';
+                        });
+                        tempDiv.querySelectorAll('.flyer-kid-card-locations .location-col').forEach(function (col) {
+                          const pad = parseFloat(window.getComputedStyle(col).paddingBottom) || 0;
+                          col.style.paddingBottom = (pad + 3) + 'px';
+                        });
+
                         capturePage();
                       });
                     });
