@@ -154,13 +154,16 @@ body {
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  margin-bottom: 2px;
-  border-bottom: 1px solid rgba(0,0,0,0.1);
   font-size: 13px;
   color: #222;
   cursor: pointer;
 }
 .export-menu-check input { cursor: pointer; }
+#btn-export-png {
+  margin-top: 2px;
+  border-top: 1px solid rgba(0,0,0,0.1);
+  border-radius: 0;
+}
 
 .btn-outline {
   background: transparent;

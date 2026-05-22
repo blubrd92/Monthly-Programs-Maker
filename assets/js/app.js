@@ -4172,9 +4172,11 @@ const FlyerApp = (function () {
   }
 
   // Renders one page into an off-screen container and captures it as a canvas.
-  // Shared by PDF and PNG export. When `transparent` is true the page background
-  // is left transparent instead of white.
-  function renderPageToCanvas(page, scaleRatio, previewWidthPx, previewHeightPx, transparent) {
+  // Shared by PDF and PNG export. `opts` may set `transparent` (omit the white
+  // page background) and `omitFooter` (render the footer area blank).
+  function renderPageToCanvas(page, scaleRatio, previewWidthPx, previewHeightPx, opts) {
+    const transparent = !!(opts && opts.transparent);
+    const omitFooter = !!(opts && opts.omitFooter);
     return new Promise(function (resolve, reject) {
       const tempDiv = document.createElement('div');
       tempDiv.style.position = 'absolute';
@@ -4187,6 +4189,11 @@ const FlyerApp = (function () {
       document.body.appendChild(tempDiv);
 
       renderPreviewInto(tempDiv, page);
+
+      if (omitFooter) {
+        const footerEl = tempDiv.querySelector('.flyer-footer');
+        if (footerEl) footerEl.style.visibility = 'hidden';
+      }
 
       function capture() {
         if (transparent) clearWhiteBackgrounds(tempDiv);
@@ -4307,7 +4314,7 @@ const FlyerApp = (function () {
       let chain = preloadKidImages();
       pages.forEach(function (page, index) {
         chain = chain.then(function () {
-          return renderPageToCanvas(page, scaleRatio, previewWidthPx, previewHeightPx, false)
+          return renderPageToCanvas(page, scaleRatio, previewWidthPx, previewHeightPx, {})
             .then(function (canvas) {
               if (index > 0) {
                 pdf.addPage([pageWidth, pageHeight], 'portrait');
@@ -4328,9 +4335,9 @@ const FlyerApp = (function () {
   }
 
   // Exports each page as a 600 DPI PNG. Multi-page flyers are bundled into a
-  // .zip; a single-page flyer downloads as a plain .png. When `transparent`
-  // is true the white page background is omitted.
-  function exportPNG(transparent) {
+  // .zip; a single-page flyer downloads as a plain .png. `opts` may set
+  // `transparent` and `omitFooter`.
+  function exportPNG(opts) {
     if (exportInProgress) return;
     if (pages.length > 1 && !window.JSZip) {
       showNotification('ZIP library failed to load. Check your internet connection.', 'error');
@@ -4350,7 +4357,7 @@ const FlyerApp = (function () {
       let chain = preloadKidImages();
       pages.forEach(function (page) {
         chain = chain.then(function () {
-          return renderPageToCanvas(page, scaleRatio, previewWidthPx, previewHeightPx, transparent)
+          return renderPageToCanvas(page, scaleRatio, previewWidthPx, previewHeightPx, opts)
             .then(function (canvas) {
               return new Promise(function (resolve, reject) {
                 canvas.toBlob(function (blob) {
@@ -4588,9 +4595,12 @@ const FlyerApp = (function () {
       if (e.key === 'Escape') closeExportMenu();
     });
     document.getElementById('btn-export-png').addEventListener('click', function () {
-      const transparent = document.getElementById('export-png-transparent').checked;
+      const opts = {
+        transparent: document.getElementById('export-png-transparent').checked,
+        omitFooter: document.getElementById('export-png-no-footer').checked,
+      };
       closeExportMenu();
-      exportPNG(transparent);
+      exportPNG(opts);
     });
 
     // Page indicator prev/next
