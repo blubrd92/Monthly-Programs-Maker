@@ -761,6 +761,7 @@ const FlyerApp = (function () {
       const imgEl = el('img', {
         'src': imgSrc,
         'alt': 'Footer',
+        'class': 'flyer-footer-img',
         style: {
           width: '100%',
           display: 'block',
@@ -4173,7 +4174,8 @@ const FlyerApp = (function () {
 
   // Renders one page into an off-screen container and captures it as a canvas.
   // Shared by PDF and PNG export. `opts` may set `transparent` (omit the white
-  // page background) and `omitFooter` (crop the canvas above the footer).
+  // page background) and `omitFooter` (crop the canvas above the footer image,
+  // keeping the asterisk note).
   function renderPageToCanvas(page, scaleRatio, previewWidthPx, previewHeightPx, opts) {
     const transparent = !!(opts && opts.transparent);
     const omitFooter = !!(opts && opts.omitFooter);
@@ -4190,21 +4192,23 @@ const FlyerApp = (function () {
 
       renderPreviewInto(tempDiv, page);
 
+      // "Omit footer" removes the footer image but keeps the asterisk note,
+      // which sits above the image inside .flyer-footer.
       if (omitFooter) {
-        const footerEl = tempDiv.querySelector('.flyer-footer');
-        if (footerEl) footerEl.style.visibility = 'hidden';
+        const footerImg = tempDiv.querySelector('.flyer-footer-img');
+        if (footerImg) footerImg.style.visibility = 'hidden';
       }
 
       function capture() {
         if (transparent) clearWhiteBackgrounds(tempDiv);
 
-        // When omitting the footer, crop the canvas at the footer's top edge
-        // so the image ends where the branch content ends.
+        // When omitting the footer, crop the canvas at the footer image's top
+        // edge so the image is dropped but the asterisk note is preserved.
         let cropHeightPx = previewHeightPx;
         if (omitFooter) {
-          const footerEl = tempDiv.querySelector('.flyer-footer');
-          if (footerEl) {
-            const offset = footerEl.getBoundingClientRect().top - tempDiv.getBoundingClientRect().top;
+          const footerImg = tempDiv.querySelector('.flyer-footer-img');
+          if (footerImg) {
+            const offset = footerImg.getBoundingClientRect().top - tempDiv.getBoundingClientRect().top;
             if (offset > 0 && offset < previewHeightPx) cropHeightPx = offset;
           }
         }
