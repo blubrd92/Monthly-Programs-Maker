@@ -4159,6 +4159,18 @@ const FlyerApp = (function () {
     }));
   }
 
+  // Strips opaque-white backgrounds from a render tree so transparent PNG
+  // export shows through behind branch content blocks and program rows.
+  // Colored elements (closure rows, branch fills, strips) are left alone.
+  function clearWhiteBackgrounds(root) {
+    root.querySelectorAll('*').forEach(function (node) {
+      const bg = window.getComputedStyle(node).backgroundColor;
+      if (bg === 'rgb(255, 255, 255)' || bg === 'rgba(255, 255, 255, 1)') {
+        node.style.backgroundColor = 'transparent';
+      }
+    });
+  }
+
   // Renders one page into an off-screen container and captures it as a canvas.
   // Shared by PDF and PNG export. When `transparent` is true the page background
   // is left transparent instead of white.
@@ -4177,6 +4189,7 @@ const FlyerApp = (function () {
       renderPreviewInto(tempDiv, page);
 
       function capture() {
+        if (transparent) clearWhiteBackgrounds(tempDiv);
         html2canvas(tempDiv, {
           scale: scaleRatio,
           useCORS: true,
