@@ -4122,7 +4122,7 @@ const FlyerApp = (function () {
   let exportInProgress = false;
 
   function setExportButtonsDisabled(disabled) {
-    ['btn-export-pdf', 'btn-export-menu', 'btn-export-png', 'btn-export-png-transparent']
+    ['btn-export-pdf', 'btn-export-menu', 'btn-export-png']
       .forEach(function (id) {
         const b = document.getElementById(id);
         if (b) b.disabled = disabled;
@@ -4588,12 +4588,9 @@ const FlyerApp = (function () {
       if (e.key === 'Escape') closeExportMenu();
     });
     document.getElementById('btn-export-png').addEventListener('click', function () {
+      const transparent = document.getElementById('export-png-transparent').checked;
       closeExportMenu();
-      exportPNG(false);
-    });
-    document.getElementById('btn-export-png-transparent').addEventListener('click', function () {
-      closeExportMenu();
-      exportPNG(true);
+      exportPNG(transparent);
     });
 
     // Page indicator prev/next

@@ -149,6 +149,18 @@ body {
   cursor: pointer;
 }
 .export-menu button:hover { background: rgba(0,0,0,0.07); }
+.export-menu-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+  font-size: 13px;
+  color: #222;
+  cursor: pointer;
+}
+.export-menu-check input { cursor: pointer; }
 
 .btn-outline {
   background: transparent;
