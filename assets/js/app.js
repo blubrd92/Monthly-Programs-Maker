@@ -3930,18 +3930,7 @@ const FlyerApp = (function () {
       }
       const json = JSON.stringify(data, null, 2);
       const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const firstPage = pages[0];
-      let titleForFile = (firstPage.header.titleText || '').replace(/\n/g, ' ');
-      if (firstPage.cards) titleForFile = titleForFile.replace(/San Rafael Public Library/gi, 'SRPL');
-      const baseName = (titleForFile + ' - ' + (firstPage.header.monthText || '')).trim() || 'flyer';
-      a.download = baseName + '.flyer';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      downloadBlob(blob, buildBaseName() + '.flyer');
       isDirty = false;
       showNotification('File saved successfully.', 'success');
     });
@@ -4129,15 +4118,156 @@ const FlyerApp = (function () {
   // PDF EXPORT
   // ═══════════════════════════════════════════════════
 
-  function exportPDF() {
-    showNotification('Exporting PDF...', 'info');
+  // Guards against overlapping exports (PDF + PNG share this flag).
+  let exportInProgress = false;
 
-    // Reset zoom to 100% during export, restore after
+  function setExportButtonsDisabled(disabled) {
+    ['btn-export-pdf', 'btn-export-menu', 'btn-export-png', 'btn-export-png-transparent']
+      .forEach(function (id) {
+        const b = document.getElementById(id);
+        if (b) b.disabled = disabled;
+      });
+  }
+
+  // Builds the base filename (no extension) from the first page's header.
+  function buildBaseName() {
+    const firstPage = pages[0];
+    let title = (firstPage.header.titleText || '').replace(/\n/g, ' ').trim();
+    if (firstPage.cards) title = title.replace(/San Rafael Public Library/gi, 'SRPL');
+    const month = (firstPage.header.monthText || '').trim();
+    const name = [title, month].filter(Boolean).join(' - ');
+    return name || 'flyer';
+  }
+
+  // Loads kid mode images into imageCache so off-screen renders have them ready.
+  function preloadKidImages() {
+    if (meta.mode !== 'kid') return Promise.resolve();
+    const ids = [];
+    pages.forEach(function (p) {
+      if (p.cards) {
+        p.cards.forEach(function (c) {
+          if (c.imageId && !imageCache[c.imageId]) ids.push(c.imageId);
+          if (c.nameImageId && !imageCache[c.nameImageId]) ids.push(c.nameImageId);
+        });
+      }
+    });
+    if (ids.length === 0) return Promise.resolve();
+    return Promise.all(ids.map(function (id) {
+      return ImageStore.getImage(id).then(function (dataUrl) {
+        if (dataUrl) imageCache[id] = dataUrl;
+      });
+    }));
+  }
+
+  // Renders one page into an off-screen container and captures it as a canvas.
+  // Shared by PDF and PNG export. When `transparent` is true the page background
+  // is left transparent instead of white.
+  function renderPageToCanvas(page, scaleRatio, previewWidthPx, previewHeightPx, transparent) {
+    return new Promise(function (resolve, reject) {
+      const tempDiv = document.createElement('div');
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      tempDiv.style.top = '-9999px';
+      tempDiv.style.width = previewWidthPx + 'px';
+      tempDiv.style.height = previewHeightPx + 'px';
+      tempDiv.style.overflow = 'hidden';
+      if (!transparent) tempDiv.style.background = '#fff';
+      document.body.appendChild(tempDiv);
+
+      renderPreviewInto(tempDiv, page);
+
+      function capture() {
+        html2canvas(tempDiv, {
+          scale: scaleRatio,
+          useCORS: true,
+          logging: false,
+          backgroundColor: transparent ? null : '#ffffff',
+          width: previewWidthPx,
+          height: previewHeightPx,
+          windowWidth: previewWidthPx,
+          windowHeight: previewHeightPx,
+        }).then(function (canvas) {
+          document.body.removeChild(tempDiv);
+          resolve(canvas);
+        }).catch(function (err) {
+          document.body.removeChild(tempDiv);
+          reject(err);
+        });
+      }
+
+      // Wait for layout to settle, then auto-size text, rasterize, then capture
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          if (meta.mode === 'kid') {
+            // IMPORTANT: Wait for all images in the temp div to load before
+            // fitting text. Card heights depend on image dimensions, so measuring
+            // before images load produces incorrect scaling. Without this,
+            // multi-location text can be clipped in the exported image.
+            const imgs = tempDiv.querySelectorAll('img');
+            const imgPromises = [];
+            imgs.forEach(function (img) {
+              if (!img.complete) {
+                imgPromises.push(new Promise(function (res) {
+                  img.addEventListener('load', res);
+                  img.addEventListener('error', res);
+                }));
+              }
+            });
+            Promise.all(imgPromises).then(function () {
+              requestAnimationFrame(function () {
+                requestAnimationFrame(function () {
+                  fitMultiLocationText(tempDiv, true);
+
+                  // html2canvas at high DPI (6.25x) renders text metrics slightly
+                  // larger than the browser, clipping descenders on the last line
+                  // via overflow:hidden on .flyer-kid-card. Add bottom padding to
+                  // location containers to compensate. Affects only this temp div.
+                  tempDiv.querySelectorAll('.flyer-kid-card-location').forEach(function (loc) {
+                    loc.style.paddingBottom = '5px';
+                  });
+                  tempDiv.querySelectorAll('.flyer-kid-card-locations .location-col').forEach(function (col) {
+                    const pad = parseFloat(window.getComputedStyle(col).paddingBottom) || 0;
+                    col.style.paddingBottom = (pad + 3) + 'px';
+                  });
+
+                  capture();
+                });
+              });
+            });
+          } else {
+            autoSizeVerticalText(tempDiv);
+            rasterizeVerticalText(tempDiv, scaleRatio);
+            capture();
+          }
+        });
+      });
+    });
+  }
+
+  // Resets zoom to 100% for export and returns a function that restores it
+  // and clears the in-progress guard.
+  function beginExport() {
+    exportInProgress = true;
+    setExportButtonsDisabled(true);
     const savedZoom = zoomLevel;
     if (zoomLevel !== 1) {
       zoomLevel = 1;
       applyZoom();
     }
+    return function endExport() {
+      if (savedZoom !== 1) {
+        zoomLevel = savedZoom;
+        applyZoom();
+      }
+      exportInProgress = false;
+      setExportButtonsDisabled(false);
+    };
+  }
+
+  function exportPDF() {
+    if (exportInProgress) return;
+    showNotification('Exporting PDF...', 'info');
+    const endExport = beginExport();
 
     document.fonts.ready.then(function () {
       const pageDims = CONFIG.PAGE[meta.pageSize] || CONFIG.PAGE.letter;
@@ -4147,6 +4277,7 @@ const FlyerApp = (function () {
       const jsPDFLib = window.jspdf || window.jsPDF;
       if (!jsPDFLib) {
         showNotification('PDF library failed to load. Check your internet connection.', 'error');
+        endExport();
         return;
       }
       const JsPDFConstructor = jsPDFLib.jsPDF || jsPDFLib;
@@ -4160,149 +4291,97 @@ const FlyerApp = (function () {
       const previewWidthPx = pageWidth * CONFIG.SCREEN_DPI;
       const previewHeightPx = pageHeight * CONFIG.SCREEN_DPI;
 
-      // Pre-load all kid mode images into cache before rendering PDF pages
-      const preloadPromise = meta.mode === 'kid'
-        ? (function () {
-          const ids = [];
-          pages.forEach(function (p) {
-            if (p.cards) {
-              p.cards.forEach(function (c) {
-                if (c.imageId && !imageCache[c.imageId]) ids.push(c.imageId);
-                if (c.nameImageId && !imageCache[c.nameImageId]) ids.push(c.nameImageId);
-              });
-            }
-          });
-          return ids.length > 0
-            ? Promise.all(ids.map(function (id) {
-              return ImageStore.getImage(id).then(function (dataUrl) {
-                if (dataUrl) imageCache[id] = dataUrl;
-              });
-            }))
-            : Promise.resolve();
-        })()
-        : Promise.resolve();
-
-      const pagePromises = [];
-
+      let chain = preloadKidImages();
       pages.forEach(function (page, index) {
-        pagePromises.push(function () {
-          return new Promise(function (resolve) {
-            // Create temporary off-screen container
-            const tempDiv = document.createElement('div');
-            tempDiv.style.position = 'absolute';
-            tempDiv.style.left = '-9999px';
-            tempDiv.style.top = '-9999px';
-            tempDiv.style.width = previewWidthPx + 'px';
-            tempDiv.style.height = previewHeightPx + 'px';
-            tempDiv.style.overflow = 'hidden';
-            tempDiv.style.background = '#fff';
-            document.body.appendChild(tempDiv);
-
-            // Render the flyer content into the temp div
-            renderPreviewInto(tempDiv, page);
-
-            // Wait for layout to settle, then auto-size text, rasterize, then capture
-            requestAnimationFrame(function () {
-              requestAnimationFrame(function () {
-                // Kid mode: fit multi-location text; Standard: auto-size and rasterize vertical text
-                if (meta.mode === 'kid') {
-                  // IMPORTANT: Wait for all images in the temp div to load before
-                  // fitting text. Card heights depend on image dimensions, so measuring
-                  // before images load produces incorrect scaling. Without this,
-                  // multi-location text can be clipped in the exported PDF.
-                  const imgs = tempDiv.querySelectorAll('img');
-                  const imgPromises = [];
-                  imgs.forEach(function (img) {
-                    if (!img.complete) {
-                      imgPromises.push(new Promise(function (res) {
-                        img.addEventListener('load', res);
-                        img.addEventListener('error', res);
-                      }));
-                    }
-                  });
-                  Promise.all(imgPromises).then(function () {
-                    requestAnimationFrame(function () {
-                      requestAnimationFrame(function () {
-                        fitMultiLocationText(tempDiv, true);
-
-                        // PDF fix: html2canvas at high DPI (6.25x) renders text
-                        // metrics slightly larger than the browser, causing the
-                        // bottom of text (descenders on the last line) to be
-                        // clipped by overflow:hidden on .flyer-kid-card. Add
-                        // bottom padding to location containers to compensate.
-                        // This only affects the temporary PDF render div, not
-                        // the on-screen preview.
-                        tempDiv.querySelectorAll('.flyer-kid-card-location').forEach(function (loc) {
-                          loc.style.paddingBottom = '5px';
-                        });
-                        tempDiv.querySelectorAll('.flyer-kid-card-locations .location-col').forEach(function (col) {
-                          const pad = parseFloat(window.getComputedStyle(col).paddingBottom) || 0;
-                          col.style.paddingBottom = (pad + 3) + 'px';
-                        });
-
-                        capturePage();
-                      });
-                    });
-                  });
-                } else {
-                  autoSizeVerticalText(tempDiv);
-                  rasterizeVerticalText(tempDiv, scaleRatio);
-                  capturePage();
-                }
-
-                function capturePage() {
-                  html2canvas(tempDiv, {
-                    scale: scaleRatio,
-                    useCORS: true,
-                    logging: false,
-                    width: previewWidthPx,
-                    height: previewHeightPx,
-                    windowWidth: previewWidthPx,
-                    windowHeight: previewHeightPx,
-                  }).then(function (canvas) {
-                    if (index > 0) {
-                      pdf.addPage([pageWidth, pageHeight], 'portrait');
-                    }
-                    const imgData = canvas.toDataURL('image/jpeg', CONFIG.PDF.jpegQuality);
-                    pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight);
-
-                    // Clean up temp div
-                    document.body.removeChild(tempDiv);
-                    resolve();
-                  }).catch(function (err) {
-                    document.body.removeChild(tempDiv);
-                    resolve();
-                    showNotification('Page render failed: ' + err.message, 'error');
-                  });
-                }
-              });
+        chain = chain.then(function () {
+          return renderPageToCanvas(page, scaleRatio, previewWidthPx, previewHeightPx, false)
+            .then(function (canvas) {
+              if (index > 0) {
+                pdf.addPage([pageWidth, pageHeight], 'portrait');
+              }
+              const imgData = canvas.toDataURL('image/jpeg', CONFIG.PDF.jpegQuality);
+              pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight);
             });
-          });
         });
       });
 
-      // Execute page renders sequentially (after image preload)
-      let chain = preloadPromise;
-      pagePromises.forEach(function (fn) {
-        chain = chain.then(fn);
-      });
-
       chain.then(function () {
-        const firstPage = pages[0];
-        let pdfTitle = (firstPage.header.titleText || '').replace(/\n/g, ' ');
-        if (firstPage.cards) pdfTitle = pdfTitle.replace(/San Rafael Public Library/gi, 'SRPL');
-        const filename = (pdfTitle + ' - ' + (firstPage.header.monthText || '')).trim() + '.pdf' || 'flyer.pdf';
-        pdf.save(filename);
+        pdf.save(buildBaseName() + '.pdf');
         showNotification('PDF exported successfully!', 'success');
       }).catch(function (err) {
         showNotification('PDF export failed: ' + err.message, 'error');
-      }).finally(function () {
-        if (savedZoom !== 1) {
-          zoomLevel = savedZoom;
-          applyZoom();
-        }
-      });
+      }).finally(endExport);
     });
+  }
+
+  // Exports each page as a 600 DPI PNG. Multi-page flyers are bundled into a
+  // .zip; a single-page flyer downloads as a plain .png. When `transparent`
+  // is true the white page background is omitted.
+  function exportPNG(transparent) {
+    if (exportInProgress) return;
+    if (pages.length > 1 && !window.JSZip) {
+      showNotification('ZIP library failed to load. Check your internet connection.', 'error');
+      return;
+    }
+    showNotification('Exporting PNG...', 'info');
+    const endExport = beginExport();
+
+    document.fonts.ready.then(function () {
+      const pageDims = CONFIG.PAGE[meta.pageSize] || CONFIG.PAGE.letter;
+      const scaleRatio = CONFIG.PDF.dpi / CONFIG.SCREEN_DPI;
+      const previewWidthPx = pageDims.width * CONFIG.SCREEN_DPI;
+      const previewHeightPx = pageDims.height * CONFIG.SCREEN_DPI;
+      const baseName = buildBaseName();
+      const blobs = [];
+
+      let chain = preloadKidImages();
+      pages.forEach(function (page) {
+        chain = chain.then(function () {
+          return renderPageToCanvas(page, scaleRatio, previewWidthPx, previewHeightPx, transparent)
+            .then(function (canvas) {
+              return new Promise(function (resolve, reject) {
+                canvas.toBlob(function (blob) {
+                  if (blob) {
+                    blobs.push(blob);
+                    resolve();
+                  } else {
+                    reject(new Error('Canvas could not be converted to PNG.'));
+                  }
+                }, 'image/png');
+              });
+            });
+        });
+      });
+
+      chain.then(function () {
+        if (blobs.length === 1) {
+          downloadBlob(blobs[0], baseName + '.png');
+          return;
+        }
+        const zip = new window.JSZip();
+        blobs.forEach(function (blob, i) {
+          zip.file(baseName + ' - Page ' + (i + 1) + '.png', blob);
+        });
+        return zip.generateAsync({ type: 'blob' }).then(function (zipBlob) {
+          downloadBlob(zipBlob, baseName + ' (PNG).zip');
+        });
+      }).then(function () {
+        showNotification('PNG exported successfully!', 'success');
+      }).catch(function (err) {
+        showNotification('PNG export failed: ' + err.message, 'error');
+      }).finally(endExport);
+    });
+  }
+
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   // ═══════════════════════════════════════════════════
@@ -4472,6 +4551,36 @@ const FlyerApp = (function () {
     });
     document.getElementById('btn-export-pdf').addEventListener('click', function () {
       exportPDF();
+    });
+
+    // Export options dropdown (split button)
+    const exportMenu = document.getElementById('export-menu');
+    const exportMenuBtn = document.getElementById('btn-export-menu');
+    function closeExportMenu() {
+      exportMenu.hidden = true;
+      exportMenuBtn.setAttribute('aria-expanded', 'false');
+    }
+    exportMenuBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      const willOpen = exportMenu.hidden;
+      exportMenu.hidden = !willOpen;
+      exportMenuBtn.setAttribute('aria-expanded', String(willOpen));
+    });
+    document.addEventListener('click', function (e) {
+      if (!exportMenu.hidden && !exportMenu.contains(e.target) && e.target !== exportMenuBtn) {
+        closeExportMenu();
+      }
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeExportMenu();
+    });
+    document.getElementById('btn-export-png').addEventListener('click', function () {
+      closeExportMenu();
+      exportPNG(false);
+    });
+    document.getElementById('btn-export-png-transparent').addEventListener('click', function () {
+      closeExportMenu();
+      exportPNG(true);
     });
 
     // Page indicator prev/next

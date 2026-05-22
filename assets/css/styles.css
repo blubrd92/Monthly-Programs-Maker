@@ -105,6 +105,51 @@ body {
   color: #fff;
 }
 
+.btn:disabled { opacity: 0.5; cursor: default; }
+
+/* ── Export split button ────────────────────────── */
+.export-split {
+  position: relative;
+  display: inline-flex;
+}
+.export-split #btn-export-pdf {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.export-caret {
+  padding: 6px 9px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: 1px solid rgba(0,0,0,0.18);
+}
+.export-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 260px;
+  padding: 4px;
+  background: #fff;
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  z-index: 100;
+}
+.export-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: #222;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.export-menu button:hover { background: rgba(0,0,0,0.07); }
+
 .btn-outline {
   background: transparent;
   border: 1px dashed var(--border-color);
