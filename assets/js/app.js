@@ -4173,7 +4173,7 @@ const FlyerApp = (function () {
 
   // Renders one page into an off-screen container and captures it as a canvas.
   // Shared by PDF and PNG export. `opts` may set `transparent` (omit the white
-  // page background) and `omitFooter` (render the footer area blank).
+  // page background) and `omitFooter` (crop the canvas above the footer).
   function renderPageToCanvas(page, scaleRatio, previewWidthPx, previewHeightPx, opts) {
     const transparent = !!(opts && opts.transparent);
     const omitFooter = !!(opts && opts.omitFooter);
@@ -4197,6 +4197,18 @@ const FlyerApp = (function () {
 
       function capture() {
         if (transparent) clearWhiteBackgrounds(tempDiv);
+
+        // When omitting the footer, crop the canvas at the footer's top edge
+        // so the image ends where the branch content ends.
+        let cropHeightPx = previewHeightPx;
+        if (omitFooter) {
+          const footerEl = tempDiv.querySelector('.flyer-footer');
+          if (footerEl) {
+            const offset = footerEl.getBoundingClientRect().top - tempDiv.getBoundingClientRect().top;
+            if (offset > 0 && offset < previewHeightPx) cropHeightPx = offset;
+          }
+        }
+
         html2canvas(tempDiv, {
           scale: scaleRatio,
           useCORS: true,
@@ -4208,7 +4220,15 @@ const FlyerApp = (function () {
           windowHeight: previewHeightPx,
         }).then(function (canvas) {
           document.body.removeChild(tempDiv);
-          resolve(canvas);
+          if (cropHeightPx < previewHeightPx) {
+            const cropped = document.createElement('canvas');
+            cropped.width = canvas.width;
+            cropped.height = Math.round(cropHeightPx * scaleRatio);
+            cropped.getContext('2d').drawImage(canvas, 0, 0);
+            resolve(cropped);
+          } else {
+            resolve(canvas);
+          }
         }).catch(function (err) {
           document.body.removeChild(tempDiv);
           reject(err);
