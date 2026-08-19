@@ -53,9 +53,28 @@
       <button id="btn-reset" class="btn btn-secondary" title="Reset to defaults">
         <i class="fas fa-redo"></i> Reset
       </button>
-      <button id="btn-export-pdf" class="btn btn-success" title="Export as 600 DPI PDF">
-        <i class="fas fa-file-pdf"></i> Export PDF
-      </button>
+      <div class="export-split">
+        <button id="btn-export-pdf" class="btn btn-success" title="Export as 600 DPI PDF">
+          <i class="fas fa-file-pdf"></i> Export PDF
+        </button>
+        <button id="btn-export-menu" class="btn btn-success export-caret" title="More export options"
+          aria-haspopup="true" aria-expanded="false">
+          <i class="fas fa-caret-down"></i>
+        </button>
+        <div id="export-menu" class="export-menu" hidden>
+          <label class="export-menu-check">
+            <input type="checkbox" id="export-png-transparent">
+            Transparent background
+          </label>
+          <label class="export-menu-check">
+            <input type="checkbox" id="export-png-no-footer">
+            Omit footer
+          </label>
+          <button id="btn-export-png" type="button">
+            <i class="fas fa-file-image"></i> Export PNG
+          </button>
+        </div>
+      </div>
       <input type="file" id="file-input" accept=".flyer,.json" style="display:none;">
       <input type="file" id="card-image-upload" accept="image/*" style="display:none;">
       <input type="file" id="card-name-image-upload" accept="image/*" style="display:none;">
@@ -203,7 +222,7 @@
               </div>
               <div class="form-group kid-mode-only">
                 <label for="style-program-note-font-size">Note</label>
-                <input type="number" id="style-program-note-font-size" value="10" min="6" max="24">
+                <input type="number" id="style-program-note-font-size" value="9" min="6" max="24">
               </div>
             </div>
             <div class="form-group">
@@ -368,6 +387,7 @@
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 
   <!-- App Scripts (order matters!) -->
   <script src="assets/js/config.js"></script>

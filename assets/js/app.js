@@ -761,6 +761,7 @@ const FlyerApp = (function () {
       const imgEl = el('img', {
         'src': imgSrc,
         'alt': 'Footer',
+        'class': 'flyer-footer-img',
         style: {
           width: '100%',
           display: 'block',
@@ -899,7 +900,7 @@ const FlyerApp = (function () {
         'data-max-date-size': dateSize,
         'data-max-time-size': timeSize,
         'data-max-branch-size': Math.round(dateSize * 0.9),
-        style: { width: imageWidth, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '1px', flexShrink: '0', boxSizing: 'border-box', padding: '0 18px 0 0', overflow: 'hidden' },
+        style: { width: imageWidth, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '1px', flexShrink: '0', boxSizing: 'border-box', padding: '2px 18px 2px 0', overflow: 'hidden' },
       });
 
       // Check for shared date/time across all locations
@@ -938,6 +939,7 @@ const FlyerApp = (function () {
           color: textColor,
           textAlign: 'right',
           lineHeight: tightLineHeight,
+          whiteSpace: 'pre-line',
           margin: '0',
         },
       }) : null;
@@ -950,6 +952,7 @@ const FlyerApp = (function () {
           color: textColor,
           textAlign: 'right',
           lineHeight: tightLineHeight,
+          whiteSpace: 'pre-line',
           margin: '0',
         },
       }) : null;
@@ -963,7 +966,7 @@ const FlyerApp = (function () {
       }
 
       // Columns row
-      const colsRow = el('div', { 'class': 'flyer-kid-card-locations' });
+      const colsRow = el('div', { 'class': 'flyer-kid-card-locations', style: { marginTop: '2px' } });
 
       // Helper to build a location column (skip shared fields)
       // dateTimeColor: color for date/time text; locBranchColor: color for branch name/address
@@ -977,6 +980,7 @@ const FlyerApp = (function () {
             fontWeight: styles.programDateBold ? '700' : '400',
             color: dateTimeColor,
             lineHeight: tightLineHeight,
+            whiteSpace: 'pre-line',
           },
         }) : null;
         const colTimeEl = (locTimeText && !sharedTime) ? el('div', {
@@ -987,6 +991,7 @@ const FlyerApp = (function () {
             fontWeight: styles.programTimeBold ? '700' : '400',
             color: dateTimeColor,
             lineHeight: tightLineHeight,
+            whiteSpace: 'pre-line',
           },
         }) : null;
         if (isSpanish) {
@@ -1051,6 +1056,7 @@ const FlyerApp = (function () {
           fontSize: dateSize + 'px',
           fontWeight: styles.programDateBold ? '700' : '400',
           color: textColor,
+          whiteSpace: 'pre-line',
         },
       }) : null;
 
@@ -1062,6 +1068,7 @@ const FlyerApp = (function () {
           fontSize: timeSize + 'px',
           fontWeight: styles.programTimeBold ? '700' : '400',
           color: textColor,
+          whiteSpace: 'pre-line',
         },
       }) : null;
 
@@ -1116,7 +1123,7 @@ const FlyerApp = (function () {
    * all text elements proportionally if there's extra room.
    * Call after layout has settled (e.g. inside requestAnimationFrame).
    */
-  function fitMultiLocationText(root) {
+  function fitMultiLocationText(root, forPdf) {
     const wrappers = (root || document).querySelectorAll('[data-multi-loc-fit]');
     wrappers.forEach(function (wrapper) {
       const card = wrapper.closest('.flyer-kid-card');
@@ -1127,65 +1134,133 @@ const FlyerApp = (function () {
       if (cardHeight <= 0) return;
       card.style.maxHeight = cardHeight + 'px';
 
-      // Calculate available height for the wrapper (card height minus border)
-      const cardStyle = window.getComputedStyle(card);
-      const borderTop = parseFloat(cardStyle.borderTopWidth) || 0;
-      const borderBottom = parseFloat(cardStyle.borderBottomWidth) || 0;
-      const availableHeight = cardHeight - borderTop - borderBottom;
-      if (availableHeight <= 0) return;
-
-      // Count effective vertical lines:
-      // hoisted elements (direct children with fontSize) + max lines in any single column
       const textEls = wrapper.querySelectorAll('div[style]');
-      let hoistedLineCount = 0;
-      const directChildren = wrapper.children;
-      for (let i = 0; i < directChildren.length; i++) {
-        if (directChildren[i].style.fontSize && directChildren[i].textContent) {
-          hoistedLineCount++;
-        }
-      }
-      // Count max lines in any single column
-      let maxColLines = 0;
-      const cols = wrapper.querySelectorAll('.location-col');
-      cols.forEach(function (col) {
-        let colLines = 0;
-        const colChildren = col.children;
-        for (let j = 0; j < colChildren.length; j++) {
-          if (colChildren[j].textContent) colLines++;
-        }
-        if (colLines > maxColLines) maxColLines = colLines;
-      });
-      const lineCount = hoistedLineCount + maxColLines;
-      if (lineCount <= 0) return;
-
-      // Calculate ideal font size to fill available height
-      // Use lineHeight of 1.0 (matching tightLineHeight) plus small padding
-      const idealSize = Math.floor((availableHeight / lineCount) * 0.85);
-      if (idealSize < 6) return;
-
-      // Apply: scale each element proportionally based on its current relative size
-      // Find the largest current font size to use as reference
-      let maxCurrentSize = 0;
-      textEls.forEach(function (el) {
-        const size = parseFloat(el.style.fontSize);
-        if (size > maxCurrentSize) maxCurrentSize = size;
-      });
-      if (maxCurrentSize <= 0) return;
+      if (textEls.length === 0) return;
 
       // Cap sizes at single-location equivalents
       const maxDateSize = parseFloat(wrapper.getAttribute('data-max-date-size')) || 999;
       const maxBranchSize = parseFloat(wrapper.getAttribute('data-max-branch-size')) || 999;
 
-      const scale = idealSize / maxCurrentSize;
-      textEls.forEach(function (textEl) {
-        const currentSize = parseFloat(textEl.style.fontSize);
-        if (currentSize) {
-          let newSize = Math.max(6, Math.round(currentSize * scale));
-          // Cap branch/address at branch max, everything else at date max
-          const isBranch = textEl.classList.contains('flyer-kid-card-branch') || textEl.classList.contains('flyer-kid-card-address');
-          newSize = Math.min(newSize, isBranch ? maxBranchSize : maxDateSize);
-          textEl.style.fontSize = newSize + 'px';
+      // Temporarily switch justify-content to flex-start on wrapper and columns.
+      // Keep overflow:hidden on wrapper — removing it changes flex layout sizing.
+      // With flex-start, all content flows downward so scrollHeight captures overflow
+      // that justify-content:center would split bidirectionally (invisible to scrollHeight).
+      const cols = wrapper.querySelectorAll('.location-col');
+      const origWrapperJC = wrapper.style.justifyContent;
+      wrapper.style.justifyContent = 'flex-start';
+      cols.forEach(function (col) {
+        col.style.overflow = 'visible';
+        col.style.justifyContent = 'flex-start';
+      });
+
+      // Available = wrapper's content area (clientHeight includes padding, subtract it)
+      void wrapper.offsetHeight;
+      const wrapperStyle = window.getComputedStyle(wrapper);
+      const wrapperGap = parseFloat(wrapperStyle.gap) || 0;
+      const padTop = parseFloat(wrapperStyle.paddingTop) || 0;
+      const padBottom = parseFloat(wrapperStyle.paddingBottom) || 0;
+      const availableHeight = wrapper.clientHeight - padTop - padBottom;
+      if (availableHeight <= 0) {
+        wrapper.style.justifyContent = origWrapperJC;
+        cols.forEach(function (col) { col.style.overflow = ''; col.style.justifyContent = ''; });
+        return;
+      }
+
+      // Iteratively scale text to fit available height (up to 12 passes)
+      for (let pass = 0; pass < 12; pass++) {
+        // Force reflow so measurements reflect font size changes from previous pass
+        void wrapper.offsetHeight;
+
+        // Measure content by summing actual element heights — NOT scrollHeight.
+        // scrollHeight === clientHeight when content fits, so it can't detect room
+        // to grow. Summing children gives the true content height in both directions.
+        const gapTotal = wrapperGap * Math.max(0, wrapper.children.length - 1);
+        let contentHeight = gapTotal;
+        for (let ci = 0; ci < wrapper.children.length; ci++) {
+          const child = wrapper.children[ci];
+          const childCS = window.getComputedStyle(child);
+          const mt = parseFloat(childCS.marginTop) || 0;
+          const mb = parseFloat(childCS.marginBottom) || 0;
+          const childCols = child.querySelectorAll('.location-col');
+          if (childCols.length > 0) {
+            // Columns row: use tallest column's summed children heights
+            let maxColH = 0;
+            childCols.forEach(function (col) {
+              let colH = 0;
+              for (let k = 0; k < col.children.length; k++) {
+                colH += col.children[k].offsetHeight;
+              }
+              if (colH > maxColH) maxColH = colH;
+            });
+            contentHeight += maxColH + mt + mb;
+          } else {
+            contentHeight += child.offsetHeight + mt + mb;
+          }
         }
+        if (contentHeight <= 0) break;
+
+        const ratio = availableHeight / contentHeight;
+        // Stop when content fits with 0-5% room to spare.
+        // ratio >= 1.0 ensures content never overflows (ratio < 1 means overflow).
+        // Previously used 0.95 lower bound, which allowed up to 5% overflow —
+        // invisible at screen resolution but caused clipping in 600 DPI PDF exports.
+        if (ratio >= 1.0 && ratio <= 1.05) break;
+
+        // Scale all text elements proportionally
+        let capped = false;
+        textEls.forEach(function (textEl) {
+          const currentSize = parseFloat(textEl.style.fontSize);
+          if (currentSize) {
+            // Use floor when shrinking, round when growing — rounding can prevent
+            // convergence when scaling down (e.g. Math.round(14 * 0.97) = 14, no change)
+            let newSize = Math.max(6, ratio < 1
+              ? Math.floor(currentSize * ratio)
+              : Math.round(currentSize * ratio));
+            // Only apply caps when scaling UP — caps prevent exceeding single-location
+            // sizes but must not interfere when shrinking to fit available space
+            if (ratio > 1) {
+              const isBranch = textEl.classList.contains('flyer-kid-card-branch') || textEl.classList.contains('flyer-kid-card-address');
+              const cap = isBranch ? maxBranchSize : maxDateSize;
+              if (newSize >= cap) {
+                newSize = cap;
+                capped = true;
+              }
+            }
+            textEl.style.fontSize = newSize + 'px';
+          }
+        });
+        // If ALL elements hit the cap and we're scaling up, stop — no more growth possible
+        if (ratio > 1) {
+          let allCapped = true;
+          textEls.forEach(function (textEl) {
+            const size = parseFloat(textEl.style.fontSize);
+            if (size) {
+              const isBranch = textEl.classList.contains('flyer-kid-card-branch') || textEl.classList.contains('flyer-kid-card-address');
+              const cap = isBranch ? maxBranchSize : maxDateSize;
+              if (size < cap) allCapped = false;
+            }
+          });
+          if (allCapped) break;
+        }
+      }
+
+      // PDF safety margin: scale down by 3% to prevent clipping from sub-pixel
+      // rendering differences between the DOM and html2canvas. Only applied
+      // during PDF export — preview rendering doesn't need this.
+      if (forPdf) {
+        textEls.forEach(function (textEl) {
+          const size = parseFloat(textEl.style.fontSize);
+          if (size) {
+            textEl.style.fontSize = Math.max(6, Math.floor(size * 0.97)) + 'px';
+          }
+        });
+      }
+
+      // Restore layout properties
+      wrapper.style.justifyContent = origWrapperJC;
+      cols.forEach(function (col) {
+        col.style.overflow = '';
+        col.style.justifyContent = '';
       });
     });
   }
@@ -1282,11 +1357,19 @@ const FlyerApp = (function () {
       container.style.transform = 'scale(' + zoomLevel + ')';
     }
 
-    // After layout settles: fit multi-location text and check overflow
+    // After layout settles: fit multi-location text and check overflow.
+    // IMPORTANT: fitMultiLocationText must run twice — once immediately after the
+    // double-rAF (for initial sizing), and again after a 150ms delay. The delayed
+    // re-run is necessary because images and fonts may still be loading/rendering
+    // after the initial pass, causing card heights to change. Without the delayed
+    // re-run, multi-location text can appear clipped until a manual page refresh.
     requestAnimationFrame(function () {
       requestAnimationFrame(function () {
         fitMultiLocationText(preview);
         checkOverflow();
+        setTimeout(function () {
+          fitMultiLocationText(preview);
+        }, 150);
       });
     });
   }
@@ -2816,18 +2899,22 @@ const FlyerApp = (function () {
 
       // Row 2: day + time inputs
       const dateTimeRow = el('div', { 'class': 'location-entry-row', style: { marginTop: '6px' } });
-      dateTimeRow.appendChild(el('input', {
-        type: 'text',
+      const dayTextarea = el('textarea', {
         'class': 'location-day-input',
         placeholder: 'Date (e.g. Wednesdays)',
-        value: (loc && loc.dayText) || '',
-      }));
-      dateTimeRow.appendChild(el('input', {
-        type: 'text',
+        rows: '1',
+        style: { resize: 'vertical' },
+      });
+      dayTextarea.value = (loc && loc.dayText) || '';
+      dateTimeRow.appendChild(dayTextarea);
+      const timeTextarea = el('textarea', {
         'class': 'location-time-input',
         placeholder: 'Time (e.g. 3:00 PM)',
-        value: (loc && loc.timeText) || '',
-      }));
+        rows: '1',
+        style: { resize: 'vertical' },
+      });
+      timeTextarea.value = (loc && loc.timeText) || '';
+      dateTimeRow.appendChild(timeTextarea);
       entry.appendChild(dateTimeRow);
 
       locEntriesWrapper.appendChild(entry);
@@ -2912,7 +2999,7 @@ const FlyerApp = (function () {
       el('button', {
         'class': 'btn btn-sm btn-success',
         html: '<i class="fas fa-check"></i> Save',
-        on: { click: function () { saveCardForm(form, card.id); } },
+        on: { click: function () { saveAndCloseCardForm(form, card.id); } },
       })
     ));
 
@@ -2958,7 +3045,7 @@ const FlyerApp = (function () {
 
         // Save any unsaved form data before re-rendering
         if (editingCardId) {
-          const openForm = document.querySelector('.card-edit-form');
+          const openForm = document.querySelector('.program-edit-form');
           if (openForm) {
             saveCardForm(openForm, editingCardId);
           }
@@ -2979,7 +3066,7 @@ const FlyerApp = (function () {
 
     // Save any unsaved form data before re-rendering
     if (editingCardId) {
-      const openForm = document.querySelector('.card-edit-form');
+      const openForm = document.querySelector('.program-edit-form');
       if (openForm) {
         saveCardForm(openForm, editingCardId);
       }
@@ -3103,7 +3190,10 @@ const FlyerApp = (function () {
     if (card.colorOverride) {
       lastColorOverride = card.colorOverride;
     }
+  }
 
+  function saveAndCloseCardForm(form, cardId) {
+    saveCardForm(form, cardId);
     editingCardId = null;
     isDirty = true;
     renderCardList();
@@ -3841,16 +3931,7 @@ const FlyerApp = (function () {
       }
       const json = JSON.stringify(data, null, 2);
       const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const firstPage = pages[0];
-      const baseName = ((firstPage.header.titleText || '').replace(/\n/g, ' ') + ' - ' + (firstPage.header.monthText || '')).trim() || 'flyer';
-      a.download = baseName + '.flyer';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      downloadBlob(blob, buildBaseName() + '.flyer');
       isDirty = false;
       showNotification('File saved successfully.', 'success');
     });
@@ -4038,15 +4119,199 @@ const FlyerApp = (function () {
   // PDF EXPORT
   // ═══════════════════════════════════════════════════
 
-  function exportPDF() {
-    showNotification('Exporting PDF...', 'info');
+  // Guards against overlapping exports (PDF + PNG share this flag).
+  let exportInProgress = false;
 
-    // Reset zoom to 100% during export, restore after
+  function setExportButtonsDisabled(disabled) {
+    ['btn-export-pdf', 'btn-export-menu', 'btn-export-png']
+      .forEach(function (id) {
+        const b = document.getElementById(id);
+        if (b) b.disabled = disabled;
+      });
+  }
+
+  // Builds the base filename (no extension) from the first page's header.
+  function buildBaseName() {
+    const firstPage = pages[0];
+    let title = (firstPage.header.titleText || '').replace(/\n/g, ' ').trim();
+    if (firstPage.cards) title = title.replace(/San Rafael Public Library/gi, 'SRPL');
+    const month = (firstPage.header.monthText || '').trim();
+    const name = [title, month].filter(Boolean).join(' - ');
+    return name || 'flyer';
+  }
+
+  // Loads kid mode images into imageCache so off-screen renders have them ready.
+  function preloadKidImages() {
+    if (meta.mode !== 'kid') return Promise.resolve();
+    const ids = [];
+    pages.forEach(function (p) {
+      if (p.cards) {
+        p.cards.forEach(function (c) {
+          if (c.imageId && !imageCache[c.imageId]) ids.push(c.imageId);
+          if (c.nameImageId && !imageCache[c.nameImageId]) ids.push(c.nameImageId);
+        });
+      }
+    });
+    if (ids.length === 0) return Promise.resolve();
+    return Promise.all(ids.map(function (id) {
+      return ImageStore.getImage(id).then(function (dataUrl) {
+        if (dataUrl) imageCache[id] = dataUrl;
+      });
+    }));
+  }
+
+  // Strips opaque-white backgrounds from a render tree so transparent PNG
+  // export shows through behind branch content blocks and program rows.
+  // Colored elements (closure rows, branch fills, strips) are left alone.
+  function clearWhiteBackgrounds(root) {
+    root.querySelectorAll('*').forEach(function (node) {
+      const bg = window.getComputedStyle(node).backgroundColor;
+      if (bg === 'rgb(255, 255, 255)' || bg === 'rgba(255, 255, 255, 1)') {
+        node.style.backgroundColor = 'transparent';
+      }
+    });
+  }
+
+  // Renders one page into an off-screen container and captures it as a canvas.
+  // Shared by PDF and PNG export. `opts` may set `transparent` (omit the white
+  // page background) and `omitFooter` (crop the canvas above the footer image,
+  // keeping the asterisk note).
+  function renderPageToCanvas(page, scaleRatio, previewWidthPx, previewHeightPx, opts) {
+    const transparent = !!(opts && opts.transparent);
+    const omitFooter = !!(opts && opts.omitFooter);
+    return new Promise(function (resolve, reject) {
+      const tempDiv = document.createElement('div');
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      tempDiv.style.top = '-9999px';
+      tempDiv.style.width = previewWidthPx + 'px';
+      tempDiv.style.height = previewHeightPx + 'px';
+      tempDiv.style.overflow = 'hidden';
+      if (!transparent) tempDiv.style.background = '#fff';
+      document.body.appendChild(tempDiv);
+
+      renderPreviewInto(tempDiv, page);
+
+      // "Omit footer" removes the footer image but keeps the asterisk note,
+      // which sits above the image inside .flyer-footer.
+      if (omitFooter) {
+        const footerImg = tempDiv.querySelector('.flyer-footer-img');
+        if (footerImg) footerImg.style.visibility = 'hidden';
+      }
+
+      function capture() {
+        if (transparent) clearWhiteBackgrounds(tempDiv);
+
+        // When omitting the footer, crop the canvas at the footer image's top
+        // edge so the image is dropped but the asterisk note is preserved.
+        let cropHeightPx = previewHeightPx;
+        if (omitFooter) {
+          const footerImg = tempDiv.querySelector('.flyer-footer-img');
+          if (footerImg) {
+            const offset = footerImg.getBoundingClientRect().top - tempDiv.getBoundingClientRect().top;
+            if (offset > 0 && offset < previewHeightPx) cropHeightPx = offset;
+          }
+        }
+
+        html2canvas(tempDiv, {
+          scale: scaleRatio,
+          useCORS: true,
+          logging: false,
+          backgroundColor: transparent ? null : '#ffffff',
+          width: previewWidthPx,
+          height: previewHeightPx,
+          windowWidth: previewWidthPx,
+          windowHeight: previewHeightPx,
+        }).then(function (canvas) {
+          document.body.removeChild(tempDiv);
+          if (cropHeightPx < previewHeightPx) {
+            const cropped = document.createElement('canvas');
+            cropped.width = canvas.width;
+            cropped.height = Math.round(cropHeightPx * scaleRatio);
+            cropped.getContext('2d').drawImage(canvas, 0, 0);
+            resolve(cropped);
+          } else {
+            resolve(canvas);
+          }
+        }).catch(function (err) {
+          document.body.removeChild(tempDiv);
+          reject(err);
+        });
+      }
+
+      // Wait for layout to settle, then auto-size text, rasterize, then capture
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          if (meta.mode === 'kid') {
+            // IMPORTANT: Wait for all images in the temp div to load before
+            // fitting text. Card heights depend on image dimensions, so measuring
+            // before images load produces incorrect scaling. Without this,
+            // multi-location text can be clipped in the exported image.
+            const imgs = tempDiv.querySelectorAll('img');
+            const imgPromises = [];
+            imgs.forEach(function (img) {
+              if (!img.complete) {
+                imgPromises.push(new Promise(function (res) {
+                  img.addEventListener('load', res);
+                  img.addEventListener('error', res);
+                }));
+              }
+            });
+            Promise.all(imgPromises).then(function () {
+              requestAnimationFrame(function () {
+                requestAnimationFrame(function () {
+                  fitMultiLocationText(tempDiv, true);
+
+                  // html2canvas at high DPI (6.25x) renders text metrics slightly
+                  // larger than the browser, clipping descenders on the last line
+                  // via overflow:hidden on .flyer-kid-card. Add bottom padding to
+                  // location containers to compensate. Affects only this temp div.
+                  tempDiv.querySelectorAll('.flyer-kid-card-location').forEach(function (loc) {
+                    loc.style.paddingBottom = '5px';
+                  });
+                  tempDiv.querySelectorAll('.flyer-kid-card-locations .location-col').forEach(function (col) {
+                    const pad = parseFloat(window.getComputedStyle(col).paddingBottom) || 0;
+                    col.style.paddingBottom = (pad + 3) + 'px';
+                  });
+
+                  capture();
+                });
+              });
+            });
+          } else {
+            autoSizeVerticalText(tempDiv);
+            rasterizeVerticalText(tempDiv, scaleRatio);
+            capture();
+          }
+        });
+      });
+    });
+  }
+
+  // Resets zoom to 100% for export and returns a function that restores it
+  // and clears the in-progress guard.
+  function beginExport() {
+    exportInProgress = true;
+    setExportButtonsDisabled(true);
     const savedZoom = zoomLevel;
     if (zoomLevel !== 1) {
       zoomLevel = 1;
       applyZoom();
     }
+    return function endExport() {
+      if (savedZoom !== 1) {
+        zoomLevel = savedZoom;
+        applyZoom();
+      }
+      exportInProgress = false;
+      setExportButtonsDisabled(false);
+    };
+  }
+
+  function exportPDF() {
+    if (exportInProgress) return;
+    showNotification('Exporting PDF...', 'info');
+    const endExport = beginExport();
 
     document.fonts.ready.then(function () {
       const pageDims = CONFIG.PAGE[meta.pageSize] || CONFIG.PAGE.letter;
@@ -4056,6 +4321,7 @@ const FlyerApp = (function () {
       const jsPDFLib = window.jspdf || window.jsPDF;
       if (!jsPDFLib) {
         showNotification('PDF library failed to load. Check your internet connection.', 'error');
+        endExport();
         return;
       }
       const JsPDFConstructor = jsPDFLib.jsPDF || jsPDFLib;
@@ -4069,107 +4335,97 @@ const FlyerApp = (function () {
       const previewWidthPx = pageWidth * CONFIG.SCREEN_DPI;
       const previewHeightPx = pageHeight * CONFIG.SCREEN_DPI;
 
-      // Pre-load all kid mode images into cache before rendering PDF pages
-      const preloadPromise = meta.mode === 'kid'
-        ? (function () {
-          const ids = [];
-          pages.forEach(function (p) {
-            if (p.cards) {
-              p.cards.forEach(function (c) {
-                if (c.imageId && !imageCache[c.imageId]) ids.push(c.imageId);
-                if (c.nameImageId && !imageCache[c.nameImageId]) ids.push(c.nameImageId);
-              });
-            }
-          });
-          return ids.length > 0
-            ? Promise.all(ids.map(function (id) {
-              return ImageStore.getImage(id).then(function (dataUrl) {
-                if (dataUrl) imageCache[id] = dataUrl;
-              });
-            }))
-            : Promise.resolve();
-        })()
-        : Promise.resolve();
-
-      const pagePromises = [];
-
+      let chain = preloadKidImages();
       pages.forEach(function (page, index) {
-        pagePromises.push(function () {
-          return new Promise(function (resolve) {
-            // Create temporary off-screen container
-            const tempDiv = document.createElement('div');
-            tempDiv.style.position = 'absolute';
-            tempDiv.style.left = '-9999px';
-            tempDiv.style.top = '-9999px';
-            tempDiv.style.width = previewWidthPx + 'px';
-            tempDiv.style.height = previewHeightPx + 'px';
-            tempDiv.style.overflow = 'hidden';
-            tempDiv.style.background = '#fff';
-            document.body.appendChild(tempDiv);
-
-            // Render the flyer content into the temp div
-            renderPreviewInto(tempDiv, page);
-
-            // Wait for layout to settle, then auto-size text, rasterize, then capture
-            requestAnimationFrame(function () {
-              requestAnimationFrame(function () {
-                // Kid mode: fit multi-location text; Standard: auto-size and rasterize vertical text
-                if (meta.mode === 'kid') {
-                  fitMultiLocationText(tempDiv);
-                } else {
-                  autoSizeVerticalText(tempDiv);
-                  rasterizeVerticalText(tempDiv, scaleRatio);
-                }
-
-                html2canvas(tempDiv, {
-                  scale: scaleRatio,
-                  useCORS: true,
-                  logging: false,
-                  width: previewWidthPx,
-                  height: previewHeightPx,
-                  windowWidth: previewWidthPx,
-                  windowHeight: previewHeightPx,
-                }).then(function (canvas) {
-                  if (index > 0) {
-                    pdf.addPage([pageWidth, pageHeight], 'portrait');
-                  }
-                  const imgData = canvas.toDataURL('image/jpeg', CONFIG.PDF.jpegQuality);
-                  pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight);
-
-                  // Clean up temp div
-                  document.body.removeChild(tempDiv);
-                  resolve();
-                }).catch(function (err) {
-                  document.body.removeChild(tempDiv);
-                  resolve();
-                  showNotification('Page render failed: ' + err.message, 'error');
-                });
-              });
+        chain = chain.then(function () {
+          return renderPageToCanvas(page, scaleRatio, previewWidthPx, previewHeightPx, {})
+            .then(function (canvas) {
+              if (index > 0) {
+                pdf.addPage([pageWidth, pageHeight], 'portrait');
+              }
+              const imgData = canvas.toDataURL('image/jpeg', CONFIG.PDF.jpegQuality);
+              pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight);
             });
-          });
         });
       });
 
-      // Execute page renders sequentially (after image preload)
-      let chain = preloadPromise;
-      pagePromises.forEach(function (fn) {
-        chain = chain.then(fn);
-      });
-
       chain.then(function () {
-        const firstPage = pages[0];
-        const filename = ((firstPage.header.titleText || '').replace(/\n/g, ' ') + ' - ' + (firstPage.header.monthText || '')).trim() + '.pdf' || 'flyer.pdf';
-        pdf.save(filename);
+        pdf.save(buildBaseName() + '.pdf');
         showNotification('PDF exported successfully!', 'success');
       }).catch(function (err) {
         showNotification('PDF export failed: ' + err.message, 'error');
-      }).finally(function () {
-        if (savedZoom !== 1) {
-          zoomLevel = savedZoom;
-          applyZoom();
-        }
-      });
+      }).finally(endExport);
     });
+  }
+
+  // Exports each page as a 600 DPI PNG. Multi-page flyers are bundled into a
+  // .zip; a single-page flyer downloads as a plain .png. `opts` may set
+  // `transparent` and `omitFooter`.
+  function exportPNG(opts) {
+    if (exportInProgress) return;
+    if (pages.length > 1 && !window.JSZip) {
+      showNotification('ZIP library failed to load. Check your internet connection.', 'error');
+      return;
+    }
+    showNotification('Exporting PNG...', 'info');
+    const endExport = beginExport();
+
+    document.fonts.ready.then(function () {
+      const pageDims = CONFIG.PAGE[meta.pageSize] || CONFIG.PAGE.letter;
+      const scaleRatio = CONFIG.PDF.dpi / CONFIG.SCREEN_DPI;
+      const previewWidthPx = pageDims.width * CONFIG.SCREEN_DPI;
+      const previewHeightPx = pageDims.height * CONFIG.SCREEN_DPI;
+      const baseName = buildBaseName();
+      const blobs = [];
+
+      let chain = preloadKidImages();
+      pages.forEach(function (page) {
+        chain = chain.then(function () {
+          return renderPageToCanvas(page, scaleRatio, previewWidthPx, previewHeightPx, opts)
+            .then(function (canvas) {
+              return new Promise(function (resolve, reject) {
+                canvas.toBlob(function (blob) {
+                  if (blob) {
+                    blobs.push(blob);
+                    resolve();
+                  } else {
+                    reject(new Error('Canvas could not be converted to PNG.'));
+                  }
+                }, 'image/png');
+              });
+            });
+        });
+      });
+
+      chain.then(function () {
+        if (blobs.length === 1) {
+          downloadBlob(blobs[0], baseName + '.png');
+          return;
+        }
+        const zip = new window.JSZip();
+        blobs.forEach(function (blob, i) {
+          zip.file(baseName + ' - Page ' + (i + 1) + '.png', blob);
+        });
+        return zip.generateAsync({ type: 'blob' }).then(function (zipBlob) {
+          downloadBlob(zipBlob, baseName + ' (PNG).zip');
+        });
+      }).then(function () {
+        showNotification('PNG exported successfully!', 'success');
+      }).catch(function (err) {
+        showNotification('PNG export failed: ' + err.message, 'error');
+      }).finally(endExport);
+    });
+  }
+
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   // ═══════════════════════════════════════════════════
@@ -4339,6 +4595,36 @@ const FlyerApp = (function () {
     });
     document.getElementById('btn-export-pdf').addEventListener('click', function () {
       exportPDF();
+    });
+
+    // Export options dropdown (split button)
+    const exportMenu = document.getElementById('export-menu');
+    const exportMenuBtn = document.getElementById('btn-export-menu');
+    function closeExportMenu() {
+      exportMenu.hidden = true;
+      exportMenuBtn.setAttribute('aria-expanded', 'false');
+    }
+    exportMenuBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      const willOpen = exportMenu.hidden;
+      exportMenu.hidden = !willOpen;
+      exportMenuBtn.setAttribute('aria-expanded', String(willOpen));
+    });
+    document.addEventListener('click', function (e) {
+      if (!exportMenu.hidden && !exportMenu.contains(e.target) && e.target !== exportMenuBtn) {
+        closeExportMenu();
+      }
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeExportMenu();
+    });
+    document.getElementById('btn-export-png').addEventListener('click', function () {
+      const opts = {
+        transparent: document.getElementById('export-png-transparent').checked,
+        omitFooter: document.getElementById('export-png-no-footer').checked,
+      };
+      closeExportMenu();
+      exportPNG(opts);
     });
 
     // Page indicator prev/next
