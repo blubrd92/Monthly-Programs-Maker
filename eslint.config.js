@@ -42,6 +42,7 @@ export default [
         FlyerUtils: 'writable',
         FlyerApp: 'writable',
         ImageStore: 'writable',
+        EventsBookmarklet: 'writable',
       },
     },
     rules: {

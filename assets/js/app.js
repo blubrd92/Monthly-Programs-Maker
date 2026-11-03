@@ -4554,6 +4554,271 @@ const FlyerApp = (function () {
   }
 
   // ═══════════════════════════════════════════════════
+  // CITY CALENDAR EVENT IMPORT
+  // ═══════════════════════════════════════════════════
+  // The "SR Events → Flyer" bookmarklet copies a month of events from the
+  // city's library calendar as JSON. This dialog reads that JSON, lets
+  // staff pick which events to keep, and adds them as programs (standard
+  // mode) or cards (kid mode).
+
+  let importPayload = null;
+  let importRows = []; // [{ item, branch, checked }]
+
+  function getImportBranchOptions() {
+    if (meta.mode === 'kid') {
+      return CONFIG.BRANCH_DEFAULTS.map(function (b) { return b.name; });
+    }
+    const page = getActivePage();
+    return ((page && page.branches) || []).map(function (b) { return b.name; });
+  }
+
+  function matchBranchName(name, options) {
+    if (!name) return null;
+    const lower = String(name).toLowerCase();
+    for (let i = 0; i < options.length; i++) {
+      if (String(options[i]).toLowerCase() === lower) return options[i];
+    }
+    return null;
+  }
+
+  function getBranchColor(name) {
+    const page = getActivePage();
+    const fromPage = page && page.branches && page.branches.find(function (b) { return b.name === name; });
+    if (fromPage) return fromPage.color;
+    const def = CONFIG.BRANCH_DEFAULTS.find(function (b) { return b.name === name; });
+    return def ? def.color : '#666666';
+  }
+
+  function setImportStatus(text, type) {
+    const status = document.getElementById('import-events-status');
+    status.textContent = text || '';
+    status.className = 'import-status' + (type ? ' ' + type : '');
+  }
+
+  function openImportDialog() {
+    const modal = document.getElementById('import-events-modal');
+    modal.hidden = false;
+    // Branches may have changed since last time; rebuild any loaded rows
+    if (importPayload) buildImportRows();
+    document.getElementById('import-events-paste').focus();
+  }
+
+  function closeImportDialog() {
+    document.getElementById('import-events-modal').hidden = true;
+  }
+
+  function handleImportPaste(text) {
+    if (!String(text || '').trim()) {
+      importPayload = null;
+      importRows = [];
+      setImportStatus('');
+      renderImportList();
+      return;
+    }
+    const result = FlyerUtils.parseEventsPayload(text);
+    if (!result.ok) {
+      importPayload = null;
+      importRows = [];
+      setImportStatus(result.error, 'error');
+      renderImportList();
+      return;
+    }
+    importPayload = result.payload;
+    buildImportRows();
+  }
+
+  function buildImportRows() {
+    const combine = document.getElementById('import-combine').checked;
+    const items = FlyerUtils.buildImportItems(importPayload, { combineSeries: combine });
+    const options = getImportBranchOptions();
+    importRows = items.map(function (item) {
+      const branch = matchBranchName(item.branch, options);
+      // Events with no matching branch start unchecked until one is chosen
+      return { item: item, branch: branch, checked: Boolean(branch) };
+    });
+
+    const monthName = FlyerUtils.MONTH_NAMES[importPayload.month - 1];
+    let status = importPayload.events.length + ' events for ' + monthName + ' ' + importPayload.year +
+      ' → ' + importRows.length + ' rows.';
+    let type = 'success';
+    if (meta.month !== monthName || Number(meta.year) !== importPayload.year) {
+      status += ' Heads up: this flyer is set to ' + meta.month + ' ' + meta.year + '.';
+      type = 'warning';
+    }
+    setImportStatus(status, type);
+    renderImportList();
+  }
+
+  function renderImportList() {
+    const list = document.getElementById('import-events-list');
+    const optionsBar = document.getElementById('import-events-options');
+    list.innerHTML = '';
+    optionsBar.hidden = importRows.length === 0;
+
+    const options = getImportBranchOptions();
+    const groups = options.map(function (name) {
+      return { name: name, rows: importRows.filter(function (r) { return r.branch === name; }) };
+    });
+    groups.push({ name: null, rows: importRows.filter(function (r) { return !r.branch; }) });
+
+    groups.forEach(function (group) {
+      if (!group.rows.length) return;
+      const section = el('div', { 'class': 'import-group' });
+      section.appendChild(el('div', {
+        'class': 'import-group-title',
+        style: { borderLeftColor: group.name ? getBranchColor(group.name) : '#999' },
+        text: group.name ? group.name : 'Needs a branch (off-site or uncategorized)',
+      }));
+
+      group.rows.forEach(function (row) {
+        const item = row.item;
+        const checkbox = el('input', {
+          type: 'checkbox',
+          'aria-label': 'Include ' + item.name,
+          on: {
+            change: function (e) {
+              row.checked = e.target.checked;
+              updateImportAddButton();
+            },
+          },
+        });
+        checkbox.checked = row.checked;
+        checkbox.disabled = !row.branch;
+
+        const nameLine = el('div', { 'class': 'import-row-name', text: item.name });
+        if (item.isClosure) nameLine.appendChild(el('span', { 'class': 'import-badge closure', text: 'Closure' }));
+        if (item.count > 1) nameLine.appendChild(el('span', { 'class': 'import-badge', text: '×' + item.count }));
+
+        const when = [item.dateText, item.timeText].filter(Boolean).join(' · ');
+        const main = el('div', { 'class': 'import-row-main' },
+          nameLine,
+          el('div', { 'class': 'import-row-when', text: when })
+        );
+        if (!row.branch && item.location) {
+          main.appendChild(el('div', { 'class': 'import-row-loc', text: item.location }));
+        }
+
+        const select = el('select', {
+          'class': 'import-row-branch',
+          'aria-label': 'Branch for ' + item.name,
+          on: {
+            change: function (e) {
+              row.branch = e.target.value || null;
+              row.checked = Boolean(row.branch);
+              renderImportList();
+            },
+          },
+        });
+        select.appendChild(el('option', { value: '', text: row.branch ? '(skip)' : 'Choose branch…' }));
+        options.forEach(function (name) {
+          const opt = el('option', { value: name, text: name });
+          if (name === row.branch) opt.selected = true;
+          select.appendChild(opt);
+        });
+
+        section.appendChild(el('div', { 'class': 'import-row' + (row.branch ? '' : ' unassigned') },
+          checkbox, main, select));
+      });
+      list.appendChild(section);
+    });
+
+    updateImportAddButton();
+  }
+
+  function updateImportAddButton() {
+    const n = importRows.filter(function (r) { return r.checked && r.branch; }).length;
+    const btn = document.getElementById('import-events-add');
+    btn.disabled = n === 0;
+    const noun = meta.mode === 'kid' ? (n === 1 ? 'card' : 'cards') : (n === 1 ? 'program' : 'programs');
+    btn.textContent = n ? 'Add ' + n + ' ' + noun : 'Add ' + noun;
+  }
+
+  function addImportedRows() {
+    const page = getActivePage();
+    if (!page) return;
+    const chosen = importRows.filter(function (r) { return r.checked && r.branch; });
+    let added = 0;
+
+    if (meta.mode === 'kid') {
+      if (!page.cards) return;
+      chosen.forEach(function (r) {
+        const def = CONFIG.BRANCH_DEFAULTS.find(function (b) { return b.name === r.branch; }) || {};
+        page.cards.push(FlyerUtils.createBlankCard({
+          name: r.item.name,
+          dateText: r.item.dateText,
+          timeText: r.item.timeText,
+          branchId: r.branch,
+          branchName: r.branch,
+          branchAddress: def.address || '',
+          branchColor: def.color || '#666666',
+          isClosure: r.item.isClosure,
+        }));
+        added++;
+      });
+      renderCardList();
+    } else {
+      chosen.forEach(function (r) {
+        const branch = page.branches.find(function (b) { return b.name === r.branch; });
+        if (!branch) return;
+        branch.programs.push(FlyerUtils.createBlankProgram({
+          name: r.item.name,
+          dateText: r.item.dateText,
+          timeText: r.item.timeText,
+          isClosure: r.item.isClosure,
+        }));
+        collapsedBranches.delete(branch.id);
+        added++;
+      });
+      renderBranchList();
+    }
+
+    isDirty = true;
+    debouncedRenderPreview();
+    scheduleAutosave();
+    closeImportDialog();
+    showNotification('Added ' + added + (meta.mode === 'kid' ? ' cards.' : ' programs.'), 'success');
+  }
+
+  function bindImportDialog() {
+    const modal = document.getElementById('import-events-modal');
+    const link = document.getElementById('import-bookmarklet-link');
+    link.textContent = CONFIG.EVENT_IMPORT.bookmarkletLabel;
+    link.href = EventsBookmarklet.buildHref();
+    // Clicking it here would do nothing useful; it belongs on the city page
+    link.addEventListener('click', function (e) {
+      e.preventDefault();
+      showNotification('Drag this button to your bookmarks bar, then use it on the city events page.', 'info');
+    });
+    document.getElementById('import-calendar-link').href = CONFIG.EVENT_IMPORT.calendarPageUrl;
+
+    document.getElementById('btn-import-events').addEventListener('click', openImportDialog);
+    document.getElementById('import-events-close').addEventListener('click', closeImportDialog);
+    document.getElementById('import-events-cancel').addEventListener('click', closeImportDialog);
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal) closeImportDialog();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !modal.hidden) closeImportDialog();
+    });
+
+    document.getElementById('import-events-paste').addEventListener('input', function (e) {
+      handleImportPaste(e.target.value);
+    });
+    document.getElementById('import-combine').addEventListener('change', function () {
+      if (importPayload) buildImportRows();
+    });
+    document.getElementById('import-select-all').addEventListener('click', function () {
+      importRows.forEach(function (r) { r.checked = Boolean(r.branch); });
+      renderImportList();
+    });
+    document.getElementById('import-select-none').addEventListener('click', function () {
+      importRows.forEach(function (r) { r.checked = false; });
+      renderImportList();
+    });
+    document.getElementById('import-events-add').addEventListener('click', addImportedRows);
+  }
+
+  // ═══════════════════════════════════════════════════
   // INIT
   // ═══════════════════════════════════════════════════
 
@@ -4652,6 +4917,9 @@ const FlyerApp = (function () {
     document.getElementById('btn-add-card').addEventListener('click', function () {
       addKidCard();
     });
+
+    // Import Events from City Calendar dialog
+    bindImportDialog();
 
     // Card image upload handlers
     document.getElementById('card-image-upload').addEventListener('change', function (e) {

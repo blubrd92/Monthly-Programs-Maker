@@ -173,5 +173,46 @@ const CONFIG = (function () {
 
     // ── Local Storage Key ────────────────────────────────
     STORAGE_KEY: 'library-flyer-draft',
+
+    // ── City Calendar Event Import ───────────────────────
+    // The bookmarklet runs on the city's library events page, reads the
+    // month the calendar is showing, and copies those events as JSON.
+    // The import dialog turns that JSON into flyer programs.
+    EVENT_IMPORT: {
+      calendarPageUrl: 'https://sanrafael.gov/library-events/',
+      // Events Manager iCal feed for the "Library" category. Supplies the
+      // branch categories and location the month-view data leaves out.
+      icalUrl: 'https://sanrafael.gov/events/categories/library/ical/',
+      // Calendar category id used when the page's own filter is unavailable
+      defaultCategoryId: 1188,
+      payloadSource: 'sr-library-events',
+      payloadVersion: 1,
+      bookmarkletLabel: 'SR Events → Flyer',
+      // City calendar category → flyer branch name (checked first)
+      categoryBranches: {
+        'Downtown Library': 'Downtown',
+        'Northgate Library': 'Northgate',
+        'Pickleweed Library': 'Al Boro CC',
+        'City Hall Council Chambers': 'City Hall',
+        'Online Programs': 'Online',
+      },
+      // Location text fragments → flyer branch name (fallback when an
+      // event has no branch category). Matched case-insensitively.
+      locationBranches: [
+        { match: 'downtown', branch: 'Downtown' },
+        { match: '1100 e street', branch: 'Downtown' },
+        { match: 'northgate', branch: 'Northgate' },
+        { match: 'pickleweed', branch: 'Al Boro CC' },
+        { match: 'boro community center', branch: 'Al Boro CC' },
+        { match: '50 canal', branch: 'Al Boro CC' },
+        { match: 'council chambers', branch: 'City Hall' },
+        { match: '1400 5th', branch: 'City Hall' },
+        { match: '1400 fifth', branch: 'City Hall' },
+      ],
+      // All-day events whose title starts like this become closure rows
+      closureTitlePattern: '^\\s*(closed|cerrad)',
+      // Time ranges render like "4:00pm–5:00pm" to match existing flyers
+      timeRangeSeparator: '–',
+    },
   };
 })();

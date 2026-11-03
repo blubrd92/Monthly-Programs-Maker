@@ -98,6 +98,10 @@
 
       <!-- ─── Programs Tab ─── -->
       <div id="tab-programs" class="tab-content active">
+        <!-- Import from the city's library events calendar (both modes) -->
+        <button id="btn-import-events" class="btn btn-outline btn-full import-events-btn" type="button">
+          <i class="fas fa-calendar-plus"></i> Import Events from City Calendar
+        </button>
         <!-- Standard mode: branch list -->
         <div id="standard-programs-container">
           <div id="branch-list">
@@ -379,6 +383,48 @@
     </main>
   </div>
 
+  <!-- ═══════════ IMPORT EVENTS DIALOG ═══════════ -->
+  <div id="import-events-modal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="import-events-title">
+      <div class="modal-header">
+        <h2 id="import-events-title"><i class="fas fa-calendar-plus"></i> Import Events from City Calendar</h2>
+        <button type="button" class="btn-icon" id="import-events-close" title="Close"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <ol class="import-steps">
+          <li>
+            <strong>One time only:</strong> drag this button to your bookmarks bar.
+            <a id="import-bookmarklet-link" class="bookmarklet-link" href="#" title="Drag me to your bookmarks bar"></a>
+          </li>
+          <li>
+            Open the <a id="import-calendar-link" href="#" target="_blank" rel="noopener">library events page</a>,
+            use the calendar arrows to show the month you want, click the bookmark, then click <em>Copy events</em>.
+          </li>
+          <li>Come back here and paste.</li>
+        </ol>
+        <textarea id="import-events-paste" class="import-paste" rows="2"
+          placeholder="Click here and paste (Ctrl+V, or ⌘V on a Mac)"></textarea>
+        <div id="import-events-status" class="import-status" aria-live="polite"></div>
+        <div id="import-events-options" class="import-options" hidden>
+          <label class="import-combine">
+            <input type="checkbox" id="import-combine" checked>
+            Combine repeating programs at the same branch
+          </label>
+          <span class="import-select-links">
+            Select:
+            <button type="button" class="link-btn" id="import-select-all">all</button>
+            <button type="button" class="link-btn" id="import-select-none">none</button>
+          </span>
+        </div>
+        <div id="import-events-list" class="import-list"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-plain" id="import-events-cancel">Cancel</button>
+        <button type="button" class="btn btn-primary" id="import-events-add" disabled>Add programs</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ═══════════ NOTIFICATIONS ═══════════ -->
   <div id="notification-container"></div>
 
@@ -393,6 +439,7 @@
   <script src="assets/js/config.js"></script>
   <script src="assets/js/image-store.js"></script>
   <script src="assets/js/flyer-utils.js"></script>
+  <script src="assets/js/events-bookmarklet.js"></script>
   <script src="assets/js/app.js"></script>
 </body>
 </html>

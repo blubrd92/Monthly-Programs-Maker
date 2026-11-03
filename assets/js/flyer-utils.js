@@ -252,6 +252,317 @@ const FlyerUtils = (function () {
     };
   }
 
+  // ── City Calendar Event Import ─────────────────────────────────
+
+  const MONTH_NAMES = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+  const WEEKDAY_NAMES = [
+    'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday',
+  ];
+
+  function pad2(n) {
+    return (n < 10 ? '0' : '') + n;
+  }
+
+  /**
+   * Parse a calendar wall-clock string ("2026-11-03T14:00:00" or
+   * "2026-11-03") without involving the browser's time zone.
+   * @returns {object|null} { year, month (1-12), day, hour, minute, hasTime, weekday (0=Sun), dayKey }
+   */
+  function parseLocalDateTime(str) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/.exec(String(str || ''));
+    if (!m) return null;
+    const year = Number(m[1]);
+    const month = Number(m[2]);
+    const day = Number(m[3]);
+    return {
+      year: year,
+      month: month,
+      day: day,
+      hour: m[4] ? Number(m[4]) : 0,
+      minute: m[5] ? Number(m[5]) : 0,
+      hasTime: Boolean(m[4]),
+      weekday: new Date(Date.UTC(year, month - 1, day)).getUTCDay(),
+      dayKey: m[1] + '-' + m[2] + '-' + m[3],
+    };
+  }
+
+  function addDays(dt, n) {
+    const t = new Date(Date.UTC(dt.year, dt.month - 1, dt.day + n));
+    return parseLocalDateTime(t.toISOString().slice(0, 10));
+  }
+
+  /**
+   * Validate and parse the JSON the bookmarklet copies.
+   * @returns {{ok: boolean, payload?: object, error?: string}}
+   */
+  function parseEventsPayload(text) {
+    const cfg = CONFIG.EVENT_IMPORT;
+    let data;
+    try {
+      data = JSON.parse(String(text || '').trim());
+    } catch {
+      return { ok: false, error: 'That doesn\'t look like copied events. Click the bookmarklet on the city calendar page, then Copy.' };
+    }
+    if (!data || data.source !== cfg.payloadSource || !Array.isArray(data.events)) {
+      return { ok: false, error: 'That doesn\'t look like copied events. Click the bookmarklet on the city calendar page, then Copy.' };
+    }
+    if (typeof data.version === 'number' && data.version > cfg.payloadVersion) {
+      return { ok: false, error: 'These events came from a newer bookmarklet than this tool understands. Reload the tool and try again.' };
+    }
+    const month = Number(data.month);
+    const year = Number(data.year);
+    if (!(month >= 1 && month <= 12) || !(year > 1900)) {
+      return { ok: false, error: 'The copied events are missing their month. Try the bookmarklet again.' };
+    }
+    const events = data.events.filter(function (e) {
+      return e && typeof e.title === 'string' && parseLocalDateTime(e.start);
+    });
+    return { ok: true, payload: { year: year, month: month, events: events } };
+  }
+
+  /**
+   * Which flyer branches an event belongs to. Branch categories win;
+   * the location text is the fallback. Returns [] when unknown.
+   */
+  function resolveEventBranches(event, importConfig) {
+    const cfg = importConfig || CONFIG.EVENT_IMPORT;
+    const out = [];
+    (event.categories || []).forEach(function (c) {
+      const b = cfg.categoryBranches[String(c).trim()];
+      if (b && out.indexOf(b) === -1) out.push(b);
+    });
+    if (out.length) return out;
+    const loc = String(event.location || '').toLowerCase();
+    for (let i = 0; i < cfg.locationBranches.length; i++) {
+      if (loc.indexOf(cfg.locationBranches[i].match) !== -1) {
+        return [cfg.locationBranches[i].branch];
+      }
+    }
+    return [];
+  }
+
+  function isClosureEvent(event, importConfig) {
+    const cfg = importConfig || CONFIG.EVENT_IMPORT;
+    return new RegExp(cfg.closureTitlePattern, 'i').test(String(event.title || ''));
+  }
+
+  function formatClockTime(dt) {
+    const h12 = dt.hour % 12 || 12;
+    return h12 + ':' + pad2(dt.minute) + (dt.hour < 12 ? 'am' : 'pm');
+  }
+
+  /**
+   * "4:00pm–5:00pm" (or just "4:00pm" without an end). All-day → ''.
+   */
+  function formatEventTime(start, end, allDay, importConfig) {
+    const cfg = importConfig || CONFIG.EVENT_IMPORT;
+    const s = parseLocalDateTime(start);
+    if (!s || allDay) return '';
+    const e = parseLocalDateTime(end);
+    if (e && e.hasTime && (e.hour !== s.hour || e.minute !== s.minute || e.dayKey !== s.dayKey)) {
+      return formatClockTime(s) + cfg.timeRangeSeparator + formatClockTime(e);
+    }
+    return formatClockTime(s);
+  }
+
+  /** "Wednesday, November 4" */
+  function formatEventDate(dt) {
+    return WEEKDAY_NAMES[dt.weekday] + ', ' + MONTH_NAMES[dt.month - 1] + ' ' + dt.day;
+  }
+
+  /**
+   * Date text for one event. Multi-day all-day events (end is exclusive)
+   * become "Thursday–Friday, November 26–27".
+   */
+  function formatEventDateSpan(start, end, allDay) {
+    if (!allDay || !end) return formatEventDate(start);
+    const last = addDays(end, -1);
+    if (last.dayKey <= start.dayKey) return formatEventDate(start);
+    if (last.month === start.month && last.year === start.year) {
+      return WEEKDAY_NAMES[start.weekday] + '–' + WEEKDAY_NAMES[last.weekday] + ', ' +
+        MONTH_NAMES[start.month - 1] + ' ' + start.day + '–' + last.day;
+    }
+    return formatEventDate(start) + ' – ' + formatEventDate(last);
+  }
+
+  /** ["a"] → "a", ["a","b"] → "a & b", ["a","b","c"] → "a, b & c" */
+  function joinWithAnd(list) {
+    if (list.length <= 1) return list.join('');
+    return list.slice(0, -1).join(', ') + ' & ' + list[list.length - 1];
+  }
+
+  /** "November 18 & 25", or "October 28 & November 4" across months */
+  function formatDayList(dts) {
+    const parts = [];
+    let prevMonth = null;
+    dts.forEach(function (dt) {
+      if (dt.month !== prevMonth) {
+        parts.push(MONTH_NAMES[dt.month - 1] + ' ' + dt.day);
+        prevMonth = dt.month;
+      } else {
+        parts.push(String(dt.day));
+      }
+    });
+    return joinWithAnd(parts);
+  }
+
+  function listMonthWeekdays(year, month, weekday) {
+    const keys = [];
+    const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    for (let d = 1; d <= daysInMonth; d++) {
+      if (new Date(Date.UTC(year, month - 1, d)).getUTCDay() === weekday) {
+        keys.push(year + '-' + pad2(month) + '-' + pad2(d));
+      }
+    }
+    return keys;
+  }
+
+  /**
+   * Date text for a merged series. A weekday counts as "every" when each
+   * of that weekday in the month either has the program or is a closure
+   * day at that branch: "Saturdays", "Wednesdays & Fridays".
+   * Otherwise lists dates: "Saturdays, November 7 & 21".
+   */
+  function formatSeriesDates(dts, closed, year, month) {
+    const have = {};
+    dts.forEach(function (dt) { have[dt.dayKey] = true; });
+    const weekdays = [];
+    dts.forEach(function (dt) {
+      if (weekdays.indexOf(dt.weekday) === -1) weekdays.push(dt.weekday);
+    });
+    weekdays.sort();
+    const everyWeek = weekdays.every(function (wd) {
+      return listMonthWeekdays(year, month, wd).every(function (k) {
+        return have[k] || closed[k];
+      });
+    });
+    if (everyWeek) {
+      return joinWithAnd(weekdays.map(function (wd) { return WEEKDAY_NAMES[wd] + 's'; }));
+    }
+    if (weekdays.length === 1) {
+      return WEEKDAY_NAMES[weekdays[0]] + 's, ' + formatDayList(dts);
+    }
+    return formatDayList(dts);
+  }
+
+  function normalizeTitle(title) {
+    return String(title || '').toLowerCase().replace(/\s+/g, ' ').trim();
+  }
+
+  /**
+   * Turn a parsed payload into import rows, one per (program, branch).
+   * With combineSeries, repeats of the same title at the same branch and
+   * the same time merge into one row. Closures never merge and are
+   * duplicated for each branch they close.
+   * @param {object} payload - from parseEventsPayload
+   * @param {object} [options] - { combineSeries: true, config }
+   * @returns {Array<object>} rows: { key, name, branch (string|null), location,
+   *   dateText, timeText, isClosure, count, url, sortKey }
+   */
+  function buildImportItems(payload, options) {
+    const opts = options || {};
+    const cfg = opts.config || CONFIG.EVENT_IMPORT;
+    const combine = opts.combineSeries !== false;
+    const year = payload.year;
+    const month = payload.month;
+    const monthStart = year + '-' + pad2(month) + '-01';
+    const monthEnd = month === 12 ? (year + 1) + '-01-01' : year + '-' + pad2(month + 1) + '-01';
+
+    const entries = [];
+    payload.events.forEach(function (ev) {
+      const start = parseLocalDateTime(ev.start);
+      if (!start) return;
+      const end = parseLocalDateTime(ev.end);
+      const allDay = Boolean(ev.allDay);
+      // Keep events that start in the month, or all-day spans that reach into it
+      const lastKey = allDay && end ? addDays(end, -1).dayKey : start.dayKey;
+      if (!(start.dayKey < monthEnd && lastKey >= monthStart)) return;
+
+      const closure = isClosureEvent(ev, cfg);
+      const branches = resolveEventBranches(ev, cfg);
+      const targets = branches.length ? branches : [null];
+      targets.forEach(function (branch) {
+        entries.push({
+          ev: ev,
+          start: start,
+          end: end,
+          allDay: allDay,
+          branch: branch,
+          isClosure: closure,
+          timeText: formatEventTime(ev.start, ev.end, allDay, cfg),
+        });
+      });
+    });
+
+    // Closure days per branch, so a series skipping a holiday still reads "Fridays"
+    const closedDays = {};
+    entries.forEach(function (e) {
+      if (!e.isClosure || !e.branch) return;
+      const map = closedDays[e.branch] || (closedDays[e.branch] = {});
+      let d = e.start;
+      const last = e.allDay && e.end ? addDays(e.end, -1) : e.start;
+      while (d.dayKey <= last.dayKey) {
+        map[d.dayKey] = true;
+        d = addDays(d, 1);
+      }
+    });
+
+    const groups = [];
+    const byKey = {};
+    entries.forEach(function (e, idx) {
+      let key;
+      if (combine && !e.isClosure && !e.allDay) {
+        key = normalizeTitle(e.ev.title) + '|' +
+          (e.branch || '@' + normalizeTitle(e.ev.location)) + '|' + e.timeText;
+      } else {
+        key = '#' + idx;
+      }
+      if (!byKey[key]) {
+        byKey[key] = [];
+        groups.push({ key: key, list: byKey[key] });
+      }
+      byKey[key].push(e);
+    });
+
+    const items = groups.map(function (g) {
+      g.list.sort(function (a, b) {
+        return a.start.dayKey < b.start.dayKey ? -1 : a.start.dayKey > b.start.dayKey ? 1 : 0;
+      });
+      const first = g.list[0];
+      // Drop accidental same-day duplicates inside a series
+      const dts = [];
+      g.list.forEach(function (e) {
+        if (!dts.length || dts[dts.length - 1].dayKey !== e.start.dayKey) dts.push(e.start);
+      });
+      let dateText;
+      if (dts.length > 1) {
+        dateText = formatSeriesDates(dts, (first.branch && closedDays[first.branch]) || {}, year, month);
+      } else {
+        dateText = formatEventDateSpan(first.start, first.end, first.allDay);
+      }
+      return {
+        key: g.key + '|' + (first.branch || ''),
+        name: String(first.ev.title || '').trim(),
+        branch: first.branch,
+        location: String(first.ev.location || ''),
+        dateText: dateText,
+        timeText: first.isClosure && first.allDay ? '' : first.timeText,
+        isClosure: first.isClosure,
+        count: dts.length,
+        url: first.ev.url || '',
+        sortKey: first.start.dayKey + 'T' + pad2(first.start.hour) + pad2(first.start.minute),
+      };
+    });
+
+    items.sort(function (a, b) {
+      return a.sortKey < b.sortKey ? -1 : a.sortKey > b.sortKey ? 1 : 0;
+    });
+    return items;
+  }
+
   return {
     generateId: generateId,
     createBlankProgram: createBlankProgram,
@@ -267,5 +578,14 @@ const FlyerUtils = (function () {
     buildSubtitleLine: buildSubtitleLine,
     duplicatePage: duplicatePage,
     getCurrentMonthYear: getCurrentMonthYear,
+    parseLocalDateTime: parseLocalDateTime,
+    parseEventsPayload: parseEventsPayload,
+    resolveEventBranches: resolveEventBranches,
+    isClosureEvent: isClosureEvent,
+    formatEventTime: formatEventTime,
+    formatEventDate: formatEventDate,
+    formatEventDateSpan: formatEventDateSpan,
+    buildImportItems: buildImportItems,
+    MONTH_NAMES: MONTH_NAMES,
   };
 })();

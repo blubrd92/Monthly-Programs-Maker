@@ -19,12 +19,14 @@ assets/
     config.js                       Constants, defaults, colors, fonts, timing
     image-store.js                  IndexedDB wrapper for high-res image storage
     flyer-utils.js                  Pure/utility functions (testable, no DOM)
+    events-bookmarklet.js           City calendar bookmarklet source + javascript: URL builder
     app.js                          Core app logic: rendering, UI, state, PDF export
   img/
     footer-english-default.png      Default English footer (4800x480px, 600 DPI)
     footer-spanish-default.png      Default Spanish footer (4800x480px, 600 DPI)
 tests/
   flyer-utils.test.js              Unit tests for utility functions
+  event-import.test.js             Unit tests for city calendar import + bookmarklet URL
 eslint.config.js                   ESLint config (ES2022, script sourceType, browser globals)
 vitest.config.js                   Vitest config (jsdom environment)
 CLAUDE.md                          This file
@@ -37,7 +39,8 @@ In `index.html`, scripts load in this order:
 2. `config.js` → exposes `CONFIG` globally
 3. `image-store.js` → exposes `ImageStore` globally (IndexedDB, no dependencies)
 4. `flyer-utils.js` → exposes `FlyerUtils` globally (depends on CONFIG)
-5. `app.js` → exposes `FlyerApp` globally, calls `init()` on DOMContentLoaded
+5. `events-bookmarklet.js` → exposes `EventsBookmarklet` globally (uses CONFIG when building the URL)
+6. `app.js` → exposes `FlyerApp` globally, calls `init()` on DOMContentLoaded
 
 Changing load order will break the app. Each file depends on the previous ones.
 
@@ -80,6 +83,7 @@ Programs support:
 4. **PDF Export** (app.js) — 600 DPI via html2canvas + jsPDF, with vertical text rasterization
 5. **Page System** (app.js) — Multi-page support with duplication and per-page settings
 6. **Settings** (app.js) — Typography, column widths, colors, page size, footer management
+7. **City Calendar Import** (events-bookmarklet.js, flyer-utils.js, app.js): bookmarklet copies a month of events; dialog turns them into programs/cards
 
 ## Layout Architecture
 - **Content wrapper**: Flex column filling page margins (0.25" on all sides)
@@ -106,6 +110,7 @@ Programs support:
 | `config.js`         | `flyer-utils.js` (uses CONFIG), `app.js`, tests  |
 | `image-store.js`    | `app.js` (calls ImageStore for kid mode images)   |
 | `flyer-utils.js`    | `app.js` (calls FlyerUtils), tests               |
+| `events-bookmarklet.js` | Payload shape must match `FlyerUtils.parseEventsPayload`; bump `EVENT_IMPORT.payloadVersion` on breaking changes |
 | `app.js`            | `index.html` (DOM IDs), `styles.css` (classes)    |
 | `styles.css`        | `app.js` (class names, inline styles), `index.html` |
 | `index.html`        | `app.js` (querySelector targets)                  |
@@ -131,6 +136,15 @@ Programs support:
 - Save files use `.flyer` extension (JSON format, supports legacy single-page)
 - Column widths: configurable per page (default: Name 48%, Date 32%, Time 20%)
 - `lastColorOverride` remembers the most recent color override for convenience
+
+## City Calendar Import
+- Source page: `https://sanrafael.gov/library-events/` (ProudCity WordPress, Events Manager + WP FullCalendar 3.10.2)
+- `EventsBookmarklet.run` executes **on the city page**, not in the app: it must stay self-contained (no CONFIG/FlyerUtils/closures). Settings are passed as its one argument by `buildHref()`.
+- Data: month events from `admin-ajax.php?action=WP_FullCalendar` (same request the calendar makes), joined by event id to the iCal feed `UID:<event_id>@sanrafael.gov` for categories + location. The feed is sent with a 30-day cache header, so fetches use `cache: 'no-store'`.
+- The app cannot fetch these URLs itself (no CORS headers); that is why a bookmarklet exists.
+- Branch resolution: `CONFIG.EVENT_IMPORT.categoryBranches` first, then `locationBranches`; unknown → "Needs a branch" group in the dialog.
+- Series merge only when title + branch + time match. A weekday reads as "Fridays" when every such day in the month has the program or is a closure at that branch.
+- Staff must re-drag the bookmarklet only when `run` itself changes; formatting changes live in the app.
 
 ## Kid Mode
 A variant flyer format for children's programs. Each program is its own rounded-rectangle card (no branch grouping). Features:

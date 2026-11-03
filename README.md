@@ -15,6 +15,7 @@ A browser-based tool for creating monthly library program flyers with automatic 
 - **Program options** — Structured fields or free-text override, closure rows, inline subtitles, per-program color override
 - **Page sizes** — Letter (8.5x11) and Legal (8.5x14)
 - **Filled strips** — Toggle between outlined and filled branch sidebar strips
+- **Import from the city calendar**: a bookmarklet copies the month shown on the [library events page](https://sanrafael.gov/library-events/); paste it into the tool, pick events, and they become programs (or Kid Mode cards). Repeating programs at the same branch and time merge into one row ("Fridays")
 
 ## Quick Start
 
@@ -29,6 +30,14 @@ Or use a local server:
 ```bash
 npx serve .
 ```
+
+## Importing Events from the City Calendar
+
+1. In the tool, click **Import Events from City Calendar** and drag the **SR Events → Flyer** button to your bookmarks bar (one time).
+2. Open the [library events page](https://sanrafael.gov/library-events/), use the calendar arrows to show the month you want, and click the bookmark. Click **Copy events** in the panel that appears.
+3. Back in the tool, open **Import Events** again and paste. Check the events you want, choose a branch for any off-site events, and click **Add**.
+
+The bookmarklet reads the calendar's own data for that month and the city's iCal feed (for branch and location). Branch mapping and closure detection live in `CONFIG.EVENT_IMPORT` in `assets/js/config.js`. If the city renames a branch category, update `categoryBranches` there.
 
 ## Development
 
