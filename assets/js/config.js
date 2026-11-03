@@ -132,6 +132,16 @@ const CONFIG = (function () {
       mode: 'standard',
     },
 
+    // ── Placeholder Program ──────────────────────────────
+    // Sample row every new branch (and new Kid Mode page) starts with.
+    // Untouched copies are removed when events are imported.
+    PLACEHOLDER_PROGRAM: {
+      name: 'Program Name',
+      subtitle: 'Age Group · Details',
+      dateText: 'Day, Month #',
+      timeText: '00:00 AM',
+    },
+
     // ── Timing (ms) ──────────────────────────────────────
     DEBOUNCE: {
       preview: 300,

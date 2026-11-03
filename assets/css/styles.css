@@ -1596,3 +1596,9 @@ body.mode-kid .kid-mode-only .form-row { display: flex !important; }
     max-width: none;
   }
 }
+
+.import-row.existing .import-row-main { opacity: 0.6; }
+.import-badge.existing {
+  background: #eee;
+  color: #555;
+}

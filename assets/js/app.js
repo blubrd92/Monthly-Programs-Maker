@@ -4562,7 +4562,36 @@ const FlyerApp = (function () {
   // mode) or cards (kid mode).
 
   let importPayload = null;
-  let importRows = []; // [{ item, branch, checked }]
+  let importRows = []; // [{ item, branch, checked, duplicate }]
+  let importExistingKeys = {}; // branch name → { matchKey: true }
+
+  /**
+   * What's already on the active page, per branch, so a second paste of
+   * the same month doesn't add everything twice.
+   */
+  function collectExistingKeys() {
+    const page = getActivePage();
+    const keys = {};
+    function add(branchName, p) {
+      if (!branchName) return;
+      const map = keys[branchName] || (keys[branchName] = {});
+      map[FlyerUtils.programMatchKey(p.name, p.dateText, p.timeText)] = true;
+    }
+    if (!page) return keys;
+    if (meta.mode === 'kid') {
+      (page.cards || []).forEach(function (c) { add(c.branchName, c); });
+    } else {
+      (page.branches || []).forEach(function (b) {
+        b.programs.forEach(function (p) { add(b.name, p); });
+      });
+    }
+    return keys;
+  }
+
+  function isAlreadyOnFlyer(item, branch) {
+    if (!branch || !importExistingKeys[branch]) return false;
+    return Boolean(importExistingKeys[branch][FlyerUtils.programMatchKey(item.name, item.dateText, item.timeText)]);
+  }
 
   function getImportBranchOptions() {
     if (meta.mode === 'kid') {
@@ -4631,15 +4660,21 @@ const FlyerApp = (function () {
     const combine = document.getElementById('import-combine').checked;
     const items = FlyerUtils.buildImportItems(importPayload, { combineSeries: combine });
     const options = getImportBranchOptions();
+    importExistingKeys = collectExistingKeys();
     importRows = items.map(function (item) {
       const branch = matchBranchName(item.branch, options);
-      // Events with no matching branch start unchecked until one is chosen
-      return { item: item, branch: branch, checked: Boolean(branch) };
+      const duplicate = isAlreadyOnFlyer(item, branch);
+      // Rows with no branch, or already on the flyer, start unchecked
+      return { item: item, branch: branch, duplicate: duplicate, checked: Boolean(branch) && !duplicate };
     });
 
     const monthName = FlyerUtils.MONTH_NAMES[importPayload.month - 1];
     let status = importPayload.events.length + ' events for ' + monthName + ' ' + importPayload.year +
       ' → ' + importRows.length + ' rows.';
+    const dupCount = importRows.filter(function (r) { return r.duplicate; }).length;
+    if (dupCount) {
+      status += ' ' + dupCount + ' already on the flyer (left unchecked).';
+    }
     let type = 'success';
     if (meta.month !== monthName || Number(meta.year) !== importPayload.year) {
       status += ' Heads up: this flyer is set to ' + meta.month + ' ' + meta.year + '.';
@@ -4688,6 +4723,7 @@ const FlyerApp = (function () {
         const nameLine = el('div', { 'class': 'import-row-name', text: item.name });
         if (item.isClosure) nameLine.appendChild(el('span', { 'class': 'import-badge closure', text: 'Closure' }));
         if (item.count > 1) nameLine.appendChild(el('span', { 'class': 'import-badge', text: '×' + item.count }));
+        if (row.duplicate) nameLine.appendChild(el('span', { 'class': 'import-badge existing', text: 'Already on flyer' }));
 
         const when = [item.dateText, item.timeText].filter(Boolean).join(' · ');
         const main = el('div', { 'class': 'import-row-main' },
@@ -4704,7 +4740,8 @@ const FlyerApp = (function () {
           on: {
             change: function (e) {
               row.branch = e.target.value || null;
-              row.checked = Boolean(row.branch);
+              row.duplicate = isAlreadyOnFlyer(item, row.branch);
+              row.checked = Boolean(row.branch) && !row.duplicate;
               renderImportList();
             },
           },
@@ -4716,7 +4753,7 @@ const FlyerApp = (function () {
           select.appendChild(opt);
         });
 
-        section.appendChild(el('div', { 'class': 'import-row' + (row.branch ? '' : ' unassigned') },
+        section.appendChild(el('div', { 'class': 'import-row' + (row.branch ? '' : ' unassigned') + (row.duplicate ? ' existing' : '') },
           checkbox, main, select));
       });
       list.appendChild(section);
@@ -4738,9 +4775,16 @@ const FlyerApp = (function () {
     if (!page) return;
     const chosen = importRows.filter(function (r) { return r.checked && r.branch; });
     let added = 0;
+    let removed = 0;
 
     if (meta.mode === 'kid') {
       if (!page.cards) return;
+      // Drop untouched sample cards once real ones arrive
+      if (chosen.length) {
+        const before = page.cards.length;
+        page.cards = page.cards.filter(function (c) { return !FlyerUtils.isPlaceholderProgram(c); });
+        removed = before - page.cards.length;
+      }
       chosen.forEach(function (r) {
         const def = CONFIG.BRANCH_DEFAULTS.find(function (b) { return b.name === r.branch; }) || {};
         page.cards.push(FlyerUtils.createBlankCard({
@@ -4757,6 +4801,15 @@ const FlyerApp = (function () {
       });
       renderCardList();
     } else {
+      // Drop untouched sample rows, but only in branches receiving events
+      const receiving = {};
+      chosen.forEach(function (r) { receiving[r.branch] = true; });
+      page.branches.forEach(function (b) {
+        if (!receiving[b.name]) return;
+        const before = b.programs.length;
+        b.programs = b.programs.filter(function (p) { return !FlyerUtils.isPlaceholderProgram(p); });
+        removed += before - b.programs.length;
+      });
       chosen.forEach(function (r) {
         const branch = page.branches.find(function (b) { return b.name === r.branch; });
         if (!branch) return;
@@ -4776,7 +4829,10 @@ const FlyerApp = (function () {
     debouncedRenderPreview();
     scheduleAutosave();
     closeImportDialog();
-    showNotification('Added ' + added + (meta.mode === 'kid' ? ' cards.' : ' programs.'), 'success');
+    const noun = meta.mode === 'kid' ? 'card' : 'program';
+    let message = 'Added ' + added + ' ' + noun + (added === 1 ? '' : 's');
+    if (removed) message += ' and removed ' + removed + ' placeholder ' + (removed === 1 ? 'row' : 'rows');
+    showNotification(message + '.', 'success');
   }
 
   function bindImportDialog() {
@@ -4808,7 +4864,8 @@ const FlyerApp = (function () {
       if (importPayload) buildImportRows();
     });
     document.getElementById('import-select-all').addEventListener('click', function () {
-      importRows.forEach(function (r) { r.checked = Boolean(r.branch); });
+      // "All" means all new ones; rows already on the flyer can still be ticked by hand
+      importRows.forEach(function (r) { r.checked = Boolean(r.branch) && !r.duplicate; });
       renderImportList();
     });
     document.getElementById('import-select-none').addEventListener('click', function () {

@@ -230,3 +230,37 @@ describe('EventsBookmarklet.buildHref', () => {
     expect(() => new Function(code)).not.toThrow();
   });
 });
+
+describe('FlyerUtils.isPlaceholderProgram', () => {
+  it('recognizes the sample row new branches and kid pages start with', () => {
+    const branch = FlyerUtils.createBlankBranch('Downtown');
+    expect(FlyerUtils.isPlaceholderProgram(branch.programs[0])).toBe(true);
+    const kidPage = FlyerUtils.createDefaultKidPage();
+    expect(FlyerUtils.isPlaceholderProgram(kidPage.cards[0])).toBe(true);
+  });
+
+  it('keeps anything staff have touched', () => {
+    const base = () => FlyerUtils.createBlankBranch('Downtown').programs[0];
+    expect(FlyerUtils.isPlaceholderProgram(Object.assign(base(), { name: 'Storytime' }))).toBe(false);
+    expect(FlyerUtils.isPlaceholderProgram(Object.assign(base(), { timeText: '10:00am' }))).toBe(false);
+    expect(FlyerUtils.isPlaceholderProgram(Object.assign(base(), { isClosure: true }))).toBe(false);
+    expect(FlyerUtils.isPlaceholderProgram(Object.assign(base(), { colorOverride: '#ff0000' }))).toBe(false);
+    expect(FlyerUtils.isPlaceholderProgram(Object.assign(base(), { freeTextOverride: 'Hello' }))).toBe(false);
+    const card = FlyerUtils.createDefaultKidPage().cards[0];
+    expect(FlyerUtils.isPlaceholderProgram(Object.assign(card, { imageId: 'img-1' }))).toBe(false);
+    expect(FlyerUtils.isPlaceholderProgram(FlyerUtils.createBlankProgram())).toBe(false);
+  });
+});
+
+describe('FlyerUtils.programMatchKey', () => {
+  it('ignores case and extra spaces', () => {
+    expect(FlyerUtils.programMatchKey('Lego  Saturdays ', 'saturdays', '10:00am–3:00pm'))
+      .toBe(FlyerUtils.programMatchKey('lego saturdays', 'Saturdays', '10:00AM–3:00PM'));
+  });
+
+  it('differs when date or time differ', () => {
+    const a = FlyerUtils.programMatchKey('Drop-in Tech Help', 'Tuesdays', '2:00pm–6:00pm');
+    expect(FlyerUtils.programMatchKey('Drop-in Tech Help', 'Saturdays', '2:00pm–6:00pm')).not.toBe(a);
+    expect(FlyerUtils.programMatchKey('Drop-in Tech Help', 'Tuesdays', '1:00pm–4:00pm')).not.toBe(a);
+  });
+});

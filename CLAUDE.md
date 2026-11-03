@@ -144,6 +144,7 @@ Programs support:
 - The app cannot fetch these URLs itself (no CORS headers); that is why a bookmarklet exists.
 - Branch resolution: `CONFIG.EVENT_IMPORT.categoryBranches` first, then `locationBranches`; unknown → "Needs a branch" group in the dialog.
 - Series merge only when title + branch + time match. A weekday reads as "Fridays" when every such day in the month has the program or is a closure at that branch.
+- On add, untouched placeholders (`FlyerUtils.isPlaceholderProgram`, text from `CONFIG.PLACEHOLDER_PROGRAM`) are removed from receiving branches (kid mode: all sample cards). Rows matching an existing program by `programMatchKey` (name+date+time, per branch) start unchecked.
 - Staff must re-drag the bookmarklet only when `run` itself changes; formatting changes live in the app.
 
 ## Kid Mode

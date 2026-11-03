@@ -51,12 +51,7 @@ const FlyerUtils = (function () {
       visible: true,
       note: null,
       noteStyle: null,
-      programs: [createBlankProgram({
-        name: 'Program Name',
-        subtitle: 'Age Group · Details',
-        dateText: 'Day, Month #',
-        timeText: '00:00 AM',
-      })],
+      programs: [createBlankProgram(CONFIG.PLACEHOLDER_PROGRAM)],
     };
   }
 
@@ -225,12 +220,7 @@ const FlyerUtils = (function () {
     return {
       header: header,
       cards: [
-        createBlankCard({
-          name: 'Program Name',
-          subtitle: 'Age Group · Details',
-          dateText: 'Day, Month #',
-          timeText: '00:00 AM',
-        }),
+        createBlankCard(CONFIG.PLACEHOLDER_PROGRAM),
       ],
       footer: deepClone(CONFIG.DEFAULT_FOOTER),
       styles: deepClone(kidDefaults.styles),
@@ -563,6 +553,39 @@ const FlyerUtils = (function () {
     return items;
   }
 
+  /**
+   * True when a program or kid card is still the untouched sample row
+   * (same text as CONFIG.PLACEHOLDER_PROGRAM, nothing else customized).
+   * Branch choice on a card is ignored: placeholder text is useless
+   * on a flyer wherever it sits.
+   */
+  function isPlaceholderProgram(p) {
+    const ph = CONFIG.PLACEHOLDER_PROGRAM;
+    if (!p) return false;
+    return p.name === ph.name &&
+      (p.subtitle || '') === ph.subtitle &&
+      p.dateText === ph.dateText &&
+      p.timeText === ph.timeText &&
+      !p.dateNote &&
+      !p.freeTextOverride &&
+      !p.isClosure &&
+      !p.colorOverride &&
+      !p.imageId &&
+      !p.nameImageId &&
+      !p.note &&
+      !(p.locations && p.locations.length);
+  }
+
+  /**
+   * Comparison key for spotting events already on the flyer:
+   * name + date + time, ignoring case and extra spaces.
+   */
+  function programMatchKey(name, dateText, timeText) {
+    return [name, dateText, timeText].map(function (s) {
+      return String(s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    }).join('|');
+  }
+
   return {
     generateId: generateId,
     createBlankProgram: createBlankProgram,
@@ -586,6 +609,8 @@ const FlyerUtils = (function () {
     formatEventDate: formatEventDate,
     formatEventDateSpan: formatEventDateSpan,
     buildImportItems: buildImportItems,
+    isPlaceholderProgram: isPlaceholderProgram,
+    programMatchKey: programMatchKey,
     MONTH_NAMES: MONTH_NAMES,
   };
 })();

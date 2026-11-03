@@ -37,6 +37,8 @@ npx serve .
 2. Open the [library events page](https://sanrafael.gov/library-events/), use the calendar arrows to show the month you want, and click the bookmark. Click **Copy events** in the panel that appears.
 3. Back in the tool, open **Import Events** again and paste. Check the events you want, choose a branch for any off-site events, and click **Add**.
 
+Importing removes the untouched sample "Program Name" rows from branches that receive events. Events already on the flyer (same name, date and time at that branch) show as *Already on flyer* and start unchecked, so pasting the same month twice is safe.
+
 The bookmarklet reads the calendar's own data for that month and the city's iCal feed (for branch and location). Branch mapping and closure detection live in `CONFIG.EVENT_IMPORT` in `assets/js/config.js`. If the city renames a branch category, update `categoryBranches` there.
 
 ## Development
