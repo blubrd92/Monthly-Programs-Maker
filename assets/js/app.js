@@ -216,20 +216,62 @@ const FlyerApp = (function () {
         }
       }
 
+      // Helper: check every word is no longer than the strip is tall.
+      // With word-break: normal a too-long word spills past the box
+      // instead of splitting, without changing the box's size, so each
+      // word's own text range is measured. (Measuring whole lines would
+      // count the invisible trailing space and shrink labels needlessly.)
+      const range = document.createRange();
+      const textNode = textEl.firstChild;
+      const wordSpans = [];
+      if (textNode && textNode.nodeType === 3) {
+        const wordRe = /\S+/g;
+        let m;
+        while ((m = wordRe.exec(textNode.data)) !== null) {
+          wordSpans.push([m.index, m.index + m[0].length]);
+        }
+      }
+      function wordsFit() {
+        for (let i = 0; i < wordSpans.length; i++) {
+          range.setStart(textNode, wordSpans[i][0]);
+          range.setEnd(textNode, wordSpans[i][1]);
+          if (range.getBoundingClientRect().height / zoomLevel > usableH + 0.5) return false;
+        }
+        return true;
+      }
+      function wrappedTextFits() {
+        return widthFits() && wordsFit();
+      }
+
       // Strategy B: wrapped — constrain height to force line wrapping,
-      // then grow font while lines still fit in strip width.
+      // then grow font while the lines still fit the strip.
       // Use pre-wrap to preserve manual \n line breaks.
+      // Wrap between words only, so "ONLINE" never becomes "ONLIN" / "E".
+      // The stylesheet sets word-break: break-word, so set 'normal' inline.
       textEl.style.whiteSpace = 'pre-wrap';
       textEl.style.height = usableH + 'px';
-      textEl.style.wordBreak = 'break-word';
+      textEl.style.wordBreak = 'normal';
       textEl.style.fontSize = minFontSize + 'px';
 
+      let wrapBreak = 'normal';
       let wrapSize = minFontSize;
-      if (widthFits()) {
+      if (wrappedTextFits()) {
         while (wrapSize < maxFontSize) {
           textEl.style.fontSize = (wrapSize + 1) + 'px';
-          if (!widthFits()) break;
+          if (!wrappedTextFits()) break;
           wrapSize += 1;
+        }
+      } else {
+        // Last resort: one word is taller than the strip even at the
+        // smallest size, so let it break mid-word rather than spill out.
+        wrapBreak = 'break-word';
+        textEl.style.wordBreak = wrapBreak;
+        if (widthFits()) {
+          while (wrapSize < maxFontSize) {
+            textEl.style.fontSize = (wrapSize + 1) + 'px';
+            if (!widthFits()) break;
+            wrapSize += 1;
+          }
         }
       }
 
@@ -242,7 +284,7 @@ const FlyerApp = (function () {
       } else {
         textEl.style.whiteSpace = 'pre-wrap';
         textEl.style.height = usableH + 'px';
-        textEl.style.wordBreak = 'break-word';
+        textEl.style.wordBreak = wrapBreak;
         textEl.style.fontSize = wrapSize + 'px';
       }
     });
