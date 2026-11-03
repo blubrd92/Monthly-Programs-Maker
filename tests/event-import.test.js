@@ -317,3 +317,38 @@ describe('FlyerUtils.parseHeaderMonth', () => {
     expect(FlyerUtils.parseHeaderMonth('')).toBe(null);
   });
 });
+
+describe('Closure free text', () => {
+  const d = (s) => FlyerUtils.parseLocalDateTime(s);
+
+  it('writes Spanish dates for single days, pairs, ranges and month changes', () => {
+    expect(FlyerUtils.formatSpanishDateSpan(d('2026-11-11T00:00:00'), d('2026-11-12T00:00:00'), true)).toBe('miércoles 11 de noviembre');
+    expect(FlyerUtils.formatSpanishDateSpan(d('2026-11-26T00:00:00'), d('2026-11-28T00:00:00'), true)).toBe('jueves 26 y viernes 27 de noviembre');
+    expect(FlyerUtils.formatSpanishDateSpan(d('2026-12-21T00:00:00'), d('2026-12-24T00:00:00'), true)).toBe('del lunes 21 al miércoles 23 de diciembre');
+    expect(FlyerUtils.formatSpanishDateSpan(d('2026-12-31T00:00:00'), d('2027-01-02T00:00:00'), true)).toBe('jueves 31 de diciembre y viernes 1 de enero');
+    expect(FlyerUtils.formatSpanishDateSpan(d('2026-11-04T15:00:00'), d('2026-11-04T17:00:00'), false)).toBe('miércoles 4 de noviembre');
+  });
+
+  it('puts each language on its own line with its own date', () => {
+    expect(FlyerUtils.buildClosureText('CLOSED – Veteran’s Day / CERRADO – Día de los Veteranos', 'Wednesday, November 11', 'miércoles 11 de noviembre', ''))
+      .toBe('CLOSED – Veteran’s Day: Wednesday, November 11\nCERRADO – Día de los Veteranos: miércoles 11 de noviembre');
+  });
+
+  it('keeps other titles whole, and adds a time when there is one', () => {
+    expect(FlyerUtils.buildClosureText('CLOSED – Staff training', 'Monday, November 9', 'lunes 9 de noviembre', ''))
+      .toBe('CLOSED – Staff training: Monday, November 9');
+    expect(FlyerUtils.buildClosureText('CERRADO – Capacitación', 'Monday, November 9', 'lunes 9 de noviembre', ''))
+      .toBe('CERRADO – Capacitación: lunes 9 de noviembre');
+    expect(FlyerUtils.buildClosureText('Closed early', 'Tuesday, November 24', 'martes 24 de noviembre', '3:00pm'))
+      .toBe('Closed early: Tuesday, November 24, 3:00pm');
+  });
+
+  it('gives every imported closure its free text', () => {
+    const items = FlyerUtils.buildImportItems(novemberPayload());
+    const thanksgiving = items.find((i) => i.name.indexOf('Thanksgiving') !== -1);
+    expect(thanksgiving.closureText).toBe(
+      'CLOSED – Thanksgiving Holiday: Thursday–Friday, November 26–27\nCERRADO: jueves 26 y viernes 27 de noviembre'
+    );
+    items.filter((i) => !i.isClosure).forEach((i) => expect(i.closureText).toBe(''));
+  });
+});

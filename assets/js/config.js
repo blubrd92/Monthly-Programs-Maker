@@ -245,10 +245,27 @@ const CONFIG = (function () {
       // Location parts dropped when shortening an address for a subtitle
       locationNoisePattern: '^(san rafael|ca|california|united states|usa|\\d{5}(-\\d{4})?)$',
       // Spanish month names, so "Noviembre 2026" headers are understood
+      // (also used for Spanish dates in closure text)
       spanishMonthNames: [
         'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
         'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
       ],
+      spanishWeekdayNames: [
+        'domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado',
+      ],
+      // Imported closures use the free-text override with these settings.
+      // Text: one line per language, each with its own date, e.g.
+      //   CLOSED – Veteran's Day: Wednesday, November 11
+      //   CERRADO – Día de los Veteranos: miércoles 11 de noviembre
+      closureFreeText: {
+        fontSize: 15, // pt
+        align: 'center',
+        bold: true,
+        italic: false,
+        // Kid Mode cards don't keep line breaks in free text, so the
+        // two language lines are joined with this instead
+        kidLineSeparator: ' / ',
+      },
       // Time ranges render like "4:00pm–5:00pm" to match existing flyers
       timeRangeSeparator: '–',
     },

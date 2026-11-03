@@ -4955,6 +4955,25 @@ const FlyerApp = (function () {
   }
 
   /**
+   * Imported closures use the free-text override (15pt, centered, bold,
+   * closure row). The structured name/date/time stay filled in, so the
+   * "Already on flyer" check still works and unticking free text in the
+   * editor shows them.
+   */
+  function applyClosureFreeText(target, item) {
+    if (!item.isClosure || !item.closureText) return;
+    const ft = CONFIG.EVENT_IMPORT.closureFreeText;
+    target.freeTextOverride = meta.mode === 'kid'
+      ? item.closureText.split('\n').join(ft.kidLineSeparator)
+      : item.closureText;
+    target.freeTextFontSize = ft.fontSize;
+    target.freeTextAlign = ft.align;
+    target.freeTextBold = ft.bold;
+    target.freeTextItalic = ft.italic;
+    target.isClosure = true;
+  }
+
+  /**
    * Standard mode: find (or create) the branch an import row goes to.
    * The all-branches closure row is a nameless black branch kept first;
    * Offsite is a grey branch kept last. Neither is on a default page.
@@ -5008,6 +5027,7 @@ const FlyerApp = (function () {
           timeText: r.item.timeText,
           isClosure: r.item.isClosure,
         });
+        applyClosureFreeText(card, r.item);
         if (r.branch === imp.allBranchesClosure.token) {
           // No branch name; black; goes to the top
           card.branchId = '';
@@ -5052,13 +5072,15 @@ const FlyerApp = (function () {
       chosen.forEach(function (r, i) {
         const branch = targets[i];
         if (!branch) return;
-        branch.programs.push(FlyerUtils.createBlankProgram({
+        const program = FlyerUtils.createBlankProgram({
           name: r.item.name,
           subtitle: r.item.subtitle || '',
           dateText: r.item.dateText,
           timeText: r.item.timeText,
           isClosure: r.item.isClosure,
-        }));
+        });
+        applyClosureFreeText(program, r.item);
+        branch.programs.push(program);
         collapsedBranches.delete(branch.id);
         added++;
       });

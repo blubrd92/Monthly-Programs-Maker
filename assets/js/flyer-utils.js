@@ -443,6 +443,44 @@ const FlyerUtils = (function () {
   }
 
   /**
+   * Spanish date for one event or an all-day span (end exclusive):
+   *   "miércoles 11 de noviembre"
+   *   "jueves 26 y viernes 27 de noviembre"           (two days)
+   *   "del lunes 21 al miércoles 23 de diciembre"      (three or more)
+   *   "jueves 31 de diciembre y viernes 1 de enero"    (across months)
+   */
+  function formatSpanishDateSpan(start, end, allDay) {
+    const cfg = CONFIG.EVENT_IMPORT;
+    const wd = function (dt) { return cfg.spanishWeekdayNames[dt.weekday]; };
+    const mes = function (dt) { return cfg.spanishMonthNames[dt.month - 1]; };
+    const last = allDay && end ? addDays(end, -1) : start;
+    if (last.dayKey <= start.dayKey) {
+      return wd(start) + ' ' + start.day + ' de ' + mes(start);
+    }
+    const twoDays = addDays(start, 1).dayKey === last.dayKey;
+    const sameMonth = start.month === last.month && start.year === last.year;
+    const first = wd(start) + ' ' + start.day + (sameMonth ? '' : ' de ' + mes(start));
+    const second = wd(last) + ' ' + last.day + ' de ' + mes(last);
+    return twoDays ? first + ' y ' + second : 'del ' + first + ' al ' + second;
+  }
+
+  /**
+   * Free text for an imported closure: one line per language, each with
+   * its own date. City titles look like "CLOSED – X / CERRADO – Y"; any
+   * other title stays whole on one line, with the date in its language.
+   */
+  function buildClosureText(title, englishDate, spanishDate, timeText) {
+    const t = String(title || '').trim();
+    const when = function (date) { return date + (timeText ? ', ' + timeText : ''); };
+    const parts = t.split(/\s+\/\s+/);
+    const spanishRe = /^\s*cerrad/i;
+    if (parts.length === 2 && spanishRe.test(parts[1])) {
+      return parts[0] + ': ' + when(englishDate) + '\n' + parts[1] + ': ' + when(spanishDate);
+    }
+    return t + ': ' + when(spanishRe.test(t) ? spanishDate : englishDate);
+  }
+
+  /**
    * True when a closure's branches include every required branch
    * (Downtown, Northgate, Al Boro CC by default).
    */
@@ -611,6 +649,12 @@ const FlyerUtils = (function () {
         dateText: dateText,
         timeText: first.isClosure && first.allDay ? '' : first.timeText,
         isClosure: first.isClosure,
+        // Closures are added as free text (CONFIG.EVENT_IMPORT.closureFreeText)
+        closureText: first.isClosure ? buildClosureText(
+          first.ev.title, dateText,
+          formatSpanishDateSpan(first.start, first.end, first.allDay),
+          first.allDay ? '' : first.timeText
+        ) : '',
         count: dts.length,
         url: first.ev.url || '',
         sortKey: first.start.dayKey + 'T' + pad2(first.start.hour) + pad2(first.start.minute),
@@ -680,6 +724,8 @@ const FlyerUtils = (function () {
     formatEventDateSpan: formatEventDateSpan,
     buildImportItems: buildImportItems,
     isAllBranchesClosure: isAllBranchesClosure,
+    formatSpanishDateSpan: formatSpanishDateSpan,
+    buildClosureText: buildClosureText,
     shortLocation: shortLocation,
     parseHeaderMonth: parseHeaderMonth,
     isPlaceholderProgram: isPlaceholderProgram,
