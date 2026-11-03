@@ -225,6 +225,30 @@ const CONFIG = (function () {
       ],
       // All-day events whose title starts like this become closure rows
       closureTitlePattern: '^\\s*(closed|cerrad)',
+      // A closure covering all of these branches becomes ONE row at the
+      // top of the flyer (no branch name) instead of a row per branch.
+      // Online and City Hall are not required.
+      allBranchesClosure: {
+        requiredBranches: ['Downtown', 'Northgate', 'Al Boro CC'],
+        token: '__all_branches__', // import-row id for "all branches"
+        label: 'All branches (top of flyer)',
+        sidebarLabel: 'All Branches',
+        color: '#000000',
+      },
+      // Events with no branch go to a grey "Offsite" group that is created
+      // on import (it is not part of the default page). Their location
+      // goes in the subtitle (Kid Mode: the card's address line).
+      offsiteBranch: {
+        name: 'Offsite',
+        color: '#6e6e6e',
+      },
+      // Location parts dropped when shortening an address for a subtitle
+      locationNoisePattern: '^(san rafael|ca|california|united states|usa|\\d{5}(-\\d{4})?)$',
+      // Spanish month names, so "Noviembre 2026" headers are understood
+      spanishMonthNames: [
+        'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+        'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+      ],
       // Time ranges render like "4:00pm–5:00pm" to match existing flyers
       timeRangeSeparator: '–',
     },

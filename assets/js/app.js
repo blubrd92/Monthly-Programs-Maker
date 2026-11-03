@@ -2144,6 +2144,15 @@ const FlyerApp = (function () {
   }
 
   // ── Render: Branch List (Sidebar Programs Tab) ─────────────────
+  /**
+   * Sidebar name for a branch. The all-branches closure row has no name
+   * on the flyer, so the sidebar labels it instead of "Untitled".
+   */
+  function branchSidebarLabel(branch) {
+    if (branch.role === 'allClosures' && !branch.name) return CONFIG.EVENT_IMPORT.allBranchesClosure.sidebarLabel;
+    return branch.name || 'Untitled';
+  }
+
   function renderBranchList() {
     if (meta.mode === 'kid') {
       renderCardList();
@@ -2196,7 +2205,7 @@ const FlyerApp = (function () {
     // Branch name (colored)
     const nameDisplay = el('span', {
       'class': 'branch-name-display',
-      text: branch.name || 'Untitled',
+      text: branchSidebarLabel(branch),
       style: { color: color },
     });
     header.appendChild(nameDisplay);
@@ -2362,7 +2371,7 @@ const FlyerApp = (function () {
 
       const summaryText = el('span', {
         'class': 'branch-details-text',
-        text: (branch.name || 'Untitled') + (branch.address ? ' · ' + branch.address.replace(/\n/g, ', ') : ''),
+        text: branchSidebarLabel(branch) + (branch.address ? ' · ' + branch.address.replace(/\n/g, ', ') : ''),
       });
       summary.appendChild(summaryText);
 
@@ -4722,11 +4731,13 @@ const FlyerApp = (function () {
       map[FlyerUtils.programMatchKey(p.name, p.dateText, p.timeText)] = true;
     }
     if (!page) return keys;
+    const allToken = CONFIG.EVENT_IMPORT.allBranchesClosure.token;
     if (meta.mode === 'kid') {
-      (page.cards || []).forEach(function (c) { add(c.branchName, c); });
+      (page.cards || []).forEach(function (c) { add(c.role === 'allClosures' ? allToken : c.branchName, c); });
     } else {
       (page.branches || []).forEach(function (b) {
-        b.programs.forEach(function (p) { add(b.name, p); });
+        const key = b.role === 'allClosures' ? allToken : b.name;
+        b.programs.forEach(function (p) { add(key, p); });
       });
     }
     return keys;
@@ -4737,12 +4748,30 @@ const FlyerApp = (function () {
     return Boolean(importExistingKeys[branch][FlyerUtils.programMatchKey(item.name, item.dateText, item.timeText)]);
   }
 
+  /**
+   * Where an import row can go: the all-branches row (top of flyer),
+   * the page's branches (kid mode: the default branches), and Offsite.
+   * The all-branches row and Offsite are created on add if missing.
+   */
   function getImportBranchOptions() {
+    const imp = CONFIG.EVENT_IMPORT;
+    let names;
     if (meta.mode === 'kid') {
-      return CONFIG.BRANCH_DEFAULTS.map(function (b) { return b.name; });
+      names = CONFIG.BRANCH_DEFAULTS.map(function (b) { return b.name; });
+    } else {
+      const page = getActivePage();
+      names = ((page && page.branches) || []).filter(function (b) {
+        return b.role !== 'allClosures';
+      }).map(function (b) { return b.name; });
     }
-    const page = getActivePage();
-    return ((page && page.branches) || []).map(function (b) { return b.name; });
+    const options = [imp.allBranchesClosure.token].concat(names);
+    if (!matchBranchName(imp.offsiteBranch.name, names)) options.push(imp.offsiteBranch.name);
+    return options;
+  }
+
+  function importOptionLabel(name) {
+    const all = CONFIG.EVENT_IMPORT.allBranchesClosure;
+    return name === all.token ? all.label : name;
   }
 
   function matchBranchName(name, options) {
@@ -4755,11 +4784,14 @@ const FlyerApp = (function () {
   }
 
   function getBranchColor(name) {
+    const imp = CONFIG.EVENT_IMPORT;
+    if (name === imp.allBranchesClosure.token) return imp.allBranchesClosure.color;
     const page = getActivePage();
     const fromPage = page && page.branches && page.branches.find(function (b) { return b.name === name; });
     if (fromPage) return fromPage.color;
     const def = CONFIG.BRANCH_DEFAULTS.find(function (b) { return b.name === name; });
-    return def ? def.color : '#666666';
+    if (def) return def.color;
+    return name === imp.offsiteBranch.name ? imp.offsiteBranch.color : '#666666';
   }
 
   function setImportStatus(text, type) {
@@ -4820,8 +4852,14 @@ const FlyerApp = (function () {
       status += ' ' + dupCount + ' already on the flyer (left unchecked).';
     }
     let type = 'success';
-    if (meta.month !== monthName || Number(meta.year) !== importPayload.year) {
-      status += ' Heads up: this flyer is set to ' + meta.month + ' ' + meta.year + '.';
+    // Compare with the month typed in the header (English or Spanish).
+    // Placeholder text like "Month Year" means no month is set yet: no warning.
+    const page = getActivePage();
+    const headerText = (page && page.header && page.header.monthText) || '';
+    const headerMonth = FlyerUtils.parseHeaderMonth(headerText);
+    if (headerMonth && (headerMonth.month !== importPayload.month ||
+        (headerMonth.year && headerMonth.year !== importPayload.year))) {
+      status += ' Heads up: this flyer\'s header says "' + headerText.trim() + '".';
       type = 'warning';
     }
     setImportStatus(status, type);
@@ -4846,7 +4884,7 @@ const FlyerApp = (function () {
       section.appendChild(el('div', {
         'class': 'import-group-title',
         style: { borderLeftColor: group.name ? getBranchColor(group.name) : '#999' },
-        text: group.name ? group.name : 'Needs a branch (off-site or uncategorized)',
+        text: group.name ? importOptionLabel(group.name) : 'Skipped (choose a place to include)',
       }));
 
       group.rows.forEach(function (row) {
@@ -4874,8 +4912,10 @@ const FlyerApp = (function () {
           nameLine,
           el('div', { 'class': 'import-row-when', text: when })
         );
-        if (!row.branch && item.location) {
-          main.appendChild(el('div', { 'class': 'import-row-loc', text: item.location }));
+        // Offsite rows show the place that will go in the subtitle
+        const place = item.subtitle || (!row.branch ? item.location : '');
+        if (place) {
+          main.appendChild(el('div', { 'class': 'import-row-loc', text: place }));
         }
 
         const select = el('select', {
@@ -4892,7 +4932,7 @@ const FlyerApp = (function () {
         });
         select.appendChild(el('option', { value: '', text: row.branch ? '(skip)' : 'Choose branch…' }));
         options.forEach(function (name) {
-          const opt = el('option', { value: name, text: name });
+          const opt = el('option', { value: name, text: importOptionLabel(name) });
           if (name === row.branch) opt.selected = true;
           select.appendChild(opt);
         });
@@ -4914,9 +4954,40 @@ const FlyerApp = (function () {
     btn.textContent = n ? 'Add ' + n + ' ' + noun : 'Add ' + noun;
   }
 
+  /**
+   * Standard mode: find (or create) the branch an import row goes to.
+   * The all-branches closure row is a nameless black branch kept first;
+   * Offsite is a grey branch kept last. Neither is on a default page.
+   */
+  function getImportTargetBranch(page, branchName) {
+    const imp = CONFIG.EVENT_IMPORT;
+    if (branchName === imp.allBranchesClosure.token) {
+      let top = page.branches.find(function (b) { return b.role === 'allClosures'; });
+      if (!top) {
+        top = FlyerUtils.createBlankBranch('', '', imp.allBranchesClosure.color);
+        top.name = '';
+        top.programs = [];
+        top.role = 'allClosures';
+        page.branches.unshift(top);
+      }
+      return top;
+    }
+    const existing = page.branches.find(function (b) { return b.name === branchName; });
+    if (existing) return existing;
+    if (branchName === imp.offsiteBranch.name) {
+      const offsite = FlyerUtils.createBlankBranch(imp.offsiteBranch.name, '', imp.offsiteBranch.color);
+      offsite.programs = [];
+      offsite.role = 'offsite';
+      page.branches.push(offsite);
+      return offsite;
+    }
+    return null;
+  }
+
   function addImportedRows() {
     const page = getActivePage();
     if (!page) return;
+    const imp = CONFIG.EVENT_IMPORT;
     const chosen = importRows.filter(function (r) { return r.checked && r.branch; });
     let added = 0;
     let removed = 0;
@@ -4929,36 +5000,61 @@ const FlyerApp = (function () {
         page.cards = page.cards.filter(function (c) { return !FlyerUtils.isPlaceholderProgram(c); });
         removed = before - page.cards.length;
       }
+      const topCards = [];
       chosen.forEach(function (r) {
-        const def = CONFIG.BRANCH_DEFAULTS.find(function (b) { return b.name === r.branch; }) || {};
-        page.cards.push(FlyerUtils.createBlankCard({
+        const card = FlyerUtils.createBlankCard({
           name: r.item.name,
           dateText: r.item.dateText,
           timeText: r.item.timeText,
-          branchId: r.branch,
-          branchName: r.branch,
-          branchAddress: def.address || '',
-          branchColor: def.color || '#666666',
           isClosure: r.item.isClosure,
-        }));
+        });
+        if (r.branch === imp.allBranchesClosure.token) {
+          // No branch name; black; goes to the top
+          card.branchId = '';
+          card.branchName = '';
+          card.branchAddress = '';
+          card.branchColor = imp.allBranchesClosure.color;
+          card.role = 'allClosures';
+          topCards.push(card);
+        } else if (r.branch === imp.offsiteBranch.name) {
+          // The event's own place goes on the card's address line
+          card.branchId = imp.offsiteBranch.name;
+          card.branchName = imp.offsiteBranch.name;
+          card.branchAddress = r.item.subtitle || '';
+          card.branchColor = imp.offsiteBranch.color;
+          page.cards.push(card);
+        } else {
+          const def = CONFIG.BRANCH_DEFAULTS.find(function (b) { return b.name === r.branch; }) || {};
+          card.branchId = r.branch;
+          card.branchName = r.branch;
+          card.branchAddress = def.address || '';
+          card.branchColor = def.color || '#666666';
+          page.cards.push(card);
+        }
         added++;
       });
+      if (topCards.length) {
+        // After any closure cards already at the top, before everything else
+        let at = 0;
+        while (at < page.cards.length && page.cards[at].role === 'allClosures') at++;
+        Array.prototype.splice.apply(page.cards, [at, 0].concat(topCards));
+      }
       renderCardList();
     } else {
+      const targets = chosen.map(function (r) { return getImportTargetBranch(page, r.branch); });
       // Drop untouched sample rows, but only in branches receiving events
-      const receiving = {};
-      chosen.forEach(function (r) { receiving[r.branch] = true; });
-      page.branches.forEach(function (b) {
-        if (!receiving[b.name]) return;
+      const receiving = new Set(targets.filter(Boolean));
+      receiving.forEach(function (b) {
         const before = b.programs.length;
         b.programs = b.programs.filter(function (p) { return !FlyerUtils.isPlaceholderProgram(p); });
         removed += before - b.programs.length;
       });
-      chosen.forEach(function (r) {
-        const branch = page.branches.find(function (b) { return b.name === r.branch; });
+      chosen.forEach(function (r, i) {
+        const branch = targets[i];
         if (!branch) return;
         branch.programs.push(FlyerUtils.createBlankProgram({
           name: r.item.name,
+          subtitle: r.item.subtitle || '',
           dateText: r.item.dateText,
           timeText: r.item.timeText,
           isClosure: r.item.isClosure,

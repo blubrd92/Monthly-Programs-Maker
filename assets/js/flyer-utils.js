@@ -443,6 +443,58 @@ const FlyerUtils = (function () {
   }
 
   /**
+   * True when a closure's branches include every required branch
+   * (Downtown, Northgate, Al Boro CC by default).
+   */
+  function isAllBranchesClosure(branches, importConfig) {
+    const cfg = importConfig || CONFIG.EVENT_IMPORT;
+    return cfg.allBranchesClosure.requiredBranches.every(function (b) {
+      return branches.indexOf(b) !== -1;
+    });
+  }
+
+  /**
+   * Shorten a calendar location for a subtitle: drop city/state/zip/
+   * country and keep the first two parts, e.g.
+   * "First Presbyterian Church of San Rafael, 1510 Fifth Avenue".
+   */
+  function shortLocation(location, importConfig) {
+    const cfg = importConfig || CONFIG.EVENT_IMPORT;
+    const noise = new RegExp(cfg.locationNoisePattern, 'i');
+    return String(location || '').split(',').map(function (p) {
+      return p.replace(/\s+/g, ' ').trim();
+    }).filter(function (p) {
+      return p && !noise.test(p);
+    }).slice(0, 2).join(', ');
+  }
+
+  /**
+   * Read the month (and year, if present) from the flyer's header text,
+   * in English or Spanish: "November 2026", "NOVIEMBRE 2026", "Nov".
+   * Returns null for placeholder text like "Month Year".
+   * @returns {{month: number, year: number|null}|null}
+   */
+  function parseHeaderMonth(text) {
+    const t = String(text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const words = t.match(/[a-z]+/g) || [];
+    const es = CONFIG.EVENT_IMPORT.spanishMonthNames;
+    let month = null;
+    for (let w = 0; w < words.length && !month; w++) {
+      for (let i = 0; i < 12; i++) {
+        const en = MONTH_NAMES[i].toLowerCase();
+        const abbrev = words[w].length >= 3 && (en.indexOf(words[w]) === 0 || es[i].indexOf(words[w]) === 0);
+        if (words[w] === en || words[w] === es[i] || abbrev || (i === 8 && words[w] === 'setiembre')) {
+          month = i + 1;
+          break;
+        }
+      }
+    }
+    if (!month) return null;
+    const y = /\b(\d{4})\b/.exec(t);
+    return { month: month, year: y ? Number(y[1]) : null };
+  }
+
+  /**
    * Turn a parsed payload into import rows, one per (program, branch).
    * With combineSeries, repeats of the same title at the same branch and
    * the same time merge into one row. Closures never merge and are
@@ -462,6 +514,7 @@ const FlyerUtils = (function () {
     const monthEnd = month === 12 ? (year + 1) + '-01-01' : year + '-' + pad2(month + 1) + '-01';
 
     const entries = [];
+    const closedDays = {};
     payload.events.forEach(function (ev) {
       const start = parseLocalDateTime(ev.start);
       if (!start) return;
@@ -473,7 +526,34 @@ const FlyerUtils = (function () {
 
       const closure = isClosureEvent(ev, cfg);
       const branches = resolveEventBranches(ev, cfg);
-      const targets = branches.length ? branches : [null];
+
+      // Closure days per branch, so a series skipping a holiday still reads "Fridays"
+      if (closure) {
+        branches.forEach(function (b) {
+          const map = closedDays[b] || (closedDays[b] = {});
+          let d = start;
+          const last = allDay && end ? addDays(end, -1) : start;
+          while (d.dayKey <= last.dayKey) {
+            map[d.dayKey] = true;
+            d = addDays(d, 1);
+          }
+        });
+      }
+
+      let targets;
+      let subtitle = '';
+      if (closure && isAllBranchesClosure(branches, cfg)) {
+        // One row at the top of the flyer instead of one per branch
+        targets = [cfg.allBranchesClosure.token];
+      } else if (branches.length) {
+        targets = branches;
+      } else if (closure) {
+        // A closure with no branch tag reads as library-wide
+        targets = [cfg.allBranchesClosure.token];
+      } else {
+        targets = [cfg.offsiteBranch.name];
+        subtitle = shortLocation(ev.location, cfg);
+      }
       targets.forEach(function (branch) {
         entries.push({
           ev: ev,
@@ -481,23 +561,11 @@ const FlyerUtils = (function () {
           end: end,
           allDay: allDay,
           branch: branch,
+          subtitle: subtitle,
           isClosure: closure,
           timeText: formatEventTime(ev.start, ev.end, allDay, cfg),
         });
       });
-    });
-
-    // Closure days per branch, so a series skipping a holiday still reads "Fridays"
-    const closedDays = {};
-    entries.forEach(function (e) {
-      if (!e.isClosure || !e.branch) return;
-      const map = closedDays[e.branch] || (closedDays[e.branch] = {});
-      let d = e.start;
-      const last = e.allDay && e.end ? addDays(e.end, -1) : e.start;
-      while (d.dayKey <= last.dayKey) {
-        map[d.dayKey] = true;
-        d = addDays(d, 1);
-      }
     });
 
     const groups = [];
@@ -505,8 +573,9 @@ const FlyerUtils = (function () {
     entries.forEach(function (e, idx) {
       let key;
       if (combine && !e.isClosure && !e.allDay) {
-        key = normalizeTitle(e.ev.title) + '|' +
-          (e.branch || '@' + normalizeTitle(e.ev.location)) + '|' + e.timeText;
+        // Offsite events only merge when they're at the same place too
+        const where = e.branch === cfg.offsiteBranch.name ? e.branch + '@' + normalizeTitle(e.ev.location) : e.branch;
+        key = normalizeTitle(e.ev.title) + '|' + where + '|' + e.timeText;
       } else {
         key = '#' + idx;
       }
@@ -537,6 +606,7 @@ const FlyerUtils = (function () {
         key: g.key + '|' + (first.branch || ''),
         name: String(first.ev.title || '').trim(),
         branch: first.branch,
+        subtitle: first.subtitle || '',
         location: String(first.ev.location || ''),
         dateText: dateText,
         timeText: first.isClosure && first.allDay ? '' : first.timeText,
@@ -609,6 +679,9 @@ const FlyerUtils = (function () {
     formatEventDate: formatEventDate,
     formatEventDateSpan: formatEventDateSpan,
     buildImportItems: buildImportItems,
+    isAllBranchesClosure: isAllBranchesClosure,
+    shortLocation: shortLocation,
+    parseHeaderMonth: parseHeaderMonth,
     isPlaceholderProgram: isPlaceholderProgram,
     programMatchKey: programMatchKey,
     MONTH_NAMES: MONTH_NAMES,

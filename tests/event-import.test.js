@@ -188,22 +188,51 @@ describe('FlyerUtils.buildImportItems', () => {
     expect(find(items, 'ESL Conversation Club', 'Online')[0].dateText).toBe('Saturdays, November 7 & 21');
   });
 
-  it('creates one closure row per branch and never merges closures', () => {
+  it('turns a closure at all three branches into ONE all-branches row', () => {
     const items = FlyerUtils.buildImportItems(novemberPayload());
     const closures = items.filter((i) => i.isClosure);
-    expect(closures).toHaveLength(6);
-    const thanksgiving = closures.filter((i) => i.name.indexOf('Thanksgiving') !== -1);
-    expect(thanksgiving.map((i) => i.branch).sort()).toEqual(['Al Boro CC', 'Downtown', 'Northgate']);
-    expect(thanksgiving[0].dateText).toBe('Thursday–Friday, November 26–27');
-    expect(thanksgiving[0].timeText).toBe('');
+    expect(closures).toHaveLength(2);
+    closures.forEach((c) => expect(c.branch).toBe('__all_branches__'));
+    const thanksgiving = closures.find((i) => i.name.indexOf('Thanksgiving') !== -1);
+    expect(thanksgiving.dateText).toBe('Thursday–Friday, November 26–27');
+    expect(thanksgiving.timeText).toBe('');
   });
 
-  it('leaves off-site events without a branch', () => {
+  it('keeps a closure at only some branches with those branches', () => {
+    const payload = novemberPayload();
+    payload.events.push(ev('CLOSED – Staff training', '2026-11-09T00:00:00', '2026-11-10T00:00:00',
+      ['Northgate Library', 'Library'], { allDay: true }));
+    payload.events.push(ev('CLOSED – Power work', '2026-11-16T00:00:00', '2026-11-17T00:00:00',
+      ['Downtown Library', 'Northgate Library', 'Library'], { allDay: true }));
+    const items = FlyerUtils.buildImportItems(payload);
+    expect(items.filter((i) => i.name === 'CLOSED – Staff training').map((i) => i.branch)).toEqual(['Northgate']);
+    expect(items.filter((i) => i.name === 'CLOSED – Power work').map((i) => i.branch).sort()).toEqual(['Downtown', 'Northgate']);
+  });
+
+  it('still counts all-branch closure days when naming a weekly series', () => {
+    const items = FlyerUtils.buildImportItems(novemberPayload());
+    // Thanksgiving Friday is closed everywhere; Storytime still reads "Fridays"
+    expect(find(items, 'Downtown Storytime', 'Downtown')[0].dateText).toBe('Fridays');
+  });
+
+  it('puts events with no branch in Offsite with the place in the subtitle', () => {
     const items = FlyerUtils.buildImportItems(novemberPayload());
     const stars = items.filter((i) => i.name === 'Under the Stars');
     expect(stars).toHaveLength(1);
-    expect(stars[0].branch).toBe(null);
-    expect(stars[0].location).toMatch(/Shoreline Park/);
+    expect(stars[0].branch).toBe('Offsite');
+    expect(stars[0].subtitle).toBe('Jean and John Starkweather Shoreline Park');
+    expect(stars[0].isClosure).toBe(false);
+  });
+
+  it('only merges Offsite repeats held at the same place', () => {
+    const payload = { year: 2026, month: 11, events: [
+      ev('Book Sale', '2026-11-06T13:00:00', '2026-11-06T16:00:00', ['Friends of the Library'], { location: 'First Presbyterian Church, 1510 Fifth Avenue' }),
+      ev('Book Sale', '2026-11-13T13:00:00', '2026-11-13T16:00:00', ['Friends of the Library'], { location: 'First Presbyterian Church, 1510 Fifth Avenue' }),
+      ev('Book Sale', '2026-11-20T13:00:00', '2026-11-20T16:00:00', ['Friends of the Library'], { location: 'Elks Lodge, 1312 Mission Ave' }),
+    ] };
+    const sale = FlyerUtils.buildImportItems(payload).filter((i) => i.name === 'Book Sale');
+    expect(sale).toHaveLength(2);
+    expect(sale.map((i) => i.subtitle).sort()).toEqual(['Elks Lodge, 1312 Mission Ave', 'First Presbyterian Church, 1510 Fifth Avenue']);
   });
 
   it('with combining off, every occurrence is its own row', () => {
@@ -262,5 +291,29 @@ describe('FlyerUtils.programMatchKey', () => {
     const a = FlyerUtils.programMatchKey('Drop-in Tech Help', 'Tuesdays', '2:00pm–6:00pm');
     expect(FlyerUtils.programMatchKey('Drop-in Tech Help', 'Saturdays', '2:00pm–6:00pm')).not.toBe(a);
     expect(FlyerUtils.programMatchKey('Drop-in Tech Help', 'Tuesdays', '1:00pm–4:00pm')).not.toBe(a);
+  });
+});
+
+describe('FlyerUtils.shortLocation', () => {
+  it('keeps venue and street, drops city, state, zip and country', () => {
+    expect(FlyerUtils.shortLocation('First Presbyterian Church of San Rafael, 1510 Fifth Avenue, San Rafael, CA, 94901, United States'))
+      .toBe('First Presbyterian Church of San Rafael, 1510 Fifth Avenue');
+    expect(FlyerUtils.shortLocation('')).toBe('');
+  });
+});
+
+describe('FlyerUtils.parseHeaderMonth', () => {
+  it('reads English and Spanish month headers', () => {
+    expect(FlyerUtils.parseHeaderMonth('November 2026')).toEqual({ month: 11, year: 2026 });
+    expect(FlyerUtils.parseHeaderMonth('NOVIEMBRE 2026')).toEqual({ month: 11, year: 2026 });
+    expect(FlyerUtils.parseHeaderMonth('Septiembre')).toEqual({ month: 9, year: null });
+    expect(FlyerUtils.parseHeaderMonth('Dec 2026')).toEqual({ month: 12, year: 2026 });
+    expect(FlyerUtils.parseHeaderMonth('Dic. 2026')).toEqual({ month: 12, year: 2026 });
+    expect(FlyerUtils.parseHeaderMonth('agosto')).toEqual({ month: 8, year: null });
+  });
+
+  it('returns null for the placeholder or blank header', () => {
+    expect(FlyerUtils.parseHeaderMonth('Month Year')).toBe(null);
+    expect(FlyerUtils.parseHeaderMonth('')).toBe(null);
   });
 });

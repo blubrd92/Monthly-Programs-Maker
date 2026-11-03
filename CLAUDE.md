@@ -145,7 +145,10 @@ Programs support:
 - `EventsBookmarklet.run` executes **on the city page**, not in the app: it must stay self-contained (no CONFIG/FlyerUtils/closures). Settings are passed as its one argument by `buildHref()`.
 - Data: month events from `admin-ajax.php?action=WP_FullCalendar` (same request the calendar makes), joined by event id to the iCal feed `UID:<event_id>@sanrafael.gov` for categories + location. The feed is sent with a 30-day cache header, so fetches use `cache: 'no-store'`.
 - The app cannot fetch these URLs itself (no CORS headers); that is why a bookmarklet exists.
-- Branch resolution: `CONFIG.EVENT_IMPORT.categoryBranches` first, then `locationBranches`; unknown → "Needs a branch" group in the dialog.
+- Branch resolution: `CONFIG.EVENT_IMPORT.categoryBranches` first, then `locationBranches`.
+- Closures covering all of `allBranchesClosure.requiredBranches` (Downtown, Northgate, Al Boro CC; Online/City Hall not required), or closures with no branch tag, become ONE row in a nameless black branch (`role: 'allClosures'`) kept first on the page. Kid mode: nameless black closure cards at the top. Partial closures stay with their branches.
+- Events with no branch go to a grey `Offsite` branch (`role: 'offsite'`) kept last, with `FlyerUtils.shortLocation()` in the subtitle (kid mode: card address line). Neither special branch is on the default page; both are created on import. Offsite repeats merge only at the same location.
+- The dialog's month warning compares with the header's month text (`FlyerUtils.parseHeaderMonth`, English/Spanish), not `meta.month` (a hidden default nothing edits). Placeholder "Month Year" → no warning.
 - Series merge only when title + branch + time match. A weekday reads as "Fridays" when every such day in the month has the program or is a closure at that branch.
 - On add, untouched placeholders (`FlyerUtils.isPlaceholderProgram`, text from `CONFIG.PLACEHOLDER_PROGRAM`) are removed from receiving branches (kid mode: all sample cards). Rows matching an existing program by `programMatchKey` (name+date+time, per branch) start unchecked.
 - Staff must re-drag the bookmarklet only when `run` itself changes; formatting changes live in the app.
