@@ -174,6 +174,10 @@ const CONFIG = (function () {
 
     // ── Rendering ────────────────────────────────────────
     SIDEBAR_STRIP_WIDTH: 22,  // px in preview, wide enough for vertical branch name
+    // Smallest font (px) a branch name may shrink to while kept whole.
+    // When a short branch (e.g. one program) can't fit its name's longest
+    // word at this size, that branch grows just enough to fit it.
+    BRANCH_NAME_MIN_READABLE_PX: 11,
 
     // ── PDF Export ────────────────────────────────────────
     PDF: {

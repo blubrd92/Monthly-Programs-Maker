@@ -160,6 +160,10 @@ const FlyerApp = (function () {
    *   scrollWidth = visual height of text (inline direction)
    *   height (CSS) = constrains inline size, causing line wrapping
    * Strategy: grow to fill single line, then try wrapping, then shrink.
+   * Wrapping happens between words only, so "ONLINE" never becomes
+   * "ONLIN" / "E". Branch names that would end up below
+   * CONFIG.BRANCH_NAME_MIN_READABLE_PX get a slightly taller branch
+   * when (and only when) that actually lets the name grow.
    */
   function autoSizeVerticalText(root) {
     const maxFontSize = 18;
@@ -170,57 +174,10 @@ const FlyerApp = (function () {
       const strip = textEl.parentElement;
       if (!strip) return;
 
-      // Use getBoundingClientRect for reliable physical dimensions
-      // regardless of writing-mode quirks with scrollWidth/scrollHeight.
-      // Divide by zoomLevel since getBoundingClientRect includes CSS transforms.
-      const stripRect = strip.getBoundingClientRect();
-      const stripPhysW = stripRect.width / zoomLevel;
-      const stripPhysH = stripRect.height / zoomLevel;
-      if (stripPhysH <= 0 || stripPhysW <= 0) return;
-
-      const padding = 2;
-      const usableH = stripPhysH - padding;
-      if (usableH <= 0) return;
-
-      textEl.style.lineHeight = '1.05';
-
-      // Check if text contains manual line breaks — if so, skip single-line strategy
-      const hasLineBreaks = textEl.textContent.indexOf('\n') !== -1;
-
-      // Helper: check if text physically fits inside the strip
-      function textFits() {
-        const r = textEl.getBoundingClientRect();
-        return r.height / zoomLevel <= usableH + 0.5 && r.width / zoomLevel <= stripPhysW + 0.5;
-      }
-
-      // Helper: check if text width (lines) fits in strip width
-      function widthFits() {
-        const r = textEl.getBoundingClientRect();
-        return r.width / zoomLevel <= stripPhysW + 0.5;
-      }
-
-      // Strategy A: single line — only if no manual line breaks
-      let singleSize = minFontSize;
-      if (!hasLineBreaks) {
-        textEl.style.whiteSpace = 'nowrap';
-        textEl.style.height = '';
-        textEl.style.wordBreak = '';
-        textEl.style.fontSize = minFontSize + 'px';
-
-        if (textFits()) {
-          while (singleSize < maxFontSize) {
-            textEl.style.fontSize = (singleSize + 1) + 'px';
-            if (!textFits()) break;
-            singleSize += 1;
-          }
-        }
-      }
-
-      // Helper: check every word is no longer than the strip is tall.
-      // With word-break: normal a too-long word spills past the box
-      // instead of splitting, without changing the box's size, so each
-      // word's own text range is measured. (Measuring whole lines would
-      // count the invisible trailing space and shrink labels needlessly.)
+      // Word positions in the label, used to measure whole words.
+      // Measuring each word's own text range (not the box, not whole
+      // lines) catches a word spilling past a fixed-height box and
+      // ignores the invisible trailing space at line ends.
       const range = document.createRange();
       const textNode = textEl.firstChild;
       const wordSpans = [];
@@ -231,61 +188,157 @@ const FlyerApp = (function () {
           wordSpans.push([m.index, m.index + m[0].length]);
         }
       }
-      function wordsFit() {
+      function longestWordPx() {
+        let longest = 0;
         for (let i = 0; i < wordSpans.length; i++) {
           range.setStart(textNode, wordSpans[i][0]);
           range.setEnd(textNode, wordSpans[i][1]);
-          if (range.getBoundingClientRect().height / zoomLevel > usableH + 0.5) return false;
+          longest = Math.max(longest, range.getBoundingClientRect().height / zoomLevel);
         }
-        return true;
-      }
-      function wrappedTextFits() {
-        return widthFits() && wordsFit();
+        return longest;
       }
 
-      // Strategy B: wrapped — constrain height to force line wrapping,
-      // then grow font while the lines still fit the strip.
-      // Use pre-wrap to preserve manual \n line breaks.
-      // Wrap between words only, so "ONLINE" never becomes "ONLIN" / "E".
-      // The stylesheet sets word-break: break-word, so set 'normal' inline.
-      textEl.style.whiteSpace = 'pre-wrap';
-      textEl.style.height = usableH + 'px';
-      textEl.style.wordBreak = 'normal';
-      textEl.style.fontSize = minFontSize + 'px';
+      // Check if text contains manual line breaks — if so, skip single-line strategy
+      const hasLineBreaks = textEl.textContent.indexOf('\n') !== -1;
 
-      let wrapBreak = 'normal';
-      let wrapSize = minFontSize;
-      if (wrappedTextFits()) {
-        while (wrapSize < maxFontSize) {
-          textEl.style.fontSize = (wrapSize + 1) + 'px';
-          if (!wrappedTextFits()) break;
-          wrapSize += 1;
+      /**
+       * Size the label to the strip as it is now. Returns the chosen
+       * font size in px, or 0 when the strip has no size yet.
+       */
+      function fitLabel() {
+        // Use getBoundingClientRect for reliable physical dimensions
+        // regardless of writing-mode quirks with scrollWidth/scrollHeight.
+        // Divide by zoomLevel since getBoundingClientRect includes CSS transforms.
+        const stripRect = strip.getBoundingClientRect();
+        const stripPhysW = stripRect.width / zoomLevel;
+        const stripPhysH = stripRect.height / zoomLevel;
+        if (stripPhysH <= 0 || stripPhysW <= 0) return 0;
+
+        const padding = 2;
+        const usableH = stripPhysH - padding;
+        if (usableH <= 0) return 0;
+
+        textEl.style.lineHeight = '1.05';
+
+        // Helper: check if text physically fits inside the strip
+        function textFits() {
+          const r = textEl.getBoundingClientRect();
+          return r.height / zoomLevel <= usableH + 0.5 && r.width / zoomLevel <= stripPhysW + 0.5;
         }
-      } else {
-        // Last resort: one word is taller than the strip even at the
-        // smallest size, so let it break mid-word rather than spill out.
-        wrapBreak = 'break-word';
-        textEl.style.wordBreak = wrapBreak;
-        if (widthFits()) {
-          while (wrapSize < maxFontSize) {
-            textEl.style.fontSize = (wrapSize + 1) + 'px';
-            if (!widthFits()) break;
-            wrapSize += 1;
+
+        // Helper: check if text width (lines) fits in strip width
+        function widthFits() {
+          const r = textEl.getBoundingClientRect();
+          return r.width / zoomLevel <= stripPhysW + 0.5;
+        }
+
+        // Helper: wrapped lines fit the width and no word spills past the height
+        function wrappedTextFits() {
+          return widthFits() && longestWordPx() <= usableH + 0.5;
+        }
+
+        // Strategy A: single line — only if no manual line breaks
+        let singleSize = minFontSize;
+        if (!hasLineBreaks) {
+          textEl.style.whiteSpace = 'nowrap';
+          textEl.style.height = '';
+          textEl.style.wordBreak = '';
+          textEl.style.fontSize = minFontSize + 'px';
+
+          if (textFits()) {
+            while (singleSize < maxFontSize) {
+              textEl.style.fontSize = (singleSize + 1) + 'px';
+              if (!textFits()) break;
+              singleSize += 1;
+            }
           }
         }
-      }
 
-      // Pick whichever strategy gives the larger font
-      if (!hasLineBreaks && singleSize >= wrapSize) {
-        textEl.style.whiteSpace = 'nowrap';
-        textEl.style.height = '';
-        textEl.style.wordBreak = '';
-        textEl.style.fontSize = singleSize + 'px';
-      } else {
+        // Strategy B: wrapped — constrain height to force line wrapping,
+        // then grow font while the lines still fit the strip.
+        // Use pre-wrap to preserve manual \n line breaks.
+        // The stylesheet sets word-break: break-word, so set 'normal' inline.
+        textEl.style.whiteSpace = 'pre-wrap';
+        textEl.style.height = usableH + 'px';
+        textEl.style.wordBreak = 'normal';
+        textEl.style.fontSize = minFontSize + 'px';
+
+        let wrapBreak = 'normal';
+        let wrapSize = minFontSize;
+        if (wrappedTextFits()) {
+          while (wrapSize < maxFontSize) {
+            textEl.style.fontSize = (wrapSize + 1) + 'px';
+            if (!wrappedTextFits()) break;
+            wrapSize += 1;
+          }
+        } else {
+          // Last resort: one word is taller than the strip even at the
+          // smallest size, so let it break mid-word rather than spill out.
+          wrapBreak = 'break-word';
+          textEl.style.wordBreak = wrapBreak;
+          if (widthFits()) {
+            while (wrapSize < maxFontSize) {
+              textEl.style.fontSize = (wrapSize + 1) + 'px';
+              if (!widthFits()) break;
+              wrapSize += 1;
+            }
+          }
+        }
+
+        // Pick whichever strategy gives the larger font
+        if (!hasLineBreaks && singleSize >= wrapSize) {
+          textEl.style.whiteSpace = 'nowrap';
+          textEl.style.height = '';
+          textEl.style.wordBreak = '';
+          textEl.style.fontSize = singleSize + 'px';
+          return singleSize;
+        }
         textEl.style.whiteSpace = 'pre-wrap';
         textEl.style.height = usableH + 'px';
         textEl.style.wordBreak = wrapBreak;
         textEl.style.fontSize = wrapSize + 'px';
+        return wrapSize;
+      }
+
+      const size = fitLabel();
+
+      // Branch names: if the name came out smaller than readable because
+      // the strip is too short for its longest word (typical for a
+      // one-program branch), give the branch's content area just enough
+      // height for that word at the readable size, programs centered.
+      // Keep it only if the name actually gets bigger; otherwise undo,
+      // so branches limited by width (not height) never change.
+      const minReadable = Number(textEl.getAttribute('data-min-readable')) || 0;
+      const contentEl = minReadable && strip.parentElement
+        ? strip.parentElement.querySelector('.flyer-branch-content') : null;
+      if (!size || !contentEl || !wordSpans.length || size >= minReadable) return;
+
+      textEl.style.whiteSpace = 'nowrap';
+      textEl.style.height = '';
+      textEl.style.wordBreak = 'normal';
+      textEl.style.fontSize = minReadable + 'px';
+      const needed = Math.ceil(longestWordPx() + 2 + 1); // + padding + rounding slack
+      const have = strip.getBoundingClientRect().height / zoomLevel;
+      if (have >= needed) {
+        fitLabel();
+        return;
+      }
+
+      const saved = {
+        minHeight: contentEl.style.minHeight,
+        display: contentEl.style.display,
+        flexDirection: contentEl.style.flexDirection,
+        justifyContent: contentEl.style.justifyContent,
+      };
+      // The strip spans the branch, whose height is the content's,
+      // so a content min-height of `needed` is exactly enough.
+      contentEl.style.minHeight = needed + 'px';
+      contentEl.style.display = 'flex';
+      contentEl.style.flexDirection = 'column';
+      contentEl.style.justifyContent = 'center';
+      if (fitLabel() <= size) {
+        Object.keys(saved).forEach(function (k) { contentEl.style[k] = saved[k]; });
+        fitLabel();
       }
     });
   }
@@ -335,28 +388,76 @@ const FlyerApp = (function () {
       ctx.textBaseline = 'middle';
       ctx.textAlign = 'center';
 
-      // Split text into lines (manual breaks or wrapped)
-      let lines;
-      if (isWrapped && textContent.indexOf('\n') !== -1) {
-        lines = textContent.split('\n');
-      } else if (isWrapped) {
-        // Approximate word wrapping for vertical text
-        // Each "line" in vertical mode stacks horizontally
-        const words = textContent.split(/\s+/);
-        lines = [];
-        let current = words[0] || '';
-        for (let i = 1; i < words.length; i++) {
-          const test = current + ' ' + words[i];
-          if (ctx.measureText(test).width > stripH - 8) {
-            lines.push(current);
-            current = words[i];
-          } else {
-            current = test;
+      // Read the line breaks the browser actually laid out, so the PDF
+      // matches the preview exactly. (Re-wrapping by estimate can pick
+      // different breaks, e.g. three lines where the preview has two,
+      // and spill past the strip.) Each vertical line is a column, so a
+      // new line starts wherever a character lands in a new column.
+      function laidOutLines() {
+        const node = textEl.firstChild;
+        if (!node || node.nodeType !== 3) return null;
+        const text = node.data;
+        const r = document.createRange();
+        const out = [];
+        let current = '';
+        let lastX = null;
+        for (let i = 0; i < text.length; i++) {
+          const ch = text[i];
+          if (ch === '\n') {
+            out.push(current);
+            current = '';
+            lastX = null;
+            continue;
           }
+          if (/\s/.test(ch)) {
+            current += ch;
+            continue;
+          }
+          r.setStart(node, i);
+          r.setEnd(node, i + 1);
+          const rect = r.getBoundingClientRect();
+          const x = rect.left + rect.width / 2;
+          if (lastX !== null && Math.abs(x - lastX) > rect.width / 2) {
+            out.push(current);
+            current = '';
+          }
+          current += ch;
+          lastX = x;
         }
-        if (current) lines.push(current);
-      } else {
-        lines = [textContent];
+        out.push(current);
+        const trimmed = out.map(function (l) { return l.trim(); });
+        if (!trimmed.some(Boolean)) return null;
+        return trimmed.map(function (l) {
+          if (textTransform === 'uppercase') return l.toUpperCase();
+          if (textTransform === 'lowercase') return l.toLowerCase();
+          return l;
+        });
+      }
+
+      // Split text into lines (as laid out, else manual breaks or estimated wrap)
+      let lines = isWrapped ? laidOutLines() : null;
+      if (!lines) {
+        if (isWrapped && textContent.indexOf('\n') !== -1) {
+          lines = textContent.split('\n');
+        } else if (isWrapped) {
+          // Fallback: approximate word wrapping for vertical text
+          // Each "line" in vertical mode stacks horizontally
+          const words = textContent.split(/\s+/);
+          lines = [];
+          let current = words[0] || '';
+          for (let i = 1; i < words.length; i++) {
+            const test = current + ' ' + words[i];
+            if (ctx.measureText(test).width > stripH - 8) {
+              lines.push(current);
+              current = words[i];
+            } else {
+              current = test;
+            }
+          }
+          if (current) lines.push(current);
+        } else {
+          lines = [textContent];
+        }
       }
 
       // Draw lines vertically (rotated 90° CCW, reading bottom to top)
@@ -693,6 +794,7 @@ const FlyerApp = (function () {
     const nameEl = el('div', {
       'class': 'flyer-branch-name',
       'data-auto-size': 'true',
+      'data-min-readable': String(CONFIG.BRANCH_NAME_MIN_READABLE_PX),
       text: branch.name || '',
       style: {
         fontFamily: fontRoles.branchName,

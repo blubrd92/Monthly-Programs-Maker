@@ -95,6 +95,9 @@ Programs support:
 - **Footer**: Pinned at bottom, contains optional asterisk note + footer image
 - **Branch rectangles**: Left strip (name) + content area + right strip (address)
   - Strips use `writing-mode: vertical-rl` with auto-sizing
+  - Labels wrap between words only (never mid-word, except as a last resort when one word can't fit even at 6px)
+  - Branch names below `CONFIG.BRANCH_NAME_MIN_READABLE_PX` (11px) get a taller content area (`min-height`, programs centered) just big enough for the longest word, kept only if the name actually grows
+  - PDF: `rasterizeVerticalText()` copies the browser's laid-out line breaks (per-character column positions), so PDF strips match the preview
   - Filled mode: container `backgroundColor` fills gaps (with `backgroundClip: padding-box`)
   - Unfilled mode: colored border lines between strips and content
 
