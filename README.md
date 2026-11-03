@@ -39,7 +39,7 @@ npx serve .
 
 A closure at all three branches (Downtown, Northgate, Al Boro CC) becomes a single black row at the top of the flyer with no branch name. Events with no branch go to a grey **Offsite** group at the bottom, with the location in the subtitle; it only appears when an import needs it.
 
-For the Spanish flyer, use the bookmark on the Spanish page (https://sanrafael.gov/es/library-events/). It takes each program's title from that event's Spanish page and the tool writes the dates in Spanish ("Todos los viernes", "Miércoles, 4 de noviembre"). This takes a few extra seconds. Titles the city hasn't translated stay in English.
+For the Spanish flyer, use the bookmark on the Spanish page (https://sanrafael.gov/es/library-events/). It takes each program's title from that event's Spanish page and the tool writes the dates in Spanish ("Todos los viernes", "Miércoles, 4 de noviembre"). This takes a few extra seconds. Titles the city hasn't translated stay in English. The Offsite group is labeled "Fuera de la biblioteca" on Spanish flyers.
 
 Importing removes the untouched sample "Program Name" rows from branches that receive events. Events already on the flyer (same name, date and time at that branch) show as *Already on flyer* and start unchecked, so pasting the same month twice is safe.
 

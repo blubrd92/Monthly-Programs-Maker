@@ -4732,11 +4732,16 @@ const FlyerApp = (function () {
     }
     if (!page) return keys;
     const allToken = CONFIG.EVENT_IMPORT.allBranchesClosure.token;
+    const offsiteId = CONFIG.EVENT_IMPORT.offsiteBranch.name;
     if (meta.mode === 'kid') {
-      (page.cards || []).forEach(function (c) { add(c.role === 'allClosures' ? allToken : c.branchName, c); });
+      (page.cards || []).forEach(function (c) {
+        const key = c.role === 'allClosures' ? allToken : (isOffsiteBranchName(c.branchName) ? offsiteId : c.branchName);
+        add(key, c);
+      });
     } else {
       (page.branches || []).forEach(function (b) {
-        const key = b.role === 'allClosures' ? allToken : b.name;
+        const key = b.role === 'allClosures' ? allToken
+          : (b.role === 'offsite' || isOffsiteBranchName(b.name) ? offsiteId : b.name);
         b.programs.forEach(function (p) { add(key, p); });
       });
     }
@@ -4753,6 +4758,26 @@ const FlyerApp = (function () {
    * the page's branches (kid mode: the default branches), and Offsite.
    * The all-branches row and Offsite are created on add if missing.
    */
+  /** The Offsite group, whichever language it was created in. */
+  function isOffsiteBranchName(name) {
+    const o = CONFIG.EVENT_IMPORT.offsiteBranch;
+    return name === o.name || name === o.spanishName;
+  }
+
+  /**
+   * Label for the Offsite group: an existing group keeps its name;
+   * otherwise Spanish imports get "Fuera de la biblioteca".
+   */
+  function offsiteLabel() {
+    const o = CONFIG.EVENT_IMPORT.offsiteBranch;
+    const page = getActivePage();
+    if (meta.mode !== 'kid' && page && page.branches) {
+      const existing = page.branches.find(function (b) { return b.role === 'offsite' || isOffsiteBranchName(b.name); });
+      if (existing && existing.name) return existing.name;
+    }
+    return importPayload && importPayload.lang === 'es' ? o.spanishName : o.name;
+  }
+
   function getImportBranchOptions() {
     const imp = CONFIG.EVENT_IMPORT;
     let names;
@@ -4761,17 +4786,18 @@ const FlyerApp = (function () {
     } else {
       const page = getActivePage();
       names = ((page && page.branches) || []).filter(function (b) {
-        return b.role !== 'allClosures';
+        return b.role !== 'allClosures' && b.role !== 'offsite' && !isOffsiteBranchName(b.name);
       }).map(function (b) { return b.name; });
     }
-    const options = [imp.allBranchesClosure.token].concat(names);
-    if (!matchBranchName(imp.offsiteBranch.name, names)) options.push(imp.offsiteBranch.name);
-    return options;
+    // Offsite always listed last under its id; shown with offsiteLabel()
+    return [imp.allBranchesClosure.token].concat(names, [imp.offsiteBranch.name]);
   }
 
   function importOptionLabel(name) {
-    const all = CONFIG.EVENT_IMPORT.allBranchesClosure;
-    return name === all.token ? all.label : name;
+    const imp = CONFIG.EVENT_IMPORT;
+    if (name === imp.allBranchesClosure.token) return imp.allBranchesClosure.label;
+    if (name === imp.offsiteBranch.name) return offsiteLabel();
+    return name;
   }
 
   function matchBranchName(name, options) {
@@ -4991,16 +5017,16 @@ const FlyerApp = (function () {
       }
       return top;
     }
-    const existing = page.branches.find(function (b) { return b.name === branchName; });
-    if (existing) return existing;
     if (branchName === imp.offsiteBranch.name) {
-      const offsite = FlyerUtils.createBlankBranch(imp.offsiteBranch.name, '', imp.offsiteBranch.color);
+      const found = page.branches.find(function (b) { return b.role === 'offsite' || isOffsiteBranchName(b.name); });
+      if (found) return found;
+      const offsite = FlyerUtils.createBlankBranch(offsiteLabel(), '', imp.offsiteBranch.color);
       offsite.programs = [];
       offsite.role = 'offsite';
       page.branches.push(offsite);
       return offsite;
     }
-    return null;
+    return page.branches.find(function (b) { return b.name === branchName; }) || null;
   }
 
   function addImportedRows() {
@@ -5038,8 +5064,8 @@ const FlyerApp = (function () {
           topCards.push(card);
         } else if (r.branch === imp.offsiteBranch.name) {
           // The event's own place goes on the card's address line
-          card.branchId = imp.offsiteBranch.name;
-          card.branchName = imp.offsiteBranch.name;
+          card.branchId = offsiteLabel();
+          card.branchName = offsiteLabel();
           card.branchAddress = r.item.subtitle || '';
           card.branchColor = imp.offsiteBranch.color;
           page.cards.push(card);

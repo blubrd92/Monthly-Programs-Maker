@@ -239,7 +239,9 @@ const CONFIG = (function () {
       // on import (it is not part of the default page). Their location
       // goes in the subtitle (Kid Mode: the card's address line).
       offsiteBranch: {
-        name: 'Offsite',
+        name: 'Offsite', // also the internal id for import rows
+        // Label on flyers imported from the Spanish calendar page
+        spanishName: 'Fuera de la biblioteca',
         color: '#6e6e6e',
       },
       // Location parts dropped when shortening an address for a subtitle
