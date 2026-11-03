@@ -159,6 +159,76 @@ const EventsBookmarklet = (function () {
       return t.value;
     }
 
+    // ── 4. Spanish page (/es/…): the calendar's data is always English, but
+    // each event's own /es/ page is translated by the server. Fetch one page
+    // per distinct title (repeats share a title) and use its heading.
+    const lang = (/^es\b/i.test(document.documentElement.lang || '') ||
+      /^\/es(\/|$)/.test(window.location.pathname)) ? 'es' : 'en';
+    function spanishUrl(u) {
+      try {
+        const x = new URL(u, window.location.origin);
+        if (!/^\/es\//.test(x.pathname)) x.pathname = '/es' + x.pathname;
+        return x.href;
+      } catch (_e) {
+        return null;
+      }
+    }
+    function spanishTitleFrom(htmlText) {
+      const doc = new window.DOMParser().parseFromString(htmlText, 'text/html');
+      const h1 = doc.querySelector('h1.entry-title') || doc.querySelector('h1');
+      let t = h1 ? h1.textContent : '';
+      if (!t.trim()) {
+        const og = doc.querySelector('meta[property="og:title"]');
+        t = og ? og.getAttribute('content').replace(/\s+-\s+San Rafael, CA\s*$/i, '') : '';
+      }
+      return t.replace(/\s+/g, ' ').trim();
+    }
+    function addSpanishTitles(events) {
+      if (lang !== 'es') return Promise.resolve(0);
+      const urlByTitle = {};
+      events.forEach(function (e) {
+        if (e.url && !urlByTitle[e.title]) urlByTitle[e.title] = e.url;
+      });
+      const titles = Object.keys(urlByTitle);
+      const found = {};
+      let next = 0;
+      let done = 0;
+      setStatus('Getting Spanish titles… 0 of ' + titles.length);
+      function worker() {
+        if (next >= titles.length) return Promise.resolve();
+        const t = titles[next++];
+        const u = spanishUrl(urlByTitle[t]);
+        const page = u ? fetch(u, { credentials: 'same-origin' }).then(function (r) {
+          return r.ok ? r.text() : '';
+        }) : Promise.resolve('');
+        return page.then(function (h) {
+          const es = h ? spanishTitleFrom(h) : '';
+          if (es) found[t] = es;
+        }).catch(function () {
+          // Keep the English title for this one
+        }).then(function () {
+          done++;
+          setStatus('Getting Spanish titles… ' + done + ' of ' + titles.length);
+          return worker();
+        });
+      }
+      // A few at a time, to be gentle with the city's server
+      const workers = [];
+      for (let w = 0; w < 4; w++) workers.push(worker());
+      return Promise.all(workers).then(function () {
+        let kept = 0;
+        events.forEach(function (e) {
+          if (found[e.title]) {
+            e.titleEn = e.title;
+            e.title = found[e.title];
+          } else {
+            kept++;
+          }
+        });
+        return kept;
+      });
+    }
+
     // Always fetch fresh: the server tells browsers to cache the feed for 30 days
     Promise.all([
       fetch(eventsUrl, { cache: 'no-store', credentials: 'same-origin' }).then(function (r) {
@@ -193,20 +263,28 @@ const EventsBookmarklet = (function () {
       if (!events.length) {
         setStatus('No events found for ' + monthLabel + '. Use the calendar arrows to pick a month, then click the bookmark again.');
         setActions([closeBtn()]);
-        return;
+        return null;
       }
-
+      return addSpanishTitles(events).then(function (keptEnglish) {
+        return { events: events, keptEnglish: keptEnglish };
+      });
+    }).then(function (result) {
+      if (!result) return;
+      const events = result.events;
       const payload = {
         source: opts.source,
         version: opts.version,
         year: year,
         month: month,
         category: category,
+        lang: lang,
         fetchedAt: new Date().toISOString(),
         events: events,
       };
       const text = JSON.stringify(payload);
-      setStatus('Found ' + events.length + ' events for ' + monthLabel + '.\n' +
+      setStatus('Found ' + events.length + ' events for ' + monthLabel +
+        (lang === 'es' ? ' (Spanish titles)' : '') + '.\n' +
+        (result.keptEnglish ? result.keptEnglish + ' had no Spanish page and kept their English titles.\n' : '') +
         'Click Copy, then in the Flyer Maker click "Import Events" and paste.');
 
       function copied() {

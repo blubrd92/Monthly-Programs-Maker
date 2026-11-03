@@ -253,6 +253,10 @@ const CONFIG = (function () {
       spanishWeekdayNames: [
         'domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado',
       ],
+      // For series on Spanish flyers: "Todos los sábados"
+      spanishWeekdayPlurals: [
+        'domingos', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábados',
+      ],
       // Imported closures use the free-text override with these settings.
       // Text: one line per language, each with its own date, e.g.
       //   CLOSED – Veteran's Day: Wednesday, November 11

@@ -352,3 +352,61 @@ describe('Closure free text', () => {
     items.filter((i) => !i.isClosure).forEach((i) => expect(i.closureText).toBe(''));
   });
 });
+
+describe('Spanish calendar page imports', () => {
+  function spanishPayload() {
+    const p = novemberPayload();
+    p.lang = 'es';
+    // Titles as the /es/ event pages show them (closures come back doubled)
+    const es = {
+      'Downtown Storytime': 'Hora de cuentos en el centro',
+      'Drop-in Tech Help': 'Asistencia técnica sin cita previa',
+      'ESL Conversation Club': 'Club de conversación en inglés',
+      'First Wednesday Art Talk': 'Charla de arte del primer miércoles',
+      'CLOSED – Veteran’s Day / CERRADO': 'CERRADO – Día de los Veteranos / CERRADO – Día de los Veteranos',
+      // Real example: machine-translated English half, then the city's own Spanish
+      'CLOSED – Thanksgiving Holiday / CERRADO': 'CERRADO – Día festivo de Acción de Gracias / CERRADO – Celebración del Día de Acción de Gracias',
+    };
+    p.events.forEach((e) => { if (es[e.title]) e.title = es[e.title]; });
+    return p;
+  }
+
+  it('keeps the language from the copied events', () => {
+    const res = FlyerUtils.parseEventsPayload(JSON.stringify({
+      source: 'sr-library-events', version: 1, year: 2026, month: 11, lang: 'es', events: [],
+    }));
+    expect(res.payload.lang).toBe('es');
+    const en = FlyerUtils.parseEventsPayload(JSON.stringify({
+      source: 'sr-library-events', version: 1, year: 2026, month: 11, events: [],
+    }));
+    expect(en.payload.lang).toBe('en');
+  });
+
+  it('writes single dates the Spanish way, lowercase month', () => {
+    const items = FlyerUtils.buildImportItems(spanishPayload());
+    expect(items.find((i) => i.name === 'Charla de arte del primer miércoles').dateText).toBe('Miércoles, 4 de noviembre');
+  });
+
+  it('writes weekly series as "Todos los ..." and partial ones with dates', () => {
+    const items = FlyerUtils.buildImportItems(spanishPayload());
+    expect(find(items, 'Hora de cuentos en el centro', 'Downtown')[0].dateText).toBe('Todos los viernes');
+    const ng = find(items, 'Asistencia técnica sin cita previa', 'Northgate').map((i) => i.dateText).sort();
+    expect(ng).toEqual(['Todos los martes', 'Todos los sábados']);
+    expect(find(items, 'Asistencia técnica sin cita previa', 'Al Boro CC')[0].dateText).toBe('Jueves 5 y 12 de noviembre');
+    expect(find(items, 'Club de conversación en inglés', 'Online')[0].dateText).toBe('Sábados 7 y 21 de noviembre');
+  });
+
+  it('gives closures one Spanish line from the doubled title', () => {
+    const items = FlyerUtils.buildImportItems(spanishPayload());
+    const vet = items.find((i) => i.name.indexOf('Veteranos') !== -1);
+    expect(vet.closureText).toBe('CERRADO – Día de los Veteranos: miércoles 11 de noviembre');
+    const tg = items.find((i) => i.name.indexOf('Gracias') !== -1);
+    expect(tg.dateText).toBe('Jueves 26 y viernes 27 de noviembre');
+    expect(tg.closureText).toBe('CERRADO – Celebración del Día de Acción de Gracias: jueves 26 y viernes 27 de noviembre');
+  });
+
+  it('leaves English imports exactly as before', () => {
+    const items = FlyerUtils.buildImportItems(novemberPayload());
+    expect(find(items, 'Downtown Storytime', 'Downtown')[0].dateText).toBe('Fridays');
+  });
+});

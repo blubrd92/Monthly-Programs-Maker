@@ -310,7 +310,9 @@ const FlyerUtils = (function () {
     const events = data.events.filter(function (e) {
       return e && typeof e.title === 'string' && parseLocalDateTime(e.start);
     });
-    return { ok: true, payload: { year: year, month: month, events: events } };
+    // Copied from the Spanish calendar page (/es/): titles are Spanish
+    const lang = data.lang === 'es' ? 'es' : 'en';
+    return { ok: true, payload: { year: year, month: month, lang: lang, events: events } };
   }
 
   /**
@@ -442,6 +444,67 @@ const FlyerUtils = (function () {
     return String(title || '').toLowerCase().replace(/\s+/g, ' ').trim();
   }
 
+  // ── Spanish flyer dates ──
+  // Months and weekdays are lowercase in Spanish; only the first letter
+  // of a date line is capitalized: "Miércoles, 4 de noviembre".
+
+  function capitalizeFirst(s) {
+    return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+  }
+
+  /** ["a"] → "a", ["a","b"] → "a y b", ["a","b","c"] → "a, b y c" */
+  function joinWithY(list) {
+    if (list.length <= 1) return list.join('');
+    return list.slice(0, -1).join(', ') + ' y ' + list[list.length - 1];
+  }
+
+  /** "Miércoles, 4 de noviembre" */
+  function formatEventDateEs(dt) {
+    const cfg = CONFIG.EVENT_IMPORT;
+    return capitalizeFirst(cfg.spanishWeekdayNames[dt.weekday]) + ', ' + dt.day + ' de ' +
+      cfg.spanishMonthNames[dt.month - 1];
+  }
+
+  /** "7 y 21 de noviembre", or "28 de octubre y 4 de noviembre" across months */
+  function formatDayListEs(dts) {
+    const months = CONFIG.EVENT_IMPORT.spanishMonthNames;
+    const parts = [];
+    dts.forEach(function (dt, i) {
+      const next = dts[i + 1];
+      const lastOfMonth = !next || next.month !== dt.month;
+      parts.push(dt.day + (lastOfMonth ? ' de ' + months[dt.month - 1] : ''));
+    });
+    return joinWithY(parts);
+  }
+
+  /**
+   * Spanish series: "Todos los sábados", "Todos los miércoles, viernes y
+   * sábados"; partial: "Sábados 7 y 21 de noviembre". Same rules as the
+   * English version (closure days count as covered).
+   */
+  function formatSeriesDatesEs(dts, closed, year, month) {
+    const cfg = CONFIG.EVENT_IMPORT;
+    const have = {};
+    dts.forEach(function (dt) { have[dt.dayKey] = true; });
+    const weekdays = [];
+    dts.forEach(function (dt) {
+      if (weekdays.indexOf(dt.weekday) === -1) weekdays.push(dt.weekday);
+    });
+    weekdays.sort();
+    const everyWeek = weekdays.every(function (wd) {
+      return listMonthWeekdays(year, month, wd).every(function (k) {
+        return have[k] || closed[k];
+      });
+    });
+    if (everyWeek) {
+      return 'Todos los ' + joinWithY(weekdays.map(function (wd) { return cfg.spanishWeekdayPlurals[wd]; }));
+    }
+    if (weekdays.length === 1) {
+      return capitalizeFirst(cfg.spanishWeekdayPlurals[weekdays[0]]) + ' ' + formatDayListEs(dts);
+    }
+    return formatDayListEs(dts);
+  }
+
   /**
    * Spanish date for one event or an all-day span (end exclusive):
    *   "miércoles 11 de noviembre"
@@ -469,11 +532,19 @@ const FlyerUtils = (function () {
    * its own date. City titles look like "CLOSED – X / CERRADO – Y"; any
    * other title stays whole on one line, with the date in its language.
    */
-  function buildClosureText(title, englishDate, spanishDate, timeText) {
+  function buildClosureText(title, englishDate, spanishDate, timeText, lang) {
     const t = String(title || '').trim();
     const when = function (date) { return date + (timeText ? ', ' + timeText : ''); };
     const parts = t.split(/\s+\/\s+/);
     const spanishRe = /^\s*cerrad/i;
+    if (lang === 'es') {
+      // Spanish page titles come back as "CERRADO – X / CERRADO – Y": the
+      // site machine-translates the English half too. The LAST Spanish
+      // part is the city's own wording, so keep that, with a Spanish date.
+      const spanishParts = parts.filter(function (p) { return spanishRe.test(p); });
+      const es = spanishParts.length ? spanishParts[spanishParts.length - 1] : parts[0];
+      return es + ': ' + when(spanishDate);
+    }
     if (parts.length === 2 && spanishRe.test(parts[1])) {
       return parts[0] + ': ' + when(englishDate) + '\n' + parts[1] + ': ' + when(spanishDate);
     }
@@ -546,6 +617,7 @@ const FlyerUtils = (function () {
     const opts = options || {};
     const cfg = opts.config || CONFIG.EVENT_IMPORT;
     const combine = opts.combineSeries !== false;
+    const es = payload.lang === 'es';
     const year = payload.year;
     const month = payload.month;
     const monthStart = year + '-' + pad2(month) + '-01';
@@ -636,9 +708,14 @@ const FlyerUtils = (function () {
       });
       let dateText;
       if (dts.length > 1) {
-        dateText = formatSeriesDates(dts, (first.branch && closedDays[first.branch]) || {}, year, month);
+        const closed = (first.branch && closedDays[first.branch]) || {};
+        dateText = es ? formatSeriesDatesEs(dts, closed, year, month) : formatSeriesDates(dts, closed, year, month);
       } else {
-        dateText = formatEventDateSpan(first.start, first.end, first.allDay);
+        dateText = es
+          ? (first.allDay && first.end && addDays(first.end, -1).dayKey > first.start.dayKey
+            ? capitalizeFirst(formatSpanishDateSpan(first.start, first.end, true))
+            : formatEventDateEs(first.start))
+          : formatEventDateSpan(first.start, first.end, first.allDay);
       }
       return {
         key: g.key + '|' + (first.branch || ''),
@@ -653,7 +730,8 @@ const FlyerUtils = (function () {
         closureText: first.isClosure ? buildClosureText(
           first.ev.title, dateText,
           formatSpanishDateSpan(first.start, first.end, first.allDay),
-          first.allDay ? '' : first.timeText
+          first.allDay ? '' : first.timeText,
+          payload.lang
         ) : '',
         count: dts.length,
         url: first.ev.url || '',
